@@ -1,0 +1,11 @@
+[package]
+name = "yuzuha"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0"
+description = "A library for computing SU(2) X-symbols for arbitrary tensor network contractions"
+keywords = ["tensor-network", "su2", "quantum", "clebsch-gordan", "fusion-trees"]
+categories = ["algorithms", "mathematics", "science"]
+readme = "README.md"
+
+[dependencies]
