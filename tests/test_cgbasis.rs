@@ -86,7 +86,14 @@ fn test_orthonormality_three_edges_helper(j0: Spin, j1: Spin, j2: Spin) {
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
     let dim_out = j2.dimension();
-    
+
+    // Verify each basis element has unit Frobenius norm
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     // Contract over first 2 axes using tensordot
     for alpha_idx in 0..om_dim {
         for beta_idx in 0..om_dim {
@@ -100,11 +107,12 @@ fn test_orthonormality_three_edges_helper(j0: Spin, j1: Spin, j2: Spin) {
                 &[Axis(0), Axis(1)],
             );
             
-            // Should be delta_alpha,beta * I
+            // With sqrt(2j+1) normalization, diagonal is 1/(2j+1)
+            let expected_diag = 1.0 / (dim_out as f64);
             for i in 0..dim_out {
                 for j in 0..dim_out {
                     let expected = if alpha_idx == beta_idx && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -179,7 +187,14 @@ fn test_orthonormality_four_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin)
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
     let dim_out = j3.dimension();
-    
+
+    // Verify each basis element has unit Frobenius norm
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     // Contract over first 3 axes using tensordot
     for alpha_idx in 0..om_dim {
         for beta_idx in 0..om_dim {
@@ -193,11 +208,12 @@ fn test_orthonormality_four_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin)
                 &[Axis(0), Axis(1), Axis(2)],
             );
             
-            // Should be delta_alpha,beta * I
+            // With sqrt(2j+1) normalization, diagonal is 1/(2j+1)
+            let expected_diag = 1.0 / (dim_out as f64);
             for i in 0..dim_out {
                 for j in 0..dim_out {
                     let expected = if alpha_idx == beta_idx && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -273,7 +289,14 @@ fn test_orthonormality_five_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin,
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
     let dim_out = j4.dimension();
-    
+
+    // Verify each basis element has unit Frobenius norm
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     // Contract over first 4 axes using tensordot
     for alpha in 0..om_dim {
         for beta in 0..om_dim {
@@ -287,11 +310,12 @@ fn test_orthonormality_five_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin,
                 &[Axis(0), Axis(1), Axis(2), Axis(3)],
             );
             
-            // Should be delta_alpha,beta * I
+            // With sqrt(2j+1) normalization, diagonal is 1/(2j+1)
+            let expected_diag = 1.0 / (dim_out as f64);
             for i in 0..dim_out {
                 for j in 0..dim_out {
                     let expected = if alpha == beta && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -368,7 +392,14 @@ fn test_orthonormality_six_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin, 
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
     let dim_out = j5.dimension();
-    
+
+    // Verify each basis element has unit Frobenius norm
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., .., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     // Contract over first 5 axes using tensordot
     for alpha in 0..om_dim {
         for beta in 0..om_dim {
@@ -382,11 +413,12 @@ fn test_orthonormality_six_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin, 
                 &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
             );
             
-            // Should be delta_alpha,beta * I
+            // With sqrt(2j+1) normalization, diagonal is 1/(2j+1)
+            let expected_diag = 1.0 / (dim_out as f64);
             for i in 0..dim_out {
                 for j in 0..dim_out {
                     let expected = if alpha == beta && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -411,26 +443,33 @@ fn test_orthonormality_three_edges_all_outgoing() {
         Edge::outgoing("c", j1),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    
+    let expected_diag = 1.0 / (j1.dimension() as f64);
+
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
-    
+
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     for alpha_idx in 0..om_dim {
         for beta_idx in 0..om_dim {
             let slice_alpha = data.slice(ndarray::s![.., .., .., alpha_idx]);
             let slice_beta = data.slice(ndarray::s![.., .., .., beta_idx]);
-            
+
             let result = ndarray_einsum::tensordot(
                 &slice_alpha,
                 &slice_beta,
                 &[Axis(0), Axis(1)],
                 &[Axis(0), Axis(1)],
             );
-            
+
             for i in 0..3 {
                 for j in 0..3 {
                     let expected = if alpha_idx == beta_idx && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -451,26 +490,33 @@ fn test_orthonormality_three_edges_all_incoming() {
         Edge::incoming("c", j_half),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    
+    let expected_diag = 1.0 / (j_half.dimension() as f64);
+
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
-    
+
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     for alpha_idx in 0..om_dim {
         for beta_idx in 0..om_dim {
             let slice_alpha = data.slice(ndarray::s![.., .., .., alpha_idx]);
             let slice_beta = data.slice(ndarray::s![.., .., .., beta_idx]);
-            
+
             let result = ndarray_einsum::tensordot(
                 &slice_alpha,
                 &slice_beta,
                 &[Axis(0), Axis(1)],
                 &[Axis(0), Axis(1)],
             );
-            
+
             for i in 0..2 {
                 for j in 0..2 {
                     let expected = if alpha_idx == beta_idx && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -491,26 +537,33 @@ fn test_orthonormality_three_edges_out_in_out() {
         Edge::outgoing("c", j2),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    
+    let expected_diag = 1.0 / (j2.dimension() as f64);
+
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
-    
+
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     for alpha_idx in 0..om_dim {
         for beta_idx in 0..om_dim {
             let slice_alpha = data.slice(ndarray::s![.., .., .., alpha_idx]);
             let slice_beta = data.slice(ndarray::s![.., .., .., beta_idx]);
-            
+
             let result = ndarray_einsum::tensordot(
                 &slice_alpha,
                 &slice_beta,
                 &[Axis(0), Axis(1)],
                 &[Axis(0), Axis(1)],
             );
-            
+
             for i in 0..5 {
                 for j in 0..5 {
                     let expected = if alpha_idx == beta_idx && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -536,26 +589,33 @@ fn test_orthonormality_four_edges_all_outgoing() {
         Edge::outgoing("d", j_half),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    
+    let expected_diag = 1.0 / (j_half.dimension() as f64);
+
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
-    
+
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     for alpha_idx in 0..om_dim {
         for beta_idx in 0..om_dim {
             let slice_alpha = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
             let slice_beta = data.slice(ndarray::s![.., .., .., .., beta_idx]);
-            
+
             let result = ndarray_einsum::tensordot(
                 &slice_alpha,
                 &slice_beta,
                 &[Axis(0), Axis(1), Axis(2)],
                 &[Axis(0), Axis(1), Axis(2)],
             );
-            
+
             for i in 0..2 {
                 for j in 0..2 {
                     let expected = if alpha_idx == beta_idx && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -577,26 +637,33 @@ fn test_orthonormality_four_edges_alternating() {
         Edge::incoming("d", j1),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    
+    let expected_diag = 1.0 / (j1.dimension() as f64);
+
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
-    
+
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     for alpha_idx in 0..om_dim {
         for beta_idx in 0..om_dim {
             let slice_alpha = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
             let slice_beta = data.slice(ndarray::s![.., .., .., .., beta_idx]);
-            
+
             let result = ndarray_einsum::tensordot(
                 &slice_alpha,
                 &slice_beta,
                 &[Axis(0), Axis(1), Axis(2)],
                 &[Axis(0), Axis(1), Axis(2)],
             );
-            
+
             for i in 0..3 {
                 for j in 0..3 {
                     let expected = if alpha_idx == beta_idx && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -623,26 +690,33 @@ fn test_orthonormality_five_edges_all_incoming() {
         Edge::incoming("e", j_half),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    
+    let expected_diag = 1.0 / (j_half.dimension() as f64);
+
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
-    
+
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     for alpha in 0..om_dim {
         for beta in 0..om_dim {
             let slice_alpha = data.slice(ndarray::s![.., .., .., .., .., alpha]);
             let slice_beta = data.slice(ndarray::s![.., .., .., .., .., beta]);
-            
+
             let result = ndarray_einsum::tensordot(
                 &slice_alpha,
                 &slice_beta,
                 &[Axis(0), Axis(1), Axis(2), Axis(3)],
                 &[Axis(0), Axis(1), Axis(2), Axis(3)],
             );
-            
+
             for i in 0..2 {
                 for j in 0..2 {
                     let expected = if alpha == beta && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -665,26 +739,33 @@ fn test_orthonormality_five_edges_mixed_complex() {
         Edge::incoming("e", j1),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    
+    let expected_diag = 1.0 / (j1.dimension() as f64);
+
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
-    
+
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     for alpha in 0..om_dim {
         for beta in 0..om_dim {
             let slice_alpha = data.slice(ndarray::s![.., .., .., .., .., alpha]);
             let slice_beta = data.slice(ndarray::s![.., .., .., .., .., beta]);
-            
+
             let result = ndarray_einsum::tensordot(
                 &slice_alpha,
                 &slice_beta,
                 &[Axis(0), Axis(1), Axis(2), Axis(3)],
                 &[Axis(0), Axis(1), Axis(2), Axis(3)],
             );
-            
+
             for i in 0..3 {
                 for j in 0..3 {
                     let expected = if alpha == beta && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -712,26 +793,33 @@ fn test_orthonormality_six_edges_all_outgoing() {
         Edge::outgoing("f", j_half),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    
+    let expected_diag = 1.0 / (j_half.dimension() as f64);
+
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
-    
+
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., .., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     for alpha in 0..om_dim {
         for beta in 0..om_dim {
             let slice_alpha = data.slice(ndarray::s![.., .., .., .., .., .., alpha]);
             let slice_beta = data.slice(ndarray::s![.., .., .., .., .., .., beta]);
-            
+
             let result = ndarray_einsum::tensordot(
                 &slice_alpha,
                 &slice_beta,
                 &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
                 &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
             );
-            
+
             for i in 0..2 {
                 for j in 0..2 {
                     let expected = if alpha == beta && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
@@ -755,26 +843,33 @@ fn test_orthonormality_six_edges_alternating_pattern() {
         Edge::outgoing("f", j1),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    
+    let expected_diag = 1.0 / (j1.dimension() as f64);
+
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
-    
+
+    for alpha_idx in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., .., .., .., alpha_idx]);
+        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
+        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
+    }
+
     for alpha in 0..om_dim {
         for beta in 0..om_dim {
             let slice_alpha = data.slice(ndarray::s![.., .., .., .., .., .., alpha]);
             let slice_beta = data.slice(ndarray::s![.., .., .., .., .., .., beta]);
-            
+
             let result = ndarray_einsum::tensordot(
                 &slice_alpha,
                 &slice_beta,
                 &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
                 &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
             );
-            
+
             for i in 0..3 {
                 for j in 0..3 {
                     let expected = if alpha == beta && i == j {
-                        1.0
+                        expected_diag
                     } else {
                         0.0
                     };
