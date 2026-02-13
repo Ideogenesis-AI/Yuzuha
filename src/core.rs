@@ -325,9 +325,27 @@ impl CGSpec {
     ///
     /// This is the primary constructor - it computes all valid fusion trees
     /// for the given external edges using the Condon-Shortley convention.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the edge spins cannot satisfy SU(2) angular momentum
+    /// conservation (i.e., cannot couple to total j=0). This can happen for:
+    /// - Odd number of spin-1/2 particles (fermionic parity violation)
+    /// - Edge configurations that violate triangle inequalities
     pub fn from_edges(edges: Vec<Edge>) -> Result<Self> {
         let j_list: Vec<Spin> = edges.iter().map(|e| e.j).collect();
         let alphas = crate::builders::om_basis::enumerate_alpha(&j_list);
+        
+        if alphas.is_empty() {
+            return Err(YuzuhaError::InvalidCGTSpec(
+                format!(
+                    "Edge spins {:?} do not satisfy SU(2) angular momentum conservation. \
+                     Cannot construct valid fusion tree coupling to j=0. \
+                     Common causes: odd number of fermions (j=1/2) or incompatible spin values.",
+                    j_list.iter().map(|j| format!("j={}/{}", j.twice(), 2)).collect::<Vec<_>>()
+                )
+            ));
+        }
         
         Ok(CGSpec {
             edges,
