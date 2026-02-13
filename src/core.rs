@@ -497,44 +497,77 @@ impl CGTensor {
 
 /// Specification for contracting two CGTs
 ///
-/// Defines which legs from CGT A connect to which legs from CGT B.
+/// Defines which edges from CGT A connect to which edges from CGT B.
+/// Similar to numpy's tensordot axes parameter.
+///
+/// # Examples
+///
+/// Single edge contraction:
+/// ```
+/// # use yuzuha::Contraction;
+/// // Contract edge 1 from A with edge 0 from B
+/// let contraction = Contraction::new(&[1], &[0]);
+/// ```
+///
+/// Multiple edge contraction (like numpy.tensordot):
+/// ```
+/// # use yuzuha::Contraction;
+/// // Contract edges 1,2 from A with edges 0,3 from B
+/// // Similar to: np.tensordot(A, B, axes=([1, 2], [0, 3]))
+/// let contraction = Contraction::new(&[1, 2], &[0, 3]);
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Contraction {
-    /// Pairs of (edge_index_from_A, edge_index_from_B) to contract
-    pub pairs: Vec<(usize, usize)>,
+    /// Edge indices from tensor A to contract
+    pub axes_a: Vec<usize>,
+    /// Edge indices from tensor B to contract (must have same length as axes_a)
+    pub axes_b: Vec<usize>,
 }
 
 impl Contraction {
-    /// Create a new contraction specification
-    pub fn new(pairs: Vec<(usize, usize)>) -> Self {
-        Contraction { pairs }
+    /// Create a new contraction specification (numpy tensordot style)
+    ///
+    /// # Arguments
+    /// * `axes_a` - Edge indices from tensor A
+    /// * `axes_b` - Edge indices from tensor B
+    ///
+    /// # Panics
+    /// Panics if the two arrays have different lengths.
+    pub fn new(axes_a: &[usize], axes_b: &[usize]) -> Self {
+        assert_eq!(
+            axes_a.len(),
+            axes_b.len(),
+            "Contraction axes must have same length"
+        );
+        Contraction {
+            axes_a: axes_a.to_vec(),
+            axes_b: axes_b.to_vec(),
+        }
     }
 
-    /// Create an empty contraction (no legs contracted)
+    /// Create an empty contraction (no edges contracted)
     pub fn empty() -> Self {
-        Contraction { pairs: Vec::new() }
-    }
-
-    /// Add a contraction pair
-    pub fn add_pair(&mut self, edge_a_idx: usize, edge_b_idx: usize) {
-        self.pairs.push((edge_a_idx, edge_b_idx));
+        Contraction {
+            axes_a: Vec::new(),
+            axes_b: Vec::new(),
+        }
     }
 
     /// Check if this is an empty contraction
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.pairs.is_empty()
+        self.axes_a.is_empty()
     }
 
-    /// Get the number of contracted pairs
+    /// Get the number of contracted edge pairs
     #[inline]
     pub fn num_pairs(&self) -> usize {
-        self.pairs.len()
+        self.axes_a.len()
     }
 
     /// Validate that the contraction is compatible with two CG specs
     pub fn validate(&self, spec_a: &CGSpec, spec_b: &CGSpec) -> Result<()> {
-        for &(idx_a, idx_b) in &self.pairs {
+        for (&idx_a, &idx_b) in self.axes_a.iter().zip(self.axes_b.iter()) {
             let spin_a = spec_a.edge_spin_at(idx_a)?;
             let spin_b = spec_b.edge_spin_at(idx_b)?;
 
@@ -649,11 +682,19 @@ mod tests {
 
     #[test]
     fn test_contraction() {
-        let mut contr = Contraction::empty();
+        let contr = Contraction::empty();
         assert!(contr.is_empty());
+        assert_eq!(contr.num_pairs(), 0);
 
-        contr.add_pair("a", "x");
-        contr.add_pair("b", "y");
-        assert_eq!(contr.num_pairs(), 2);
+        // Single contraction
+        let contr1 = Contraction::new(&[1], &[0]);
+        assert_eq!(contr1.num_pairs(), 1);
+        assert!(!contr1.is_empty());
+
+        // Multiple contractions (tensordot style)
+        let contr2 = Contraction::new(&[0, 2], &[1, 3]);
+        assert_eq!(contr2.num_pairs(), 2);
+        assert_eq!(contr2.axes_a, vec![0, 2]);
+        assert_eq!(contr2.axes_b, vec![1, 3]);
     }
 }
