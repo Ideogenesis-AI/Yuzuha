@@ -183,31 +183,7 @@ pub fn build_output_spec(
     CGSpec::from_edges(output_edges)
 }
 
-/// Compute X-symbol using canonical basis tensors (future implementation)
-///
-/// This is the target API that should be implemented:
-///
-/// ```ignore
-/// pub fn compute_xsymbol_efficient(
-///     basis_a: &CGTensor,
-///     basis_b: &CGTensor,
-///     contract_axes: &[(usize, usize)],
-/// ) -> Result<Array3<f64>> {
-///     // 1. Contract bases over external axes, keeping OM axes separate
-///     let contracted = contract_bases(basis_a, basis_b, contract_axes)?;
-///     
-///     // 2. Determine output spec
-///     let spec_c = build_output_spec_from_bases(basis_a, basis_b, contract_axes)?;
-///     
-///     // 3. Build output canonical basis
-///     let basis_c = CGTensor::canonical_basis_from_spec(spec_c)?;
-///     
-///     // 4. Project using tensordot
-///     let x_symbol = project_to_basis(contracted, basis_c)?;
-///     
-///     Ok(x_symbol)
-/// }
-/// ```
+
 #[allow(dead_code)]
 fn _future_api_placeholder() {}
 
