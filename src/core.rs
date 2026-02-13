@@ -227,12 +227,11 @@ impl fmt::Display for Direction {
 
 /// Edge of a tensor in the category-theoretic sense
 ///
-/// Each edge has an identifier, spin quantum number, and arrow direction.
+/// Each edge has a spin quantum number and arrow direction.
 /// This is the unified concept that replaces the old "Leg" terminology.
+/// Edges are identified by their position/index in the edge list.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Edge {
-    /// Unique identifier for this edge
-    pub id: String,
     /// Spin quantum number (doubled)
     pub j: Spin,
     /// Arrow direction
@@ -241,28 +240,23 @@ pub struct Edge {
 
 impl Edge {
     /// Create a new edge
-    pub fn new(id: impl Into<String>, j: Spin, dir: Direction) -> Self {
-        Edge {
-            id: id.into(),
-            j,
-            dir,
-        }
+    pub fn new(j: Spin, dir: Direction) -> Self {
+        Edge { j, dir }
     }
 
     /// Create with incoming direction
-    pub fn incoming(id: impl Into<String>, j: Spin) -> Self {
-        Self::new(id, j, Direction::Incoming)
+    pub fn incoming(j: Spin) -> Self {
+        Self::new(j, Direction::Incoming)
     }
 
     /// Create with outgoing direction
-    pub fn outgoing(id: impl Into<String>, j: Spin) -> Self {
-        Self::new(id, j, Direction::Outgoing)
+    pub fn outgoing(j: Spin) -> Self {
+        Self::new(j, Direction::Outgoing)
     }
 
     /// Flip the arrow direction
     pub fn with_flipped_direction(&self) -> Self {
         Edge {
-            id: self.id.clone(),
             j: self.j,
             dir: self.dir.flip(),
         }
@@ -277,7 +271,7 @@ impl Edge {
 
 impl fmt::Display for Edge {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}[j={}, {}]", self.id, self.j, self.dir)
+        write!(f, "[j={}, {}]", self.j, self.dir)
     }
 }
 
@@ -362,21 +356,12 @@ impl CGSpec {
         shape
     }
 
-    /// Find an edge by ID
-    pub fn find_edge(&self, id: &str) -> Option<&Edge> {
-        self.edges.iter().find(|edge| edge.id == id)
-    }
-
-    /// Find the index of an edge by ID
-    pub fn find_edge_index(&self, id: &str) -> Option<usize> {
-        self.edges.iter().position(|edge| edge.id == id)
-    }
-
-    /// Get the spin of a specific edge
-    pub fn edge_spin(&self, id: &str) -> Result<Spin> {
-        self.find_edge(id)
+    /// Get the spin of a specific edge by index
+    pub fn edge_spin_at(&self, idx: usize) -> Result<Spin> {
+        self.edges
+            .get(idx)
             .map(|edge| edge.j)
-            .ok_or_else(|| YuzuhaError::EdgeNotFound(id.to_string()))
+            .ok_or_else(|| YuzuhaError::IndexOutOfBounds(idx, self.edges.len()))
     }
 
 }
@@ -515,13 +500,13 @@ impl CGTensor {
 /// Defines which legs from CGT A connect to which legs from CGT B.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Contraction {
-    /// Pairs of (leg_id_from_A, leg_id_from_B) to contract
-    pub pairs: Vec<(String, String)>,
+    /// Pairs of (edge_index_from_A, edge_index_from_B) to contract
+    pub pairs: Vec<(usize, usize)>,
 }
 
 impl Contraction {
     /// Create a new contraction specification
-    pub fn new(pairs: Vec<(String, String)>) -> Self {
+    pub fn new(pairs: Vec<(usize, usize)>) -> Self {
         Contraction { pairs }
     }
 
@@ -531,8 +516,8 @@ impl Contraction {
     }
 
     /// Add a contraction pair
-    pub fn add_pair(&mut self, leg_a: impl Into<String>, leg_b: impl Into<String>) {
-        self.pairs.push((leg_a.into(), leg_b.into()));
+    pub fn add_pair(&mut self, edge_a_idx: usize, edge_b_idx: usize) {
+        self.pairs.push((edge_a_idx, edge_b_idx));
     }
 
     /// Check if this is an empty contraction
@@ -549,9 +534,9 @@ impl Contraction {
 
     /// Validate that the contraction is compatible with two CG specs
     pub fn validate(&self, spec_a: &CGSpec, spec_b: &CGSpec) -> Result<()> {
-        for (edge_a, edge_b) in &self.pairs {
-            let spin_a = spec_a.edge_spin(edge_a)?;
-            let spin_b = spec_b.edge_spin(edge_b)?;
+        for &(idx_a, idx_b) in &self.pairs {
+            let spin_a = spec_a.edge_spin_at(idx_a)?;
+            let spin_b = spec_b.edge_spin_at(idx_b)?;
 
             if spin_a != spin_b {
                 return Err(YuzuhaError::IncompatibleLegs(
@@ -625,9 +610,8 @@ mod tests {
     #[test]
     fn test_edge() {
         let j1 = Spin::new(2).unwrap();
-        let edge = Edge::incoming("a", j1);
+        let edge = Edge::incoming(j1);
 
-        assert_eq!(edge.id, "a");
         assert_eq!(edge.j, j1);
         assert_eq!(edge.dir, Direction::Incoming);
         assert_eq!(edge.dimension(), 3);
@@ -643,9 +627,9 @@ mod tests {
         let j3 = Spin::new(2).unwrap();
 
         let edges = vec![
-            Edge::incoming("a", j1),
-            Edge::incoming("b", j2),
-            Edge::outgoing("c", j3),
+            Edge::incoming(j1),
+            Edge::incoming(j2),
+            Edge::outgoing(j3),
         ];
 
         // For 3 edges, need 1 internal spin per alpha
@@ -655,8 +639,8 @@ mod tests {
 
         assert_eq!(cg.num_external(), 3);
         assert_eq!(cg.om_dimension(), 1);
-        assert!(cg.find_edge("a").is_some());
-        assert_eq!(cg.edge_spin("a").unwrap(), j1);
+        assert_eq!(cg.edges.len(), 3);
+        assert_eq!(cg.edge_spin_at(0).unwrap(), j1);
 
         // Test shape computation
         let shape = cg.shape();

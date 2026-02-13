@@ -152,13 +152,13 @@ mod tests {
         let m1 = MagneticNumber::new_unchecked(2);
 
         // Incoming edge: no change
-        let edge_in = Edge::incoming("a", j1);
+        let edge_in = Edge::incoming(j1);
         let (m_out, phase) = use_as_incoming(&edge_in, m1);
         assert_eq!(m_out.twice(), 2);
         assert_eq!(phase, 1.0);
 
         // Outgoing edge: flip with metric
-        let edge_out = Edge::outgoing("b", j1);
+        let edge_out = Edge::outgoing(j1);
         let (m_out, phase) = use_as_incoming(&edge_out, m1);
         assert_eq!(m_out.twice(), -2);
         assert_eq!(phase, g(j1, m1, m_out));
@@ -170,13 +170,13 @@ mod tests {
         let m1 = MagneticNumber::new_unchecked(2);
 
         // Outgoing edge: no change
-        let edge_out = Edge::outgoing("a", j1);
+        let edge_out = Edge::outgoing(j1);
         let (m_out, phase) = use_as_outgoing(&edge_out, m1);
         assert_eq!(m_out.twice(), 2);
         assert_eq!(phase, 1.0);
 
         // Incoming edge: flip with metric
-        let edge_in = Edge::incoming("b", j1);
+        let edge_in = Edge::incoming(j1);
         let (m_out, phase) = use_as_outgoing(&edge_in, m1);
         assert_eq!(m_out.twice(), -2);
         assert_eq!(phase, g(j1, m1, m_out));

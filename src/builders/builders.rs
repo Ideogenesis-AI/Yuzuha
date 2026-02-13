@@ -54,7 +54,7 @@ pub fn build_canonical_basis_data(spec: &CGSpec) -> Result<ArrayD<f64>> {
         } else {
             Direction::Outgoing
         };
-        crate::core::Edge::new(e.id.clone(), e.j, canonical_dir)
+        crate::core::Edge::new(e.j, canonical_dir)
     }).collect();
     
     let canonical_spec = CGSpec::from_edges(canonical_edges)?;
@@ -336,7 +336,7 @@ mod tests {
     #[test]
     fn test_build_canonical_basis_data_single_edge_errors() {
         let j1 = crate::core::Spin::new(2).unwrap();
-        let spec = CGSpec::from_edges(vec![Edge::incoming("a", j1)]).unwrap();
+        let spec = CGSpec::from_edges(vec![Edge::incoming(j1)]).unwrap();
         
         // Should error for n=1 (less than minimum of 3)
         assert!(build_canonical_basis_data(&spec).is_err());
@@ -346,8 +346,8 @@ mod tests {
     fn test_build_canonical_basis_data_two_edges_errors() {
         let j1 = crate::core::Spin::new(2).unwrap();
         let spec = CGSpec::from_edges(vec![
-            Edge::incoming("a", j1),
-            Edge::incoming("b", j1),
+            Edge::incoming(j1),
+            Edge::incoming(j1),
         ]).unwrap();
         
         // Should error for n=2 (less than minimum of 3)
@@ -359,9 +359,9 @@ mod tests {
         // Three j=1 spins: two incoming, one outgoing
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
-            Edge::incoming("a", j1),
-            Edge::incoming("b", j1),
-            Edge::outgoing("c", j1),
+            Edge::incoming(j1),
+            Edge::incoming(j1),
+            Edge::outgoing(j1),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
         
@@ -417,10 +417,10 @@ mod tests {
         // Four j=1/2 spins: three incoming, one outgoing
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
-            Edge::incoming("a", j_half),
-            Edge::incoming("b", j_half),
-            Edge::incoming("c", j_half),
-            Edge::outgoing("d", j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::outgoing(j_half),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
         
@@ -475,9 +475,9 @@ mod tests {
         // Three j=1 spins: all outgoing (non-canonical)
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
-            Edge::outgoing("a", j1),
-            Edge::outgoing("b", j1),
-            Edge::outgoing("c", j1),
+            Edge::outgoing(j1),
+            Edge::outgoing(j1),
+            Edge::outgoing(j1),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
 
@@ -525,9 +525,9 @@ mod tests {
         // Three j=1/2 spins: out, in, out (non-canonical)
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
-            Edge::outgoing("a", j_half),
-            Edge::incoming("b", j_half),
-            Edge::outgoing("c", j_half),
+            Edge::outgoing(j_half),
+            Edge::incoming(j_half),
+            Edge::outgoing(j_half),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
 
@@ -574,10 +574,10 @@ mod tests {
         // Four j=1/2 spins: all incoming (non-canonical)
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
-            Edge::incoming("a", j_half),
-            Edge::incoming("b", j_half),
-            Edge::incoming("c", j_half),
-            Edge::incoming("d", j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
 
@@ -624,10 +624,10 @@ mod tests {
         // Four j=1 spins: out, in, out, in (non-canonical)
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
-            Edge::outgoing("a", j1),
-            Edge::incoming("b", j1),
-            Edge::outgoing("c", j1),
-            Edge::incoming("d", j1),
+            Edge::outgoing(j1),
+            Edge::incoming(j1),
+            Edge::outgoing(j1),
+            Edge::incoming(j1),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
 
@@ -674,9 +674,9 @@ mod tests {
         // Three j=1 spins: two incoming, one outgoing
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
-            Edge::incoming("a", j1),
-            Edge::incoming("b", j1),
-            Edge::outgoing("c", j1),
+            Edge::incoming(j1),
+            Edge::incoming(j1),
+            Edge::outgoing(j1),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
         
@@ -709,10 +709,10 @@ mod tests {
         // Four j=1/2 spins: three incoming, one outgoing
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
-            Edge::incoming("a", j_half),
-            Edge::incoming("b", j_half),
-            Edge::incoming("c", j_half),
-            Edge::outgoing("d", j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::outgoing(j_half),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
         
@@ -747,8 +747,8 @@ mod tests {
         
         // n = 2 case
         let edges_2 = vec![
-            Edge::incoming("a", j1),
-            Edge::incoming("b", j1),
+            Edge::incoming(j1),
+            Edge::incoming(j1),
         ];
         let spec_2 = CGSpec::from_edges(edges_2).unwrap();
         let alpha_2 = &spec_2.alphas[0];
@@ -757,7 +757,7 @@ mod tests {
         assert!(result.is_err(), "n=2 should return error");
         
         // n = 1 case
-        let edges_1 = vec![Edge::incoming("a", j1)];
+        let edges_1 = vec![Edge::incoming(j1)];
         let spec_1 = CGSpec::from_edges(edges_1).unwrap();
         let alpha_1 = &spec_1.alphas[0];
         
@@ -770,9 +770,9 @@ mod tests {
         // Test that each OM slice is properly normalized
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
-            Edge::incoming("a", j_half),
-            Edge::incoming("b", j_half),
-            Edge::incoming("c", j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
         

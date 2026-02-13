@@ -54,9 +54,9 @@ pub enum YuzuhaError {
     #[error("Tensor dimension mismatch: expected {expected}, got {actual}")]
     DimensionMismatch { expected: usize, actual: usize },
 
-    /// Edge not found in tensor
-    #[error("Edge not found: {0}")]
-    EdgeNotFound(String),
+    /// Edge index out of bounds
+    #[error("Edge index {0} out of bounds (number of edges: {1})")]
+    IndexOutOfBounds(usize, usize),
 }
 
 /// Result type for Yuzuha operations
