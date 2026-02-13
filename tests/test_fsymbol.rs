@@ -29,6 +29,7 @@ use approx::assert_relative_eq;
 use ndarray::{Array2, Axis};
 use yuzuha::builders::atomic::build_cg3;
 use yuzuha::builders::builders::build_canonical_basis_data;
+use yuzuha::builders::rsymbol::compute_rsymbol;
 use yuzuha::core::{CGSpec, Edge, Spin};
 
 /// Invert edge direction using metric tensor
@@ -68,7 +69,7 @@ fn invert_edge_direction_axis(
 }
 
 #[test]
-fn test_fsymbol_four_spin_half() {
+fn test_xsymbol_fsymbol_consistency() {
     // Four spin-1/2 edges
     let j_half = Spin::new(1).unwrap();
     
@@ -197,6 +198,62 @@ fn test_fsymbol_four_spin_half() {
             assert_relative_eq!(
                 f_matrix[[alpha_idx, binary_idx]],
                 expected[alpha_idx][binary_idx],
+                epsilon = 1e-10
+            );
+        }
+    }
+}
+
+#[test]
+fn test_rsymbol_fsymbol_consistency() {
+    // Test that R-symbol for permutation matches the known F-symbol
+    // 
+    // Key insight: The F-symbol for 4 spin-1/2 edges involves transforming
+    // between two coupling schemes:
+    // - Canonical: ((e0 ⊗ e1) ⊗ e2) ⊗ e3 (left-associative)
+    // - Binary: (e0 ⊗ e1) ⊗ (e2 ⊗ e3) with axes swapped
+    //
+    // The axis swap is equivalent to permutation [0, 2, 1, 3], so the
+    // R-symbol for this permutation should match the F-symbol exactly.
+    
+    let j_half = Spin::new(1).unwrap();
+    
+    // Create spec with 4 spin-1/2 edges (all incoming)
+    let edges = vec![
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+    ];
+    let spec = CGSpec::from_edges(edges).unwrap();
+    
+    // Compute R-symbol for permutation that swaps e1 and e2
+    // Original: [e0, e1, e2, e3]
+    // Permuted: [e0, e2, e1, e3]
+    let permutation = vec![0, 2, 1, 3];
+    let r_symbol = compute_rsymbol(&spec, &permutation).unwrap();
+    
+    // Verify R-symbol is unitary
+    assert!(r_symbol.is_unitary(1e-10), "R-symbol should be unitary");
+    
+    // Verify R-symbol matches the expected F-symbol values for 4 spin-1/2 recoupling
+    // F[alpha, j_01]: canonical basis (j_01, j_012) indexed by alpha, binary basis by j_01
+    // Standard values: [[1/2, sqrt(3)/2], [sqrt(3)/2, -1/2]]
+    let sqrt3 = 3.0_f64.sqrt();
+    let expected_f = [
+        [0.5, sqrt3 / 2.0],
+        [sqrt3 / 2.0, -0.5],
+    ];
+    
+    let (dim_alpha, dim_binary) = r_symbol.dimensions();
+    assert_eq!(dim_alpha, 2);
+    assert_eq!(dim_binary, 2);
+    
+    for i in 0..dim_alpha {
+        for j in 0..dim_binary {
+            assert_relative_eq!(
+                r_symbol.get(i, j).unwrap(),
+                expected_f[i][j],
                 epsilon = 1e-10
             );
         }
