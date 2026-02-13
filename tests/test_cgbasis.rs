@@ -37,9 +37,10 @@ fn test_orthonormality_three_j1() {
 
 #[test]
 fn test_orthonormality_three_j_half() {
-    // Three j=1/2 spins
+    // Three spins: j=1/2, j=1/2, j=1 (valid configuration)
     let j_half = Spin::new(1).unwrap();
-    test_orthonormality_three_edges_helper(j_half, j_half, j_half);
+    let j1 = Spin::new(2).unwrap();
+    test_orthonormality_three_edges_helper(j_half, j_half, j1);
 }
 
 #[test]
@@ -230,9 +231,10 @@ fn test_orthonormality_four_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin)
 
 #[test]
 fn test_orthonormality_five_j_half() {
-    // Five j=1/2 spins
+    // Five spins with even number of fermions: j=1/2, j=1/2, j=1/2, j=1/2, j=1
     let j_half = Spin::new(1).unwrap();
-    test_orthonormality_five_edges_helper(j_half, j_half, j_half, j_half, j_half);
+    let j1 = Spin::new(2).unwrap();
+    test_orthonormality_five_edges_helper(j_half, j_half, j_half, j_half, j1);
 }
 
 #[test]
@@ -251,10 +253,10 @@ fn test_orthonormality_five_j2() {
 
 #[test]
 fn test_orthonormality_five_mixed_1() {
-    // j=1/2, j=1, j=1/2, j=1, j=1/2
+    // j=1/2, j=1, j=1/2, j=1, j=1 (even number of fermions)
     let j_half = Spin::new(1).unwrap();
     let j1 = Spin::new(2).unwrap();
-    test_orthonormality_five_edges_helper(j_half, j1, j_half, j1, j_half);
+    test_orthonormality_five_edges_helper(j_half, j1, j_half, j1, j1);
 }
 
 #[test]
@@ -353,10 +355,10 @@ fn test_orthonormality_six_j2() {
 
 #[test]
 fn test_orthonormality_six_mixed_1() {
-    // j=1/2, j=1, j=1/2, j=1, j=1/2, j=1
+    // j=1/2, j=1, j=1/2, j=1, j=1/2, j=1/2 (even number of fermions)
     let j_half = Spin::new(1).unwrap();
     let j1 = Spin::new(2).unwrap();
-    test_orthonormality_six_edges_helper(j_half, j1, j_half, j1, j_half, j1);
+    test_orthonormality_six_edges_helper(j_half, j1, j_half, j1, j_half, j_half);
 }
 
 #[test]
@@ -369,12 +371,11 @@ fn test_orthonormality_six_mixed_2() {
 
 #[test]
 fn test_orthonormality_six_mixed_3() {
-    // j=1/2, j=1, j=3/2, j=2, j=3/2, j=1
-    let j_half = Spin::new(1).unwrap();
+    // j=1, j=1, j=3/2, j=2, j=3/2, j=1 (even number of half-integers: 2)
     let j1 = Spin::new(2).unwrap();
     let j_3half = Spin::new(3).unwrap();
     let j2 = Spin::new(4).unwrap();
-    test_orthonormality_six_edges_helper(j_half, j1, j_3half, j2, j_3half, j1);
+    test_orthonormality_six_edges_helper(j1, j1, j_3half, j2, j_3half, j1);
 }
 
 /// Helper function for six-edge orthonormality tests
@@ -482,15 +483,16 @@ fn test_orthonormality_three_edges_all_outgoing() {
 
 #[test]
 fn test_orthonormality_three_edges_all_incoming() {
-    // Three j=1/2 spins, all incoming
+    // Three edges all incoming: j=1/2, j=1/2, j=1 (valid configuration)
     let j_half = Spin::new(1).unwrap();
+    let j1 = Spin::new(2).unwrap();
     let edges = vec![
         Edge::incoming(j_half),
         Edge::incoming(j_half),
-        Edge::incoming(j_half),
+        Edge::incoming(j1),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j_half.dimension() as f64);
+    let expected_diag = 1.0 / (j1.dimension() as f64);
 
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
@@ -513,8 +515,8 @@ fn test_orthonormality_three_edges_all_incoming() {
                 &[Axis(0), Axis(1)],
             );
 
-            for i in 0..2 {
-                for j in 0..2 {
+            for i in 0..3 {
+                for j in 0..3 {
                     let expected = if alpha_idx == beta_idx && i == j {
                         expected_diag
                     } else {
@@ -680,23 +682,24 @@ fn test_orthonormality_four_edges_alternating() {
 
 #[test]
 fn test_orthonormality_five_edges_all_incoming() {
-    // Five j=1/2 spins, all incoming
+    // Five edges all incoming: j=1/2, j=1/2, j=1/2, j=1/2, j=1 (even fermions)
     let j_half = Spin::new(1).unwrap();
+    let j1 = Spin::new(2).unwrap();
     let edges = vec![
         Edge::incoming(j_half),
         Edge::incoming(j_half),
         Edge::incoming(j_half),
         Edge::incoming(j_half),
-        Edge::incoming(j_half),
+        Edge::incoming(j1),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j_half.dimension() as f64);
+    let expected_diag = 1.0 / (j1.dimension() as f64);
 
     let data = build_canonical_basis_data(&spec).unwrap();
     let om_dim = spec.om_dimension();
 
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., .., .., alpha_idx]);
+    for alpha in 0..om_dim {
+        let slice = data.slice(ndarray::s![.., .., .., .., .., alpha]);
         let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
         assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
     }
@@ -713,8 +716,8 @@ fn test_orthonormality_five_edges_all_incoming() {
                 &[Axis(0), Axis(1), Axis(2), Axis(3)],
             );
 
-            for i in 0..2 {
-                for j in 0..2 {
+            for i in 0..3 {
+                for j in 0..3 {
                     let expected = if alpha == beta && i == j {
                         expected_diag
                     } else {

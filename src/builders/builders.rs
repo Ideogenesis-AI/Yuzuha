@@ -522,20 +522,22 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_three_edges_mixed_directions() {
-        // Three j=1/2 spins: out, in, out (non-canonical)
+        // Three edges with mixed directions: out, in, out (non-canonical)
+        // Use j=1/2, j=1/2, j=1 which can couple to j=0
         let j_half = Spin::new(1).unwrap();
+        let j1 = Spin::new(2).unwrap();
         let edges = vec![
             Edge::outgoing(j_half),
             Edge::incoming(j_half),
-            Edge::outgoing(j_half),
+            Edge::outgoing(j1),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
 
         let data = build_canonical_basis_data(&spec).unwrap();
         let om_dim = spec.om_dimension();
 
-        for alpha_idx in 0..om_dim {
-            let slice = data.slice(ndarray::s![.., .., .., alpha_idx]);
+        for alpha in 0..om_dim {
+            let slice = data.slice(ndarray::s![.., .., .., alpha]);
             let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
             assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
         }
@@ -543,10 +545,10 @@ mod tests {
         // Test orthonormality: with sqrt(2j+1) normalization, diagonal is 1/(2j+1)
         let j_last = spec.edges[2].j;
         let expected_diag = 1.0 / (j_last.dimension() as f64);
-        for alpha_idx in 0..om_dim {
-            for beta_idx in 0..om_dim {
-                let slice_alpha = data.slice(ndarray::s![.., .., .., alpha_idx]);
-                let slice_beta = data.slice(ndarray::s![.., .., .., beta_idx]);
+        for alpha in 0..om_dim {
+            for beta in 0..om_dim {
+                let slice_alpha = data.slice(ndarray::s![.., .., .., alpha]);
+                let slice_beta = data.slice(ndarray::s![.., .., .., beta]);
 
                 let result = ndarray_einsum::tensordot(
                     &slice_alpha,
@@ -555,9 +557,9 @@ mod tests {
                     &[Axis(0), Axis(1)],
                 );
 
-                for i in 0..2 {
-                    for j in 0..2 {
-                        let expected = if alpha_idx == beta_idx && i == j {
+                for i in 0..3 {
+                    for j in 0..3 {
+                        let expected = if alpha == beta && i == j {
                             expected_diag
                         } else {
                             0.0
@@ -768,11 +770,13 @@ mod tests {
     #[test]
     fn test_canonical_basis_normalization() {
         // Test that each OM slice is properly normalized
+        // Use j=1/2, j=1/2, j=1 which can couple to j=0
         let j_half = Spin::new(1).unwrap();
+        let j1 = Spin::new(2).unwrap();
         let edges = vec![
             Edge::incoming(j_half),
             Edge::incoming(j_half),
-            Edge::incoming(j_half),
+            Edge::incoming(j1),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
         
@@ -783,9 +787,12 @@ mod tests {
             let mut sum_squares = 0.0;
             
             // Sum over all external indices for this OM configuration
-            for i0 in 0..2 {
-                for i1 in 0..2 {
-                    for i2 in 0..2 {
+            let dim0 = spec.edges[0].dimension();
+            let dim1 = spec.edges[1].dimension();
+            let dim2 = spec.edges[2].dimension();
+            for i0 in 0..dim0 {
+                for i1 in 0..dim1 {
+                    for i2 in 0..dim2 {
                         let val = data[[i0, i1, i2, om_idx]];
                         sum_squares += val * val;
                     }

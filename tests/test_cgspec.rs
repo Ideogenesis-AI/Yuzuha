@@ -23,6 +23,7 @@
 //! **IMPORTANT**: All tests enforce angular momentum conservation (total j = 0)
 
 use yuzuha::core::{CGSpec, Direction, Edge, Spin};
+use yuzuha::YuzuhaError;
 
 // Helper to create spin from doubled value
 fn j(doubled: i32) -> Spin {
@@ -185,9 +186,8 @@ mod test_fifth_order {
 
     #[test]
     fn test_five_half_spins() {
-        // Five j=1/2 spins → total j=0
-        // ODD number of half-integer spins cannot give j=0!
-        // OM dim = 0
+        // Five j=1/2 spins cannot couple to j=0 (odd fermionic parity)
+        // Should fail with clear error message about SU(2) conservation
         let edges = vec![
             Edge::incoming(j(1)),
             Edge::incoming(j(1)),
@@ -196,10 +196,16 @@ mod test_fifth_order {
             Edge::incoming(j(1)),
         ];
 
-        let spec = CGSpec::from_edges(edges).unwrap();
-
-        assert_eq!(spec.num_external(), 5);
-        assert_eq!(spec.om_dimension(), 0); // Odd number of half-spins!
+        let result = CGSpec::from_edges(edges);
+        
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, YuzuhaError::InvalidCGTSpec(_)));
+        
+        // Check that error message mentions SU(2) and angular momentum
+        let err_msg = format!("{}", err);
+        assert!(err_msg.contains("SU(2)"));
+        assert!(err_msg.contains("angular momentum"));
     }
 
     #[test]
@@ -383,8 +389,8 @@ mod test_sixth_order {
 
     #[test]
     fn test_six_alternating_spins() {
-        // [j=1/2, j=1, j=1/2, j=1, j=1/2, j=1] → total j=0
-        // Three j=1/2 (odd) + three j=1 (odd) → tricky parity
+        // [j=1/2, j=1, j=1/2, j=1, j=1/2, j=1] has odd number of fermions
+        // Should fail with SU(2) conservation error
         let edges = vec![
             Edge::incoming(j(1)),
             Edge::incoming(j(2)),
@@ -394,16 +400,11 @@ mod test_sixth_order {
             Edge::incoming(j(2)),
         ];
 
-        let spec = CGSpec::from_edges(edges).unwrap();
-
-        assert_eq!(spec.num_external(), 6);
+        let result = CGSpec::from_edges(edges);
         
-        for alpha in &spec.alphas {
-            assert_eq!(alpha.len(), 4);
-        }
-
-        // May have configurations
-        assert!(spec.om_dimension() >= 0);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, YuzuhaError::InvalidCGTSpec(_)));
     }
 
     #[test]
