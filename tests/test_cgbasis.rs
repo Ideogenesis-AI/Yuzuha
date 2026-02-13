@@ -77,9 +77,9 @@ fn test_orthonormality_three_mixed_3() {
 /// Helper function for three-edge orthonormality tests
 fn test_orthonormality_three_edges_helper(j0: Spin, j1: Spin, j2: Spin) {
     let edges = vec![
-        Edge::new("a", j0, Direction::Incoming),
-        Edge::new("b", j1, Direction::Incoming),
-        Edge::new("c", j2, Direction::Outgoing),
+        Edge::new(j0, Direction::Incoming),
+        Edge::new(j1, Direction::Incoming),
+        Edge::new(j2, Direction::Outgoing),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     
@@ -177,10 +177,10 @@ fn test_orthonormality_four_mixed_3() {
 /// Helper function for four-edge orthonormality tests
 fn test_orthonormality_four_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin) {
     let edges = vec![
-        Edge::new("a", j0, Direction::Incoming),
-        Edge::new("b", j1, Direction::Incoming),
-        Edge::new("c", j2, Direction::Incoming),
-        Edge::new("d", j3, Direction::Outgoing),
+        Edge::new(j0, Direction::Incoming),
+        Edge::new(j1, Direction::Incoming),
+        Edge::new(j2, Direction::Incoming),
+        Edge::new(j3, Direction::Outgoing),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     
@@ -278,11 +278,11 @@ fn test_orthonormality_five_mixed_3() {
 /// Helper function for five-edge orthonormality tests
 fn test_orthonormality_five_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin, j4: Spin) {
     let edges = vec![
-        Edge::new("a", j0, Direction::Incoming),
-        Edge::new("b", j1, Direction::Incoming),
-        Edge::new("c", j2, Direction::Incoming),
-        Edge::new("d", j3, Direction::Incoming),
-        Edge::new("e", j4, Direction::Outgoing),
+        Edge::new(j0, Direction::Incoming),
+        Edge::new(j1, Direction::Incoming),
+        Edge::new(j2, Direction::Incoming),
+        Edge::new(j3, Direction::Incoming),
+        Edge::new(j4, Direction::Outgoing),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     
@@ -380,12 +380,12 @@ fn test_orthonormality_six_mixed_3() {
 /// Helper function for six-edge orthonormality tests
 fn test_orthonormality_six_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin, j4: Spin, j5: Spin) {
     let edges = vec![
-        Edge::new("a", j0, Direction::Incoming),
-        Edge::new("b", j1, Direction::Incoming),
-        Edge::new("c", j2, Direction::Incoming),
-        Edge::new("d", j3, Direction::Incoming),
-        Edge::new("e", j4, Direction::Incoming),
-        Edge::new("f", j5, Direction::Outgoing),
+        Edge::new(j0, Direction::Incoming),
+        Edge::new(j1, Direction::Incoming),
+        Edge::new(j2, Direction::Incoming),
+        Edge::new(j3, Direction::Incoming),
+        Edge::new(j4, Direction::Incoming),
+        Edge::new(j5, Direction::Outgoing),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     
@@ -438,9 +438,9 @@ fn test_orthonormality_three_edges_all_outgoing() {
     // Three j=1 spins, all outgoing
     let j1 = Spin::new(2).unwrap();
     let edges = vec![
-        Edge::outgoing("a", j1),
-        Edge::outgoing("b", j1),
-        Edge::outgoing("c", j1),
+        Edge::outgoing(j1),
+        Edge::outgoing(j1),
+        Edge::outgoing(j1),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     let expected_diag = 1.0 / (j1.dimension() as f64);
@@ -485,9 +485,9 @@ fn test_orthonormality_three_edges_all_incoming() {
     // Three j=1/2 spins, all incoming
     let j_half = Spin::new(1).unwrap();
     let edges = vec![
-        Edge::incoming("a", j_half),
-        Edge::incoming("b", j_half),
-        Edge::incoming("c", j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     let expected_diag = 1.0 / (j_half.dimension() as f64);
@@ -532,9 +532,9 @@ fn test_orthonormality_three_edges_out_in_out() {
     // Three j=2 spins: out, in, out
     let j2 = Spin::new(4).unwrap();
     let edges = vec![
-        Edge::outgoing("a", j2),
-        Edge::incoming("b", j2),
-        Edge::outgoing("c", j2),
+        Edge::outgoing(j2),
+        Edge::incoming(j2),
+        Edge::outgoing(j2),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     let expected_diag = 1.0 / (j2.dimension() as f64);
@@ -583,10 +583,10 @@ fn test_orthonormality_four_edges_all_outgoing() {
     // Four j=1/2 spins, all outgoing
     let j_half = Spin::new(1).unwrap();
     let edges = vec![
-        Edge::outgoing("a", j_half),
-        Edge::outgoing("b", j_half),
-        Edge::outgoing("c", j_half),
-        Edge::outgoing("d", j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     let expected_diag = 1.0 / (j_half.dimension() as f64);
@@ -631,10 +631,10 @@ fn test_orthonormality_four_edges_alternating() {
     // Four j=1 spins: out, in, out, in
     let j1 = Spin::new(2).unwrap();
     let edges = vec![
-        Edge::outgoing("a", j1),
-        Edge::incoming("b", j1),
-        Edge::outgoing("c", j1),
-        Edge::incoming("d", j1),
+        Edge::outgoing(j1),
+        Edge::incoming(j1),
+        Edge::outgoing(j1),
+        Edge::incoming(j1),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     let expected_diag = 1.0 / (j1.dimension() as f64);
@@ -683,11 +683,11 @@ fn test_orthonormality_five_edges_all_incoming() {
     // Five j=1/2 spins, all incoming
     let j_half = Spin::new(1).unwrap();
     let edges = vec![
-        Edge::incoming("a", j_half),
-        Edge::incoming("b", j_half),
-        Edge::incoming("c", j_half),
-        Edge::incoming("d", j_half),
-        Edge::incoming("e", j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     let expected_diag = 1.0 / (j_half.dimension() as f64);
@@ -732,11 +732,11 @@ fn test_orthonormality_five_edges_mixed_complex() {
     // Five j=1 spins: in, out, in, out, in
     let j1 = Spin::new(2).unwrap();
     let edges = vec![
-        Edge::incoming("a", j1),
-        Edge::outgoing("b", j1),
-        Edge::incoming("c", j1),
-        Edge::outgoing("d", j1),
-        Edge::incoming("e", j1),
+        Edge::incoming(j1),
+        Edge::outgoing(j1),
+        Edge::incoming(j1),
+        Edge::outgoing(j1),
+        Edge::incoming(j1),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     let expected_diag = 1.0 / (j1.dimension() as f64);
@@ -785,12 +785,12 @@ fn test_orthonormality_six_edges_all_outgoing() {
     // Six j=1/2 spins, all outgoing
     let j_half = Spin::new(1).unwrap();
     let edges = vec![
-        Edge::outgoing("a", j_half),
-        Edge::outgoing("b", j_half),
-        Edge::outgoing("c", j_half),
-        Edge::outgoing("d", j_half),
-        Edge::outgoing("e", j_half),
-        Edge::outgoing("f", j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     let expected_diag = 1.0 / (j_half.dimension() as f64);
@@ -835,12 +835,12 @@ fn test_orthonormality_six_edges_alternating_pattern() {
     // Six j=1 spins: out, out, in, in, out, out
     let j1 = Spin::new(2).unwrap();
     let edges = vec![
-        Edge::outgoing("a", j1),
-        Edge::outgoing("b", j1),
-        Edge::incoming("c", j1),
-        Edge::incoming("d", j1),
-        Edge::outgoing("e", j1),
-        Edge::outgoing("f", j1),
+        Edge::outgoing(j1),
+        Edge::outgoing(j1),
+        Edge::incoming(j1),
+        Edge::incoming(j1),
+        Edge::outgoing(j1),
+        Edge::outgoing(j1),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     let expected_diag = 1.0 / (j1.dimension() as f64);

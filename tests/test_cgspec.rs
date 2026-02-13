@@ -57,10 +57,10 @@ mod test_fourth_order {
         // Path 2: j12=1 → j1⊗j1/2={j1/2,j3/2} → j1/2⊗j1/2={j0,j1} → j0 ✓ ; j3/2⊗j1/2={j1,j2} → no j0 ✗
         // Expected OM dim = 2
         let edges = vec![
-            Edge::incoming("a", j(1)),
-            Edge::incoming("b", j(1)),
-            Edge::incoming("c", j(1)),
-            Edge::incoming("d", j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -95,10 +95,10 @@ mod test_fourth_order {
         //   j3⊗j1={2,3,4} (no j0) ✗
         // Total: 1 + 1 + 1 = 3
         let edges = vec![
-            Edge::incoming("a", j(2)),
-            Edge::incoming("b", j(2)),
-            Edge::incoming("c", j(2)),
-            Edge::incoming("d", j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -120,10 +120,10 @@ mod test_fourth_order {
         // j2⊗j1 = {j1,j2,j3} (no j0) ✗
         // OM dim = 1
         let edges = vec![
-            Edge::incoming("a", j(0)),
-            Edge::incoming("b", j(2)),
-            Edge::incoming("c", j(2)),
-            Edge::incoming("d", j(2)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -138,10 +138,10 @@ mod test_fourth_order {
         // j1/2 ⊗ j1 = {j1/2, j3/2}
         // Complex calculation - just verify it runs
         let edges = vec![
-            Edge::incoming("a", j(1)),
-            Edge::incoming("b", j(2)),
-            Edge::incoming("c", j(3)),
-            Edge::incoming("d", j(4)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(3)),
+            Edge::incoming(j(4)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -162,10 +162,10 @@ mod test_fourth_order {
         // j2 ⊗ j2 = {j0,j1,j2,j3,j4}
         // Many paths possible
         let edges = vec![
-            Edge::incoming("a", j(4)),
-            Edge::incoming("b", j(4)),
-            Edge::incoming("c", j(4)),
-            Edge::incoming("d", j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -189,11 +189,11 @@ mod test_fifth_order {
         // ODD number of half-integer spins cannot give j=0!
         // OM dim = 0
         let edges = vec![
-            Edge::incoming("a", j(1)),
-            Edge::incoming("b", j(1)),
-            Edge::incoming("c", j(1)),
-            Edge::incoming("d", j(1)),
-            Edge::incoming("e", j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -208,11 +208,11 @@ mod test_fifth_order {
         // With j=0 constraint enforced
         // OM dim = 6 (verified by enumerate_alpha)
         let edges = vec![
-            Edge::incoming("a", j(2)),
-            Edge::incoming("b", j(2)),
-            Edge::incoming("c", j(2)),
-            Edge::incoming("d", j(2)),
-            Edge::incoming("e", j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -231,11 +231,11 @@ mod test_fifth_order {
         // j0⊗j0=j0, j0⊗j1=j1, j1⊗j1={j0,j1,j2}
         // With j=0 constraint: OM dim = 1
         let edges = vec![
-            Edge::incoming("a", j(0)),
-            Edge::incoming("b", j(0)),
-            Edge::incoming("c", j(2)),
-            Edge::incoming("d", j(2)),
-            Edge::incoming("e", j(2)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -256,11 +256,11 @@ mod test_fifth_order {
         // j0⊗j1/2 = j1/2 (unique)
         // Half-integer intermediate, so need to reach j=0 eventually
         let edges = vec![
-            Edge::incoming("a", j(0)),
-            Edge::incoming("b", j(1)),
-            Edge::incoming("c", j(2)),
-            Edge::incoming("d", j(3)),
-            Edge::incoming("e", j(4)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(3)),
+            Edge::incoming(j(4)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -281,11 +281,11 @@ mod test_fifth_order {
         // Two half-integer spins (even count) + three j=2
         // ODD total number → parity issue
         let edges = vec![
-            Edge::incoming("a", j(3)),
-            Edge::incoming("b", j(4)),
-            Edge::incoming("c", j(4)),
-            Edge::incoming("d", j(4)),
-            Edge::incoming("e", j(3)),
+            Edge::incoming(j(3)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(3)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -310,12 +310,12 @@ mod test_sixth_order {
         // Six j=1/2 spins → total j=0
         // EVEN number of half-integer spins CAN give j=0
         let edges = vec![
-            Edge::incoming("a", j(1)),
-            Edge::incoming("b", j(1)),
-            Edge::incoming("c", j(1)),
-            Edge::incoming("d", j(1)),
-            Edge::incoming("e", j(1)),
-            Edge::incoming("f", j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -335,12 +335,12 @@ mod test_sixth_order {
         // Six j=1 spins → total j=0
         // EVEN number of integer spins CAN give j=0
         let edges = vec![
-            Edge::incoming("a", j(2)),
-            Edge::incoming("b", j(2)),
-            Edge::incoming("c", j(2)),
-            Edge::incoming("d", j(2)),
-            Edge::incoming("e", j(2)),
-            Edge::incoming("f", j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -360,12 +360,12 @@ mod test_sixth_order {
         // [j=0, j=0, j=0, j=1, j=1, j=1] → total j=0
         // With j=0 constraint: OM dim = 1
         let edges = vec![
-            Edge::incoming("a", j(0)),
-            Edge::incoming("b", j(0)),
-            Edge::incoming("c", j(0)),
-            Edge::incoming("d", j(2)),
-            Edge::incoming("e", j(2)),
-            Edge::incoming("f", j(2)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -386,12 +386,12 @@ mod test_sixth_order {
         // [j=1/2, j=1, j=1/2, j=1, j=1/2, j=1] → total j=0
         // Three j=1/2 (odd) + three j=1 (odd) → tricky parity
         let edges = vec![
-            Edge::incoming("a", j(1)),
-            Edge::incoming("b", j(2)),
-            Edge::incoming("c", j(1)),
-            Edge::incoming("d", j(2)),
-            Edge::incoming("e", j(1)),
-            Edge::incoming("f", j(2)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -410,12 +410,12 @@ mod test_sixth_order {
     fn test_six_all_different_spins() {
         // [j=0, j=1/2, j=1, j=3/2, j=2, j=2] → total j=0
         let edges = vec![
-            Edge::incoming("a", j(0)),
-            Edge::incoming("b", j(1)),
-            Edge::incoming("c", j(2)),
-            Edge::incoming("d", j(3)),
-            Edge::incoming("e", j(4)),
-            Edge::incoming("f", j(4)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(3)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -434,12 +434,12 @@ mod test_sixth_order {
         // All j=2 spins → total j=0
         // Six even-integer spins CAN give j=0
         let edges = vec![
-            Edge::incoming("a", j(4)),
-            Edge::incoming("b", j(4)),
-            Edge::incoming("c", j(4)),
-            Edge::incoming("d", j(4)),
-            Edge::incoming("e", j(4)),
-            Edge::incoming("f", j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -463,9 +463,9 @@ mod test_edge_properties {
     fn test_edge_directions() {
         // Test that directions are preserved in CGSpec
         let edges = vec![
-            Edge::incoming("a", j(2)),
-            Edge::outgoing("b", j(2)),
-            Edge::incoming("c", j(2)),
+            Edge::incoming(j(2)),
+            Edge::outgoing(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges.clone()).unwrap();
@@ -477,40 +477,42 @@ mod test_edge_properties {
     }
 
     #[test]
-    fn test_edge_ids() {
-        // Test that edge IDs are preserved
+    fn test_edge_indexing() {
+        // Test that edges can be accessed by index
         let edges = vec![
-            Edge::incoming("alpha", j(2)),
-            Edge::incoming("beta", j(2)),
-            Edge::incoming("gamma", j(2)),
-            Edge::incoming("delta", j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
 
-        assert!(spec.find_edge("alpha").is_some());
-        assert!(spec.find_edge("beta").is_some());
-        assert!(spec.find_edge("gamma").is_some());
-        assert!(spec.find_edge("delta").is_some());
-        assert!(spec.find_edge("epsilon").is_none());
+        // Test valid indices
+        assert!(spec.edge_spin_at(0).is_ok());
+        assert!(spec.edge_spin_at(1).is_ok());
+        assert!(spec.edge_spin_at(2).is_ok());
+        assert!(spec.edge_spin_at(3).is_ok());
+        // Test invalid index
+        assert!(spec.edge_spin_at(4).is_err());
     }
 
     #[test]
     fn test_edge_spin_lookup() {
         let edges = vec![
-            Edge::incoming("x", j(1)),
-            Edge::incoming("y", j(3)),
-            Edge::incoming("z", j(4)),
-            Edge::incoming("w", j(2)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(3)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
 
-        assert_eq!(spec.edge_spin("x").unwrap(), j(1));
-        assert_eq!(spec.edge_spin("y").unwrap(), j(3));
-        assert_eq!(spec.edge_spin("z").unwrap(), j(4));
-        assert_eq!(spec.edge_spin("w").unwrap(), j(2));
-        assert!(spec.edge_spin("v").is_err());
+        assert_eq!(spec.edge_spin_at(0).unwrap(), j(1));
+        assert_eq!(spec.edge_spin_at(1).unwrap(), j(3));
+        assert_eq!(spec.edge_spin_at(2).unwrap(), j(4));
+        assert_eq!(spec.edge_spin_at(3).unwrap(), j(2));
+        assert!(spec.edge_spin_at(4).is_err());
     }
 }
 
@@ -524,10 +526,10 @@ mod test_special_cases {
         // j0⊗j0=j0 always
         // Only one OM configuration
         let edges = vec![
-            Edge::incoming("a", j(0)),
-            Edge::incoming("b", j(0)),
-            Edge::incoming("c", j(0)),
-            Edge::incoming("d", j(0)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(0)),
+            Edge::incoming(j(0)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -540,10 +542,10 @@ mod test_special_cases {
     fn test_symmetric_configuration() {
         // [j=1, j=1, j=1, j=1] → total j=0
         let edges = vec![
-            Edge::incoming("a", j(2)),
-            Edge::incoming("b", j(2)),
-            Edge::incoming("c", j(2)),
-            Edge::incoming("d", j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -560,10 +562,10 @@ mod test_special_cases {
     fn test_shape_calculation() {
         // Test that shape is computed correctly
         let edges = vec![
-            Edge::incoming("a", j(1)), // dim = 2
-            Edge::incoming("b", j(2)), // dim = 3
-            Edge::incoming("c", j(3)), // dim = 4
-            Edge::incoming("d", j(2)), // dim = 3
+            Edge::incoming(j(1)), // dim = 2
+            Edge::incoming(j(2)), // dim = 3
+            Edge::incoming(j(3)), // dim = 4
+            Edge::incoming(j(2)), // dim = 3
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -582,8 +584,8 @@ mod test_special_cases {
         // j2⊗j2 = {j0,j1,j2,j3,j4}
         // Only j=0 satisfies constraint
         let edges = vec![
-            Edge::incoming("a", j(4)),
-            Edge::incoming("b", j(4)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -606,9 +608,9 @@ mod test_manually_verified {
         // j2⊗j1 = {j1,j2,j3} (cannot give j=0) ✗
         // OM dim = 1, alpha = [j12=1]
         let edges = vec![
-            Edge::incoming("a", j(2)),
-            Edge::incoming("b", j(2)),
-            Edge::incoming("c", j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -624,10 +626,10 @@ mod test_manually_verified {
         // Detailed calculation as in test_four_half_spins
         // OM dim = 2
         let edges = vec![
-            Edge::incoming("a", j(1)),
-            Edge::incoming("b", j(1)),
-            Edge::incoming("c", j(1)),
-            Edge::incoming("d", j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -650,10 +652,10 @@ mod test_manually_verified {
         //   j2⊗j2 includes j0 ✓, j3⊗j2={j1,j2,j3,j4,j5} (no j0) ✗, j4⊗j2={j2,j3,j4,j5,j6} (no j0) ✗
         // Total: 1 + 1 + 1 = 3
         let edges = vec![
-            Edge::incoming("a", j(2)),
-            Edge::incoming("b", j(2)),
-            Edge::incoming("c", j(4)),
-            Edge::incoming("d", j(4)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(4)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();
@@ -670,12 +672,12 @@ mod test_manually_verified {
         // Six j=1 spins → total j=0
         // Complex but should have significant OM dimension
         let edges = vec![
-            Edge::incoming("a", j(2)),
-            Edge::incoming("b", j(2)),
-            Edge::incoming("c", j(2)),
-            Edge::incoming("d", j(2)),
-            Edge::incoming("e", j(2)),
-            Edge::incoming("f", j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
+            Edge::incoming(j(2)),
         ];
 
         let spec = CGSpec::from_edges(edges).unwrap();

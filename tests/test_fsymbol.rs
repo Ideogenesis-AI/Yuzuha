@@ -57,10 +57,10 @@ fn test_fsymbol_four_spin_half() {
     
     // Build canonical basis: 3 incoming + 1 outgoing
     let edges = vec![
-        Edge::incoming("a", j_half),
-        Edge::incoming("b", j_half),
-        Edge::incoming("c", j_half),
-        Edge::outgoing("d", j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::outgoing(j_half),
     ];
     let spec = CGSpec::from_edges(edges).unwrap();
     let canonical_basis = build_canonical_basis_data(&spec).unwrap();
