@@ -85,8 +85,8 @@ pub mod primitives;
 
 // Re-export commonly used types
 pub use builders::{
-    build_canonical_basis_data, build_cg3, compute_xsymbol, enumerate_alpha,
-    om_dimension, XSymbol,
+    build_canonical_basis_data, build_cg3, compute_rsymbol, compute_xsymbol, enumerate_alpha,
+    om_dimension, RSymbol, XSymbol,
 };
 pub use core::{CGSpec, CGTensor, Contraction, Direction, Edge, MagneticNumber, Spin};
 pub use error::{Result, YuzuhaError};
