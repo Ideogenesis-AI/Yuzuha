@@ -57,6 +57,10 @@ pub enum YuzuhaError {
     /// Edge index out of bounds
     #[error("Edge index {0} out of bounds (number of edges: {1})")]
     IndexOutOfBounds(usize, usize),
+
+    /// Cache operation error
+    #[error("Cache error: {0}")]
+    CacheError(String),
 }
 
 /// Result type for Yuzuha operations
