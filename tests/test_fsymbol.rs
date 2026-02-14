@@ -30,6 +30,7 @@ use ndarray::{Array2, Axis};
 use yuzuha::builders::atomic::build_cg3;
 use yuzuha::builders::builders::build_canonical_basis_data;
 use yuzuha::builders::rsymbol::compute_rsymbol;
+use yuzuha::builders::TestCacheGuard;
 use yuzuha::core::{CGSpec, Edge, Spin};
 
 /// Invert edge direction using metric tensor
@@ -70,6 +71,8 @@ fn invert_edge_direction_axis(
 
 #[test]
 fn test_xsymbol_fsymbol_consistency() {
+    let _guard = TestCacheGuard::new();
+    
     // Four spin-1/2 edges
     let j_half = Spin::new(1).unwrap();
     
