@@ -245,11 +245,14 @@ fn permute_external_axes(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::builders::TestCacheGuard;
     use crate::core::{Edge, Spin};
     use approx::assert_relative_eq;
 
     #[test]
     fn test_rsymbol_identity_permutation() {
+        let _guard = TestCacheGuard::new();
+        
         // Identity permutation should give identity matrix
         let j_half = Spin::new(1).unwrap();
         let spec = CGSpec::from_edges(vec![
@@ -279,6 +282,8 @@ mod tests {
 
     #[test]
     fn test_rsymbol_swap_first_two() {
+        let _guard = TestCacheGuard::new();
+        
         // Swap first two legs
         let j_half = Spin::new(1).unwrap();
         let spec = CGSpec::from_edges(vec![
@@ -311,6 +316,8 @@ mod tests {
 
     #[test]
     fn test_rsymbol_three_legs() {
+        let _guard = TestCacheGuard::new();
+        
         // Test with 3 legs (simpler case)
         let j1 = Spin::new(2).unwrap(); // j=1
         let spec = CGSpec::from_edges(vec![
@@ -381,6 +388,8 @@ mod tests {
 
     #[test]
     fn test_rsymbol_dimensions() {
+        let _guard = TestCacheGuard::new();
+        
         let j_half = Spin::new(1).unwrap();
         let spec = CGSpec::from_edges(vec![
             Edge::incoming(j_half),

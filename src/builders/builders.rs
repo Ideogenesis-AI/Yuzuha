@@ -394,12 +394,15 @@ fn set_om_slice(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::builders::TestCacheGuard;
     use crate::core::Edge;
     use approx::assert_relative_eq;
     use ndarray::Axis;
 
     #[test]
     fn test_build_canonical_basis_data_single_edge_errors() {
+        let _guard = TestCacheGuard::new();
+        
         let j1 = crate::core::Spin::new(2).unwrap();
         let spec = CGSpec::from_edges(vec![Edge::incoming(j1)]).unwrap();
         
@@ -409,6 +412,8 @@ mod tests {
     
     #[test]
     fn test_build_canonical_basis_data_two_edges_errors() {
+        let _guard = TestCacheGuard::new();
+        
         let j1 = crate::core::Spin::new(2).unwrap();
         let spec = CGSpec::from_edges(vec![
             Edge::incoming(j1),
@@ -421,6 +426,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_three_edges() {
+        let _guard = TestCacheGuard::new();
+        
         // Three j=1 spins: two incoming, one outgoing
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
@@ -479,6 +486,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_four_edges() {
+        let _guard = TestCacheGuard::new();
+        
         // Four j=1/2 spins: three incoming, one outgoing
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
@@ -537,6 +546,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_three_edges_all_outgoing() {
+        let _guard = TestCacheGuard::new();
+        
         // Three j=1 spins: all outgoing (non-canonical)
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
@@ -587,6 +598,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_three_edges_mixed_directions() {
+        let _guard = TestCacheGuard::new();
+        
         // Three edges with mixed directions: out, in, out (non-canonical)
         // Use j=1/2, j=1/2, j=1 which can couple to j=0
         let j_half = Spin::new(1).unwrap();
@@ -638,6 +651,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_four_edges_all_incoming() {
+        let _guard = TestCacheGuard::new();
+        
         // Four j=1/2 spins: all incoming (non-canonical)
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
@@ -688,6 +703,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_four_edges_alternating_directions() {
+        let _guard = TestCacheGuard::new();
+        
         // Four j=1 spins: out, in, out, in (non-canonical)
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
@@ -738,6 +755,8 @@ mod tests {
 
     #[test]
     fn test_build_single_om_tensor_three_edges() {
+        let _guard = TestCacheGuard::new();
+        
         // Three j=1 spins: two incoming, one outgoing
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
@@ -773,6 +792,8 @@ mod tests {
 
     #[test]
     fn test_build_single_om_tensor_four_edges() {
+        let _guard = TestCacheGuard::new();
+        
         // Four j=1/2 spins: three incoming, one outgoing
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
@@ -809,6 +830,8 @@ mod tests {
 
     #[test]
     fn test_build_single_om_tensor_invalid_cases() {
+        let _guard = TestCacheGuard::new();
+        
         // Test that n < 3 returns error
         let j1 = Spin::new(2).unwrap();
         
@@ -834,6 +857,8 @@ mod tests {
 
     #[test]
     fn test_canonical_basis_normalization() {
+        let _guard = TestCacheGuard::new();
+        
         // Test that each OM slice is properly normalized
         // Use j=1/2, j=1/2, j=1 which can couple to j=0
         let j_half = Spin::new(1).unwrap();
