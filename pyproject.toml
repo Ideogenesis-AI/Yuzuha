@@ -1,0 +1,51 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "yuzuha"
+version = "0.1.0"
+description = "SU(2) X-symbols for Tensor Networks - Python bindings"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "GPL-3.0" }
+keywords = ["tensor-network", "su2", "quantum", "clebsch-gordan", "fusion-trees"]
+authors = [
+    { name = "Changkai Zhang", email = "changkai.zhang@lmu.de" }
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+dependencies = [
+    "numpy>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-benchmark>=4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Ideogenesis-AI/Yuzuha"
+Repository = "https://github.com/Ideogenesis-AI/Yuzuha"
+Documentation = "https://github.com/Ideogenesis-AI/Yuzuha/blob/main/README.md"
+
+[tool.maturin]
+features = ["python"]
+python-source = "python"
+module-name = "yuzuha"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
