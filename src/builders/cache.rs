@@ -32,10 +32,25 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 /// Global database connection with lazy initialization
-static DB_CONNECTION: Lazy<Mutex<Option<Connection>>> = Lazy::new(|| Mutex::new(None));
+/// Stores (path, connection) to detect when path changes
+static DB_CONNECTION: Lazy<Mutex<Option<(PathBuf, Connection)>>> = Lazy::new(|| Mutex::new(None));
+
+/// Test-only: Override cache path (using thread-local storage for test isolation)
+#[cfg(test)]
+thread_local! {
+    static TEST_CACHE_PATH: std::cell::RefCell<Option<PathBuf>> = std::cell::RefCell::new(None);
+}
 
 /// Get the database path from environment variable or use default
 fn get_db_path() -> PathBuf {
+    // In tests, check thread-local override first
+    #[cfg(test)]
+    {
+        if let Some(path) = TEST_CACHE_PATH.with(|p| p.borrow().clone()) {
+            return path;
+        }
+    }
+    
     if let Ok(path) = std::env::var("YUZUHA_CACHE_PATH") {
         PathBuf::from(path)
     } else {
@@ -44,9 +59,7 @@ fn get_db_path() -> PathBuf {
 }
 
 /// Initialize the database connection and schema
-fn init_db() -> Result<Connection> {
-    let db_path = get_db_path();
-    
+fn init_db(db_path: PathBuf) -> Result<(PathBuf, Connection)> {
     // Create directory if it doesn't exist
     if let Some(parent) = db_path.parent() {
         std::fs::create_dir_all(parent)
@@ -66,16 +79,26 @@ fn init_db() -> Result<Connection> {
     )
     .map_err(|e| YuzuhaError::CacheError(format!("Failed to create table: {}", e)))?;
     
-    Ok(conn)
+    Ok((db_path, conn))
 }
 
 /// Get or initialize the database connection
-fn get_connection() -> Result<std::sync::MutexGuard<'static, Option<Connection>>> {
+/// 
+/// Automatically reconnects if the cache path has changed (important for test isolation)
+fn get_connection() -> Result<std::sync::MutexGuard<'static, Option<(PathBuf, Connection)>>> {
     let mut guard = DB_CONNECTION.lock()
         .map_err(|e| YuzuhaError::CacheError(format!("Failed to acquire lock: {}", e)))?;
     
-    if guard.is_none() {
-        *guard = Some(init_db()?);
+    let current_path = get_db_path();
+    
+    // Initialize if no connection, or reconnect if path changed
+    let needs_init = match guard.as_ref() {
+        None => true,
+        Some((stored_path, _)) => stored_path != &current_path,
+    };
+    
+    if needs_init {
+        *guard = Some(init_db(current_path)?);
     }
     
     Ok(guard)
@@ -114,7 +137,7 @@ fn deserialize_array(bytes: &[u8]) -> Result<ArrayD<f64>> {
 /// Some(ArrayD) if cached data exists, None otherwise
 pub fn query_canonical_basis(spins: &[Spin]) -> Result<Option<ArrayD<f64>>> {
     let mut conn_guard = get_connection()?;
-    let conn = conn_guard.as_mut()
+    let (_, conn) = conn_guard.as_mut()
         .ok_or_else(|| YuzuhaError::CacheError("Database connection not initialized".to_string()))?;
     
     let key = serialize_spins(spins);
@@ -144,7 +167,7 @@ pub fn query_canonical_basis(spins: &[Spin]) -> Result<Option<ArrayD<f64>>> {
 /// * `data` - Canonical basis array to cache
 pub fn store_canonical_basis(spins: &[Spin], data: &ArrayD<f64>) -> Result<()> {
     let mut conn_guard = get_connection()?;
-    let conn = conn_guard.as_mut()
+    let (_, conn) = conn_guard.as_mut()
         .ok_or_else(|| YuzuhaError::CacheError("Database connection not initialized".to_string()))?;
     
     let key = serialize_spins(spins);
@@ -159,6 +182,134 @@ pub fn store_canonical_basis(spins: &[Spin], data: &ArrayD<f64>) -> Result<()> {
     Ok(())
 }
 
+/// Reset the database connection (used for testing)
+fn reset_connection() -> Result<()> {
+    let mut guard = DB_CONNECTION.lock()
+        .map_err(|e| YuzuhaError::CacheError(format!("Failed to acquire lock: {}", e)))?;
+    *guard = None;
+    Ok(())
+}
+
+/// RAII guard for test cache isolation
+/// 
+/// Sets up a temporary cache directory and ensures cleanup on drop.
+/// This prevents tests from reading from or polluting the production cache.
+/// 
+/// **Note:** This type is intended for use in tests only. Each instance creates
+/// a unique temporary cache directory to ensure test isolation.
+/// 
+/// # Example
+/// ```no_run
+/// use yuzuha::builders::TestCacheGuard;
+/// 
+/// #[test]
+/// fn my_test() {
+///     let _guard = TestCacheGuard::new();
+///     // ... test code that uses build_canonical_basis_data ...
+///     // Cache is automatically cleaned up when _guard is dropped
+/// }
+/// ```
+pub struct TestCacheGuard {
+    temp_dir: std::path::PathBuf,
+}
+
+#[cfg(test)]
+impl TestCacheGuard {
+    /// Create a new test cache in a temporary directory
+    pub fn new() -> Self {
+        use std::fs;
+        
+        // Create a unique temporary directory for this test
+        let temp_dir = std::env::temp_dir().join(format!(
+            "yuzuha_test_cache_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        
+        fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
+        
+        // Set the cache path using thread-local storage (not env var)
+        // This ensures proper isolation between parallel tests
+        let cache_path = temp_dir.join("cgbasis.db");
+        TEST_CACHE_PATH.with(|p: &std::cell::RefCell<Option<PathBuf>>| {
+            *p.borrow_mut() = Some(cache_path);
+        });
+        
+        // Reset any existing connection for this thread
+        reset_connection().expect("Failed to reset connection");
+        
+        TestCacheGuard { temp_dir }
+    }
+}
+
+#[cfg(not(test))]
+impl TestCacheGuard {
+    /// Create a new test cache in a temporary directory
+    /// 
+    /// This version is used in integration tests where TEST_CACHE_PATH isn't available
+    pub fn new() -> Self {
+        use std::fs;
+        
+        // Create a unique temporary directory for this test
+        let temp_dir = std::env::temp_dir().join(format!(
+            "yuzuha_test_cache_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        
+        fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
+        
+        // Set the cache path using environment variable (for integration tests)
+        let cache_path = temp_dir.join("cgbasis.db");
+        // SAFETY: Setting environment variable in tests is safe as each test
+        // gets its own unique temporary directory, preventing conflicts.
+        unsafe {
+            std::env::set_var("YUZUHA_CACHE_PATH", &cache_path);
+        }
+        
+        // Reset any existing connection for this thread
+        reset_connection().expect("Failed to reset connection");
+        
+        TestCacheGuard { temp_dir }
+    }
+}
+
+#[cfg(test)]
+impl Drop for TestCacheGuard {
+    fn drop(&mut self) {
+        use std::fs;
+        
+        // Clean up: clear thread-local cache path, reset connection, and remove temp directory
+        TEST_CACHE_PATH.with(|p: &std::cell::RefCell<Option<PathBuf>>| {
+            *p.borrow_mut() = None;
+        });
+        let _ = reset_connection();
+        let _ = fs::remove_dir_all(&self.temp_dir);
+    }
+}
+
+#[cfg(not(test))]
+impl Drop for TestCacheGuard {
+    fn drop(&mut self) {
+        use std::fs;
+        
+        // Clean up: clear environment variable, reset connection, and remove temp directory
+        // SAFETY: Removing the environment variable we set earlier is safe.
+        // This is only called during test cleanup.
+        unsafe {
+            std::env::remove_var("YUZUHA_CACHE_PATH");
+        }
+        let _ = reset_connection();
+        let _ = fs::remove_dir_all(&self.temp_dir);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,6 +317,8 @@ mod tests {
 
     #[test]
     fn test_serialize_deserialize_array() {
+        let _guard = TestCacheGuard::new();
+        
         let array = arr2(&[[1.0, 2.0], [3.0, 4.0]]).into_dyn();
         let bytes = serialize_array(&array).unwrap();
         let recovered = deserialize_array(&bytes).unwrap();
@@ -176,6 +329,8 @@ mod tests {
 
     #[test]
     fn test_serialize_spins() {
+        let _guard = TestCacheGuard::new();
+        
         let j_half = Spin::new(1).unwrap();
         let j1 = Spin::new(2).unwrap();
         let spins = vec![j_half, j1, j_half];
@@ -184,5 +339,37 @@ mod tests {
         
         // Should be 3 * 4 bytes (3 i32 values)
         assert_eq!(bytes.len(), 12);
+    }
+
+    #[test]
+    fn test_cache_store_and_query() {
+        let _guard = TestCacheGuard::new();
+        
+        let j1 = Spin::new(2).unwrap();
+        let spins = vec![j1, j1, j1];
+        let array = arr2(&[[1.0, 2.0], [3.0, 4.0]]).into_dyn();
+        
+        // Store data
+        store_canonical_basis(&spins, &array).unwrap();
+        
+        // Query should return the stored data
+        let retrieved = query_canonical_basis(&spins).unwrap();
+        assert!(retrieved.is_some());
+        
+        let retrieved_array = retrieved.unwrap();
+        assert_eq!(array.shape(), retrieved_array.shape());
+        assert_eq!(array.as_slice(), retrieved_array.as_slice());
+    }
+
+    #[test]
+    fn test_cache_miss() {
+        let _guard = TestCacheGuard::new();
+        
+        let j1 = Spin::new(2).unwrap();
+        let spins = vec![j1, j1, j1];
+        
+        // Query non-existent data should return None
+        let result = query_canonical_basis(&spins).unwrap();
+        assert!(result.is_none());
     }
 }
