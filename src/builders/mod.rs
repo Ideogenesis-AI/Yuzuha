@@ -22,6 +22,7 @@
 
 pub mod atomic;
 pub mod builders;
+pub mod cache;
 pub mod om_basis;
 pub mod rsymbol;
 pub mod xsymbol;
@@ -32,3 +33,6 @@ pub use builders::build_canonical_basis_data;
 pub use om_basis::{enumerate_alpha, om_dimension};
 pub use rsymbol::{compute_rsymbol, RSymbol};
 pub use xsymbol::{compute_xsymbol, XSymbol};
+
+// Test utilities - exported without cfg(test) so integration tests can use it
+pub use cache::TestCacheGuard;

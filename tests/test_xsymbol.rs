@@ -23,6 +23,7 @@
 use yuzuha::core::{CGSpec, Contraction, Edge, Spin};
 use yuzuha::builders::builders::build_canonical_basis_data;
 use yuzuha::builders::xsymbol::{compute_xsymbol, build_output_spec};
+use yuzuha::builders::TestCacheGuard;
 use ndarray::{ArrayD, Axis};
 use rand::Rng;
 
@@ -31,6 +32,8 @@ use rand::Rng;
 /// 2. Via X-symbol: Use X-symbol to transform OM weights and build from basis_C
 #[test]
 fn test_xsymbol_consistency() {
+    let _guard = TestCacheGuard::new();
+    
     // Setup: CGSpec A has [j=1/2, j=1/2, j=1] (incoming, incoming, outgoing)
     let spec_a = CGSpec::from_edges(vec![
         Edge::incoming(Spin::new(1).unwrap()), // j=1/2
@@ -119,6 +122,8 @@ fn test_xsymbol_consistency() {
 /// Test with a different configuration: larger spins
 #[test]
 fn test_xsymbol_larger_spins() {
+    let _guard = TestCacheGuard::new();
+    
     // Setup: CGSpec A has [j=1, j=1, j=1] (incoming, incoming, outgoing)
     let spec_a = CGSpec::from_edges(vec![
         Edge::incoming(Spin::new(2).unwrap()),  // j=1
@@ -196,6 +201,8 @@ fn test_xsymbol_larger_spins() {
 /// Test with multiple contractions
 #[test]
 fn test_xsymbol_multiple_contractions() {
+    let _guard = TestCacheGuard::new();
+    
     // Setup: CGSpec A has [j=1/2, j=1/2, j=1, j=1] (in, in, out, out)
     let spec_a = CGSpec::from_edges(vec![
         Edge::incoming(Spin::new(1).unwrap()),  // j=1/2
@@ -275,6 +282,8 @@ fn test_xsymbol_multiple_contractions() {
 /// Test with spin-3/2 particles
 #[test]
 fn test_xsymbol_spin_3_2() {
+    let _guard = TestCacheGuard::new();
+    
     // Setup: CGSpec A has [j=3/2, j=1/2, j=1] (in, in, out)
     let spec_a = CGSpec::from_edges(vec![
         Edge::incoming(Spin::new(3).unwrap()),  // j=3/2
@@ -298,6 +307,8 @@ fn test_xsymbol_spin_3_2() {
 /// Test with spin-2 particles
 #[test]
 fn test_xsymbol_spin_2() {
+    let _guard = TestCacheGuard::new();
+    
     // Setup: CGSpec A has [j=2, j=1, j=1] (in, in, out)
     let spec_a = CGSpec::from_edges(vec![
         Edge::incoming(Spin::new(4).unwrap()),  // j=2
@@ -321,6 +332,8 @@ fn test_xsymbol_spin_2() {
 /// Test with 5-edge tensors
 #[test]
 fn test_xsymbol_5_edges() {
+    let _guard = TestCacheGuard::new();
+    
     // Setup: CGSpec A has 5 edges [j=1/2, j=1/2, j=1, j=1, j=1] (in, in, in, out, out)
     let spec_a = CGSpec::from_edges(vec![
         Edge::incoming(Spin::new(1).unwrap()),  // j=1/2
@@ -347,6 +360,8 @@ fn test_xsymbol_5_edges() {
 /// Test with 6-edge tensors
 #[test]
 fn test_xsymbol_6_edges() {
+    let _guard = TestCacheGuard::new();
+    
     // Setup: CGSpec A has 6 edges [j=1/2, j=1/2, j=1, j=1, j=1, j=1] (in, in, in, in, out, out)
     let spec_a = CGSpec::from_edges(vec![
         Edge::incoming(Spin::new(1).unwrap()),  // j=1/2
@@ -374,6 +389,8 @@ fn test_xsymbol_6_edges() {
 /// Test with mixed large spins and many edges
 #[test]
 fn test_xsymbol_mixed_large() {
+    let _guard = TestCacheGuard::new();
+    
     // Setup: CGSpec A has [j=3/2, j=1, j=1/2, j=2, j=1] (in, in, in, out, out)
     let spec_a = CGSpec::from_edges(vec![
         Edge::incoming(Spin::new(3).unwrap()),  // j=3/2
@@ -400,6 +417,8 @@ fn test_xsymbol_mixed_large() {
 /// Test with single edge contraction on large tensors
 #[test]
 fn test_xsymbol_single_contraction_large() {
+    let _guard = TestCacheGuard::new();
+    
     // Setup: CGSpec A has 6 edges [j=1, j=1, j=1, j=1, j=1, j=2] (in, in, in, in, in, out)
     let spec_a = CGSpec::from_edges(vec![
         Edge::incoming(Spin::new(2).unwrap()),  // j=1

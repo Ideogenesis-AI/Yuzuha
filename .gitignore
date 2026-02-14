@@ -2,7 +2,8 @@
 #               .gitignore for Yuzuha                     #
 # ------------------------------------------------------- #
 
-# To be supplied ...
+# SQLite cache for canonical basis data
+.yuzuha/
 
 
 

@@ -20,7 +20,8 @@
 //! Functions to construct canonical basis tensors from CGSpec.
 
 use crate::builders::atomic::build_cg3;
-use crate::core::{CGSpec, Direction, MagneticNumber, Spin};
+use crate::builders::cache;
+use crate::core::{CGSpec, Direction, Edge, MagneticNumber, Spin};
 use crate::error::{Result, YuzuhaError};
 use ndarray::{Array, ArrayD, Axis, IxDyn};
 
@@ -31,6 +32,7 @@ use ndarray::{Array, ArrayD, Axis, IxDyn};
 /// along the last axis.
 ///
 /// Handles arbitrary arrow directions by converting to canonical form (n-1 incoming, 1 outgoing).
+/// Uses SQLite caching to avoid recomputation of expensive basis tensors.
 ///
 /// # Arguments
 /// * `spec` - CG specification with edges and alphas
@@ -47,70 +49,100 @@ pub fn build_canonical_basis_data(spec: &CGSpec) -> Result<ArrayD<f64>> {
         ));
     }
     
-    // Create a canonical spec with (n-1) incoming and 1 outgoing
-    let canonical_edges: Vec<_> = spec.edges.iter().enumerate().map(|(i, e)| {
+    // Extract spins only (ignore directions)
+    let spins: Vec<Spin> = spec.edges.iter().map(|e| e.j).collect();
+    
+    // Try to get from cache first
+    let canonical_data = if let Some(cached) = cache::query_canonical_basis(&spins)? {
+        cached
+    } else {
+        // Cache miss - compute it
+        let canonical_spec = create_canonical_spec(&spins)?;
+        let data = compute_canonical_basis_data(&canonical_spec)?;
+        
+        // Store in cache
+        cache::store_canonical_basis(&spins, &data)?;
+        
+        data
+    };
+    
+    // Apply direction inversions to match the original spec
+    let result = invert_directions_for_spec(&canonical_data, spec)?;
+    
+    Ok(result)
+}
+
+/// Create canonical spec from spins
+///
+/// Creates a CGSpec with canonical arrow directions (n-1 incoming, 1 outgoing).
+///
+/// # Arguments
+/// * `spins` - Array of spin quantum numbers
+///
+/// # Returns
+/// CGSpec with canonical directions
+fn create_canonical_spec(spins: &[Spin]) -> Result<CGSpec> {
+    let n = spins.len();
+    let canonical_edges: Vec<_> = spins.iter().enumerate().map(|(i, &j)| {
         let canonical_dir = if i < n - 1 {
             Direction::Incoming
         } else {
             Direction::Outgoing
         };
-        crate::core::Edge::new(e.j, canonical_dir)
+        Edge::new(j, canonical_dir)
     }).collect();
     
-    let canonical_spec = CGSpec::from_edges(canonical_edges)?;
+    CGSpec::from_edges(canonical_edges)
+}
+
+/// Compute canonical basis data (internal, cacheable part)
+///
+/// This is the extracted computation logic that was previously inline in
+/// build_canonical_basis_data. It computes the basis for canonical directions only.
+///
+/// # Arguments
+/// * `canonical_spec` - CGSpec with canonical directions
+///
+/// # Returns
+/// Canonical basis array [external_dims..., om_dim]
+fn compute_canonical_basis_data(canonical_spec: &CGSpec) -> Result<ArrayD<f64>> {
+    let n = canonical_spec.num_external();
+    let mut data = ArrayD::zeros(IxDyn(&canonical_spec.shape()));
     
-    // Initialize output array
-    let mut data = ArrayD::zeros(IxDyn(&spec.shape()));
-    
-    // Build canonical tensor for each OM configuration
     let j_last = canonical_spec.edges[n - 1].j;
     let norm = (j_last.dimension() as f64).sqrt();
 
     for (om_idx, alpha) in canonical_spec.alphas.iter().enumerate() {
         let mut alpha_data = build_single_om_tensor(&canonical_spec, alpha)?;
-
-        // Normalize by sqrt(2j+1) of the last outgoing edge
         alpha_data.mapv_inplace(|x| x / norm);
-
-        // Invert directions back to match original spec
-        for (axis_idx, edge) in spec.edges.iter().enumerate() {
-            let canonical_dir = if axis_idx < n - 1 {
-                Direction::Incoming
-            } else {
-                Direction::Outgoing
-            };
-            
-            if edge.dir != canonical_dir {
-                alpha_data = invert_edge_direction(&alpha_data, axis_idx, edge.j, canonical_dir)?;
-            }
-        }
         
-        // Set OM slice
+        // No direction inversion here - store in canonical form only
         set_om_slice(&mut data, om_idx, &alpha_data, n)?;
     }
     
     Ok(data)
 }
 
-/// Invert the direction of an edge using the metric tensor
+/// Invert direction for a single edge across ALL OM slices
 ///
-/// Applies the metric transformation without explicit contraction:
-/// - Incoming → Outgoing: mirror axis (m → -m) and apply phase (-1)^{j+m}
-/// - Outgoing → Incoming: mirror axis (m → -m) and apply phase (-1)^{2j} * (-1)^{j+m}
+/// Similar to `invert_edge_direction` but operates on the full basis array
+/// including the OM axis at the end. The OM axis is preserved.
 ///
 /// # Arguments
-/// * `tensor` - Input tensor
-/// * `axis_idx` - Index of the axis to invert
+/// * `tensor` - Input tensor with shape [external_dims..., om_dim]
+/// * `axis_idx` - Index of the external axis to invert
 /// * `j` - Spin of the edge being inverted
 /// * `from_dir` - Current direction of the edge
+/// * `_n_external` - Number of external axes (excluding OM axis)
 ///
 /// # Returns
 /// Tensor with inverted edge direction
-fn invert_edge_direction(
+fn invert_edge_direction_full_basis(
     tensor: &ArrayD<f64>,
     axis_idx: usize,
     j: Spin,
     from_dir: Direction,
+    _n_external: usize,
 ) -> Result<ArrayD<f64>> {
     let mut result = tensor.clone();
     
@@ -118,7 +150,6 @@ fn invert_edge_direction(
     result.invert_axis(Axis(axis_idx));
     
     // Apply phase factors based on direction conversion
-    // Iterate over magnetic quantum numbers on this axis
     let dim = j.dimension();
     for m_idx in 0..dim {
         let m = MagneticNumber::from_index(m_idx, j);
@@ -134,8 +165,42 @@ fn invert_edge_direction(
             phase_2j * phase_jm
         };
         
-        // Apply phase to the entire slice at this m value
+        // Apply phase to the entire slice at this m value (including all OM values)
         result.index_axis_mut(Axis(axis_idx), m_idx).mapv_inplace(|x| x * phase);
+    }
+    
+    Ok(result)
+}
+
+/// Invert edge directions for entire canonical basis array
+///
+/// Takes the canonical basis array (shape [external_dims..., om_dim])
+/// and inverts directions to match the target spec.
+///
+/// # Arguments
+/// * `canonical_data` - Canonical basis array [external_dims..., om_dim]
+/// * `spec` - Target CGSpec with potentially non-canonical directions
+///
+/// # Returns
+/// Basis array with directions matching spec
+fn invert_directions_for_spec(
+    canonical_data: &ArrayD<f64>,
+    spec: &CGSpec,
+) -> Result<ArrayD<f64>> {
+    let n = spec.num_external();
+    let mut result = canonical_data.clone();
+    
+    // For each axis, check if direction needs inverting
+    for (axis_idx, edge) in spec.edges.iter().enumerate() {
+        let canonical_dir = if axis_idx < n - 1 {
+            Direction::Incoming
+        } else {
+            Direction::Outgoing
+        };
+        
+        if edge.dir != canonical_dir {
+            result = invert_edge_direction_full_basis(&result, axis_idx, edge.j, canonical_dir, n)?;
+        }
     }
     
     Ok(result)
@@ -329,12 +394,15 @@ fn set_om_slice(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::builders::TestCacheGuard;
     use crate::core::Edge;
     use approx::assert_relative_eq;
     use ndarray::Axis;
 
     #[test]
     fn test_build_canonical_basis_data_single_edge_errors() {
+        let _guard = TestCacheGuard::new();
+        
         let j1 = crate::core::Spin::new(2).unwrap();
         let spec = CGSpec::from_edges(vec![Edge::incoming(j1)]).unwrap();
         
@@ -344,6 +412,8 @@ mod tests {
     
     #[test]
     fn test_build_canonical_basis_data_two_edges_errors() {
+        let _guard = TestCacheGuard::new();
+        
         let j1 = crate::core::Spin::new(2).unwrap();
         let spec = CGSpec::from_edges(vec![
             Edge::incoming(j1),
@@ -356,6 +426,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_three_edges() {
+        let _guard = TestCacheGuard::new();
+        
         // Three j=1 spins: two incoming, one outgoing
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
@@ -414,6 +486,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_four_edges() {
+        let _guard = TestCacheGuard::new();
+        
         // Four j=1/2 spins: three incoming, one outgoing
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
@@ -472,6 +546,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_three_edges_all_outgoing() {
+        let _guard = TestCacheGuard::new();
+        
         // Three j=1 spins: all outgoing (non-canonical)
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
@@ -522,6 +598,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_three_edges_mixed_directions() {
+        let _guard = TestCacheGuard::new();
+        
         // Three edges with mixed directions: out, in, out (non-canonical)
         // Use j=1/2, j=1/2, j=1 which can couple to j=0
         let j_half = Spin::new(1).unwrap();
@@ -573,6 +651,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_four_edges_all_incoming() {
+        let _guard = TestCacheGuard::new();
+        
         // Four j=1/2 spins: all incoming (non-canonical)
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
@@ -623,6 +703,8 @@ mod tests {
 
     #[test]
     fn test_build_canonical_basis_four_edges_alternating_directions() {
+        let _guard = TestCacheGuard::new();
+        
         // Four j=1 spins: out, in, out, in (non-canonical)
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
@@ -673,6 +755,8 @@ mod tests {
 
     #[test]
     fn test_build_single_om_tensor_three_edges() {
+        let _guard = TestCacheGuard::new();
+        
         // Three j=1 spins: two incoming, one outgoing
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
@@ -708,6 +792,8 @@ mod tests {
 
     #[test]
     fn test_build_single_om_tensor_four_edges() {
+        let _guard = TestCacheGuard::new();
+        
         // Four j=1/2 spins: three incoming, one outgoing
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
@@ -744,6 +830,8 @@ mod tests {
 
     #[test]
     fn test_build_single_om_tensor_invalid_cases() {
+        let _guard = TestCacheGuard::new();
+        
         // Test that n < 3 returns error
         let j1 = Spin::new(2).unwrap();
         
@@ -769,6 +857,8 @@ mod tests {
 
     #[test]
     fn test_canonical_basis_normalization() {
+        let _guard = TestCacheGuard::new();
+        
         // Test that each OM slice is properly normalized
         // Use j=1/2, j=1/2, j=1 which can couple to j=0
         let j_half = Spin::new(1).unwrap();

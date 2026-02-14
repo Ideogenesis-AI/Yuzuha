@@ -22,6 +22,7 @@
 use approx::assert_relative_eq;
 use ndarray::Axis;
 use yuzuha::builders::builders::build_canonical_basis_data;
+use yuzuha::builders::TestCacheGuard;
 use yuzuha::core::{CGSpec, Direction, Edge, Spin};
 
 // ============================================================================
@@ -77,6 +78,8 @@ fn test_orthonormality_three_mixed_3() {
 
 /// Helper function for three-edge orthonormality tests
 fn test_orthonormality_three_edges_helper(j0: Spin, j1: Spin, j2: Spin) {
+    let _guard = TestCacheGuard::new();
+    
     let edges = vec![
         Edge::new(j0, Direction::Incoming),
         Edge::new(j1, Direction::Incoming),
@@ -177,6 +180,8 @@ fn test_orthonormality_four_mixed_3() {
 
 /// Helper function for four-edge orthonormality tests
 fn test_orthonormality_four_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin) {
+    let _guard = TestCacheGuard::new();
+    
     let edges = vec![
         Edge::new(j0, Direction::Incoming),
         Edge::new(j1, Direction::Incoming),
@@ -279,6 +284,8 @@ fn test_orthonormality_five_mixed_3() {
 
 /// Helper function for five-edge orthonormality tests
 fn test_orthonormality_five_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin, j4: Spin) {
+    let _guard = TestCacheGuard::new();
+    
     let edges = vec![
         Edge::new(j0, Direction::Incoming),
         Edge::new(j1, Direction::Incoming),
@@ -380,6 +387,8 @@ fn test_orthonormality_six_mixed_3() {
 
 /// Helper function for six-edge orthonormality tests
 fn test_orthonormality_six_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin, j4: Spin, j5: Spin) {
+    let _guard = TestCacheGuard::new();
+    
     let edges = vec![
         Edge::new(j0, Direction::Incoming),
         Edge::new(j1, Direction::Incoming),
@@ -436,6 +445,8 @@ fn test_orthonormality_six_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin, 
 
 #[test]
 fn test_orthonormality_three_edges_all_outgoing() {
+    let _guard = TestCacheGuard::new();
+    
     // Three j=1 spins, all outgoing
     let j1 = Spin::new(2).unwrap();
     let edges = vec![
@@ -483,6 +494,8 @@ fn test_orthonormality_three_edges_all_outgoing() {
 
 #[test]
 fn test_orthonormality_three_edges_all_incoming() {
+    let _guard = TestCacheGuard::new();
+    
     // Three edges all incoming: j=1/2, j=1/2, j=1 (valid configuration)
     let j_half = Spin::new(1).unwrap();
     let j1 = Spin::new(2).unwrap();
@@ -531,6 +544,8 @@ fn test_orthonormality_three_edges_all_incoming() {
 
 #[test]
 fn test_orthonormality_three_edges_out_in_out() {
+    let _guard = TestCacheGuard::new();
+    
     // Three j=2 spins: out, in, out
     let j2 = Spin::new(4).unwrap();
     let edges = vec![
@@ -582,6 +597,8 @@ fn test_orthonormality_three_edges_out_in_out() {
 
 #[test]
 fn test_orthonormality_four_edges_all_outgoing() {
+    let _guard = TestCacheGuard::new();
+    
     // Four j=1/2 spins, all outgoing
     let j_half = Spin::new(1).unwrap();
     let edges = vec![
@@ -630,6 +647,8 @@ fn test_orthonormality_four_edges_all_outgoing() {
 
 #[test]
 fn test_orthonormality_four_edges_alternating() {
+    let _guard = TestCacheGuard::new();
+    
     // Four j=1 spins: out, in, out, in
     let j1 = Spin::new(2).unwrap();
     let edges = vec![
@@ -682,6 +701,8 @@ fn test_orthonormality_four_edges_alternating() {
 
 #[test]
 fn test_orthonormality_five_edges_all_incoming() {
+    let _guard = TestCacheGuard::new();
+    
     // Five edges all incoming: j=1/2, j=1/2, j=1/2, j=1/2, j=1 (even fermions)
     let j_half = Spin::new(1).unwrap();
     let j1 = Spin::new(2).unwrap();
@@ -732,6 +753,8 @@ fn test_orthonormality_five_edges_all_incoming() {
 
 #[test]
 fn test_orthonormality_five_edges_mixed_complex() {
+    let _guard = TestCacheGuard::new();
+    
     // Five j=1 spins: in, out, in, out, in
     let j1 = Spin::new(2).unwrap();
     let edges = vec![
@@ -785,6 +808,8 @@ fn test_orthonormality_five_edges_mixed_complex() {
 
 #[test]
 fn test_orthonormality_six_edges_all_outgoing() {
+    let _guard = TestCacheGuard::new();
+    
     // Six j=1/2 spins, all outgoing
     let j_half = Spin::new(1).unwrap();
     let edges = vec![
@@ -835,6 +860,8 @@ fn test_orthonormality_six_edges_all_outgoing() {
 
 #[test]
 fn test_orthonormality_six_edges_alternating_pattern() {
+    let _guard = TestCacheGuard::new();
+    
     // Six j=1 spins: out, out, in, in, out, out
     let j1 = Spin::new(2).unwrap();
     let edges = vec![
