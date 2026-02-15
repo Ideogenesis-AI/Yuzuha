@@ -22,12 +22,13 @@
 
 use pyo3::prelude::*;
 use pyo3::exceptions::{PyValueError, PyRuntimeError};
-use numpy::{PyArray2, PyArray3};
+use numpy::{PyArray2, PyArray3, PyArrayDyn};
 
 use crate::core::{Spin as RustSpin, Edge as RustEdge, CGSpec as RustCGSpec, 
                    Contraction as RustContraction, Direction};
 use crate::builders::{compute_xsymbol as rust_compute_xsymbol, 
-                      compute_rsymbol as rust_compute_rsymbol};
+                      compute_rsymbol as rust_compute_rsymbol,
+                      build_canonical_basis_data as rust_build_canonical_basis_data};
 use crate::error::YuzuhaError;
 
 /// Convert Rust YuzuhaError to Python exception
@@ -502,6 +503,60 @@ fn compute_rsymbol<'py>(
     Ok((r_array, spec_permuted))
 }
 
+/// Compute canonical basis data for a coupled gauge tree.
+///
+/// Computes the transformation matrix from magnetic quantum number basis to
+/// outer multiplicity (OM) basis for a given CGSpec. The basis is cached for
+/// efficiency using an SQLite database.
+///
+/// The canonical basis is only defined for CGSpecs with at least 3 external edges.
+///
+/// Parameters
+/// ----------
+/// spec : CGSpec
+///     The CGSpec for which to compute the canonical basis.
+///
+/// Returns
+/// -------
+/// numpy.ndarray
+///     The canonical basis transformation matrix. Shape depends on the CGSpec:
+///     - For n external edges with spins j_i, shape is [d_1, d_2, ..., d_n, om_dim]
+///       where d_i = 2*j_i + 1 is the dimension of the i-th edge, and om_dim
+///       is the outer multiplicity dimension.
+///
+/// Raises
+/// ------
+/// ValueError
+///     If the CGSpec has fewer than 3 external edges.
+/// RuntimeError
+///     If computation fails or cache error occurs.
+///
+/// Examples
+/// --------
+/// >>> import yuzuha
+/// >>> j_half = yuzuha.Spin(1)  # j=1/2
+/// >>> spec = yuzuha.CGSpec.from_edges([
+/// ...     yuzuha.Edge.incoming(j_half),
+/// ...     yuzuha.Edge.incoming(j_half),
+/// ...     yuzuha.Edge.incoming(j_half)
+/// ... ])
+/// >>> basis = yuzuha.canonical_basis(spec)
+/// >>> print(basis.shape)
+/// (2, 2, 2, 2)
+#[pyfunction]
+fn canonical_basis<'py>(
+    py: Python<'py>,
+    spec: &PyCGSpec,
+) -> PyResult<Bound<'py, PyArrayDyn<f64>>> {
+    // Compute the canonical basis data
+    let result = rust_build_canonical_basis_data(&spec.inner)?;
+    
+    // Convert ndarray to numpy array
+    let basis_array = PyArrayDyn::from_owned_array(py, result);
+    
+    Ok(basis_array)
+}
+
 /// Yuzuha: SU(2) X-symbols for Tensor Networks
 ///
 /// A library for computing SU(2) X-symbols (recoupling coefficients) for
@@ -546,5 +601,6 @@ fn yuzuha(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyContraction>()?;
     m.add_function(wrap_pyfunction!(compute_xsymbol, m)?)?;
     m.add_function(wrap_pyfunction!(compute_rsymbol, m)?)?;
+    m.add_function(wrap_pyfunction!(canonical_basis, m)?)?;
     Ok(())
 }
