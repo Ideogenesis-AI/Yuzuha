@@ -34,8 +34,9 @@ def test_cache_path_is_isolated(isolated_cache):
     assert "yuzuha_test_cache" in cache_path
     assert ".yuzuha/cgbasis.db" not in cache_path
     
-    # The path from the fixture should match the environment variable
-    assert str(isolated_cache) == cache_path
+    # The isolated_cache fixture returns the directory, but YUZUHA_CACHE_PATH
+    # points to the cgbasis.db file for Rust compatibility
+    assert str(isolated_cache / "cgbasis.db") == cache_path
 
 
 def test_cache_is_shared_across_calls(isolated_cache):

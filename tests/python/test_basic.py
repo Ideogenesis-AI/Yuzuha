@@ -75,7 +75,8 @@ class TestEdge:
         edge = yuzuha.Edge.incoming(j)
         assert edge.is_incoming()
         assert not edge.is_outgoing()
-        assert edge.spin.twice() == 1
+        assert edge.j.twice() == 1
+        assert edge.dir == 1  # +1 for incoming
 
     def test_outgoing_edge(self):
         """Test creating outgoing edges."""
@@ -83,7 +84,8 @@ class TestEdge:
         edge = yuzuha.Edge.outgoing(j)
         assert edge.is_outgoing()
         assert not edge.is_incoming()
-        assert edge.spin.twice() == 2
+        assert edge.j.twice() == 2
+        assert edge.dir == -1  # -1 for outgoing
 
     def test_edge_repr(self):
         """Test string representation."""
