@@ -27,11 +27,18 @@ from .yuzuha import (
     Edge,
     CGSpec,
     Contraction,
-    compute_xsymbol,
-    compute_rsymbol,
     canonical_basis,
 )
+from .symbols import compute_xsymbol, compute_rsymbol
 from .database import startup_database
+from .cache import (
+    set_cache_path,
+    reset_caches,
+    TestCacheContext,
+    clear_all_caches,
+    get_cache_stats,
+    print_cache_stats,
+)
 
 __version__ = "0.1.0"
 
@@ -44,4 +51,10 @@ __all__ = [
     "compute_rsymbol",
     "canonical_basis",
     "startup_database",
+    "set_cache_path",
+    "reset_caches",
+    "TestCacheContext",
+    "clear_all_caches",
+    "get_cache_stats",
+    "print_cache_stats",
 ]
