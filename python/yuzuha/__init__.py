@@ -29,6 +29,7 @@ from .yuzuha import (
     Contraction,
     compute_xsymbol,
     compute_rsymbol,
+    canonical_basis,
 )
 
 __version__ = "0.1.0"
@@ -40,4 +41,5 @@ __all__ = [
     "Contraction",
     "compute_xsymbol",
     "compute_rsymbol",
+    "canonical_basis",
 ]
