@@ -228,9 +228,23 @@ impl PyEdge {
     /// Spin
     ///     The spin quantum number.
     #[getter]
-    fn spin(&self) -> PySpin {
+    fn j(&self) -> PySpin {
         PySpin {
             inner: self.inner.j,
+        }
+    }
+
+    /// Get the direction of this edge as an integer.
+    ///
+    /// Returns
+    /// -------
+    /// int
+    ///     +1 for incoming, -1 for outgoing
+    #[getter]
+    fn dir(&self) -> i8 {
+        match self.inner.dir {
+            Direction::Incoming => 1,
+            Direction::Outgoing => -1,
         }
     }
 
@@ -330,6 +344,40 @@ impl PyCGSpec {
         self.inner.om_dimension()
     }
 
+    /// Get the edges of this CGSpec.
+    ///
+    /// Returns
+    /// -------
+    /// list[Edge]
+    ///     List of edges defining the tensor structure.
+    #[getter]
+    fn edges(&self) -> Vec<PyEdge> {
+        self.inner.edges.iter().map(|e| PyEdge { inner: e.clone() }).collect()
+    }
+
+    /// Get the spin values (doubled) for all edges.
+    ///
+    /// Returns
+    /// -------
+    /// list[int]
+    ///     List of doubled spin values (2j) for each edge.
+    fn get_spins(&self) -> Vec<i32> {
+        self.inner.edges.iter().map(|e| e.j.twice()).collect()
+    }
+
+    /// Get the directions for all edges.
+    ///
+    /// Returns
+    /// -------
+    /// list[int]
+    ///     List of directions: +1 for incoming, -1 for outgoing.
+    fn get_directions(&self) -> Vec<i8> {
+        self.inner.edges.iter().map(|e| match e.dir {
+            Direction::Incoming => 1,
+            Direction::Outgoing => -1,
+        }).collect()
+    }
+
     fn __repr__(&self) -> String {
         format!("CGSpec(num_external={}, om_dim={})", 
                 self.inner.num_external(), 
@@ -372,6 +420,28 @@ impl PyContraction {
         PyContraction {
             inner: RustContraction::new(&axes_a, &axes_b),
         }
+    }
+
+    /// Get the axes from the first tensor.
+    ///
+    /// Returns
+    /// -------
+    /// list[int]
+    ///     Indices of edges to contract from the first CGSpec.
+    #[getter]
+    fn axes_a(&self) -> Vec<usize> {
+        self.inner.axes_a.clone()
+    }
+
+    /// Get the axes from the second tensor.
+    ///
+    /// Returns
+    /// -------
+    /// list[int]
+    ///     Indices of edges to contract from the second CGSpec.
+    #[getter]
+    fn axes_b(&self) -> Vec<usize> {
+        self.inner.axes_b.clone()
     }
 
     fn __repr__(&self) -> String {
