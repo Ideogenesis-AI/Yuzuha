@@ -1,4 +1,4 @@
-// Copyright (C) 2025-2026 Changkai Zhang.
+// Copyright (C) 2026 Changkai Zhang.
 //
 // This file is part of Yuzuha library.
 //
