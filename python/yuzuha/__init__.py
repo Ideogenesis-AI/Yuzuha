@@ -31,6 +31,7 @@ from .yuzuha import (
     compute_rsymbol,
     canonical_basis,
 )
+from .database import startup_database
 
 __version__ = "0.1.0"
 
@@ -42,4 +43,5 @@ __all__ = [
     "compute_xsymbol",
     "compute_rsymbol",
     "canonical_basis",
+    "startup_database",
 ]
