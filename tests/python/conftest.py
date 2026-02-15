@@ -41,9 +41,12 @@ def isolated_cache():
     interference from previously cached data.
     
     This covers all cache types:
-    - cgbasis.db (canonical basis cache - Rust expects full path)
-    - xsymbol.db (X-symbol cache - Python uses directory)
-    - rsymbol.db (R-symbol cache - Python uses directory)
+    - cgbasis.db (canonical basis cache - Rust)
+    - xsymbol.db (X-symbol cache - Python)
+    - rsymbol.db (R-symbol cache - Python)
+    
+    All caches now use YUZUHA_CACHE_PATH as a directory and append
+    their respective filenames.
     
     The temporary directory is automatically cleaned up after the test
     session completes.
@@ -52,29 +55,21 @@ def isolated_cache():
     temp_dir = tempfile.mkdtemp(prefix="yuzuha_test_cache_")
     temp_dir_path = Path(temp_dir)
     
-    # Set the environment variable to point to the canonical basis cache file
-    # (Rust expects full path to cgbasis.db)
+    # Set the environment variable to the cache directory
+    # All caches (Rust and Python) will append their filenames
     old_cache_path = os.environ.get("YUZUHA_CACHE_PATH")
-    cgbasis_path = temp_dir_path / "cgbasis.db"
-    os.environ["YUZUHA_CACHE_PATH"] = str(cgbasis_path)
+    os.environ["YUZUHA_CACHE_PATH"] = str(temp_dir_path)
     
-    print(f"\n✓ Using isolated test cache directory: {temp_dir}")
-    print(f"  - Canonical basis: {cgbasis_path}")
-    print(f"  - Symbol caches: {temp_dir_path}")
+    print(f"\n✓ Using isolated test cache directory: {temp_dir_path}")
     
     # Import yuzuha here to ensure cache instances pick up the new path
     import yuzuha
-    # Set the symbol cache path to the directory (not the file)
-    from yuzuha.cache import _test_cache_path
-    _test_cache_path.path = temp_dir_path
     yuzuha.reset_caches()
     
     yield temp_dir_path
     
     # Cleanup: reset cache connections
     yuzuha.reset_caches()
-    from yuzuha.cache import _test_cache_path
-    _test_cache_path.path = None
     
     # Restore the old environment variable
     if old_cache_path is not None:

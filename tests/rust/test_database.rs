@@ -43,11 +43,9 @@ fn test_concurrent_cache_writes() {
     ));
     std::fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
     
-    let cache_path = temp_dir.join("cgbasis.db");
-    
-    // Set the cache path for all threads
+    // Set the cache directory for all threads (the cache will append cgbasis.db)
     unsafe {
-        std::env::set_var("YUZUHA_CACHE_PATH", &cache_path);
+        std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
     }
     
     // Define different specs to compute in parallel
@@ -162,11 +160,9 @@ fn test_concurrent_cache_reads() {
     ));
     std::fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
     
-    let cache_path = temp_dir.join("cgbasis.db");
-    
-    // Set the cache path
+    // Set the cache directory (the cache will append cgbasis.db)
     unsafe {
-        std::env::set_var("YUZUHA_CACHE_PATH", &cache_path);
+        std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
     }
     
     // Pre-populate cache with some data
@@ -229,11 +225,9 @@ fn test_concurrent_mixed_operations() {
     ));
     std::fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
     
-    let cache_path = temp_dir.join("cgbasis.db");
-    
-    // Set the cache path
+    // Set the cache directory (the cache will append cgbasis.db)
     unsafe {
-        std::env::set_var("YUZUHA_CACHE_PATH", &cache_path);
+        std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
     }
     
     // Pre-populate with one spec

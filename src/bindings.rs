@@ -642,8 +642,12 @@ fn canonical_basis<'py>(
 ///
 /// Configuration
 /// -------------
-/// Set the YUZUHA_CACHE_PATH environment variable to control where the
-/// SQLite cache database is stored. Default: .yuzuha/cgbasis.db
+/// Set the YUZUHA_CACHE_PATH environment variable to specify the cache
+/// directory. All cache databases will be stored in this directory:
+/// - cgbasis.db (canonical basis cache)
+/// - xsymbol.db (X-symbol cache)
+/// - rsymbol.db (R-symbol cache)
+/// Default directory: .yuzuha/
 ///
 /// Examples
 /// --------

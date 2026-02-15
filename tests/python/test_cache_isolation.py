@@ -32,11 +32,11 @@ def test_cache_path_is_isolated(isolated_cache):
     # Cache path should be set to a temporary location
     assert cache_path is not None
     assert "yuzuha_test_cache" in cache_path
-    assert ".yuzuha/cgbasis.db" not in cache_path
+    assert ".yuzuha" not in cache_path
     
-    # The isolated_cache fixture returns the directory, but YUZUHA_CACHE_PATH
-    # points to the cgbasis.db file for Rust compatibility
-    assert str(isolated_cache / "cgbasis.db") == cache_path
+    # The isolated_cache fixture returns the directory, and YUZUHA_CACHE_PATH
+    # should point to the same directory (all caches append their filenames)
+    assert str(isolated_cache) == cache_path
 
 
 def test_cache_is_shared_across_calls(isolated_cache):
