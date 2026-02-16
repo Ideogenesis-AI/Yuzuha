@@ -1,3 +1,20 @@
+// Copyright (C) 2026 Changkai Zhang.
+//
+// This file is part of Yuzuha library.
+//
+// Yuzuha is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published
+// by the Free Software Foundation, either version 3 of the License,
+// or (at your option) any later version.
+//
+// Yuzuha is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Yuzuha. If not, see <https://www.gnu.org/licenses/>.
+
 //! Tests for concurrent cache access
 //!
 //! These tests verify that the SQLite cache handles concurrent reads and writes
@@ -26,11 +43,9 @@ fn test_concurrent_cache_writes() {
     ));
     std::fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
     
-    let cache_path = temp_dir.join("cgbasis.db");
-    
-    // Set the cache path for all threads
+    // Set the cache directory for all threads (the cache will append cgbasis.db)
     unsafe {
-        std::env::set_var("YUZUHA_CACHE_PATH", &cache_path);
+        std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
     }
     
     // Define different specs to compute in parallel
@@ -145,11 +160,9 @@ fn test_concurrent_cache_reads() {
     ));
     std::fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
     
-    let cache_path = temp_dir.join("cgbasis.db");
-    
-    // Set the cache path
+    // Set the cache directory (the cache will append cgbasis.db)
     unsafe {
-        std::env::set_var("YUZUHA_CACHE_PATH", &cache_path);
+        std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
     }
     
     // Pre-populate cache with some data
@@ -212,11 +225,9 @@ fn test_concurrent_mixed_operations() {
     ));
     std::fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
     
-    let cache_path = temp_dir.join("cgbasis.db");
-    
-    // Set the cache path
+    // Set the cache directory (the cache will append cgbasis.db)
     unsafe {
-        std::env::set_var("YUZUHA_CACHE_PATH", &cache_path);
+        std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
     }
     
     // Pre-populate with one spec

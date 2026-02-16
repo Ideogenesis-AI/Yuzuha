@@ -83,6 +83,10 @@ pub mod core;
 pub mod error;
 pub mod primitives;
 
+// Python bindings (only when python feature is enabled)
+#[cfg(feature = "python")]
+pub mod bindings;
+
 // Re-export commonly used types
 pub use builders::{
     build_canonical_basis_data, build_cg3, compute_rsymbol, compute_xsymbol, enumerate_alpha,

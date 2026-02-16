@@ -1,4 +1,4 @@
-// Copyright (C) 2025-2026 Changkai Zhang.
+// Copyright (C) 2026 Changkai Zhang.
 //
 // This file is part of Yuzuha library.
 //
@@ -51,8 +51,9 @@ fn get_db_path() -> PathBuf {
         }
     }
     
-    if let Ok(path) = std::env::var("YUZUHA_CACHE_PATH") {
-        PathBuf::from(path)
+    // YUZUHA_CACHE_PATH should be a directory, we append the filename
+    if let Ok(dir_path) = std::env::var("YUZUHA_CACHE_PATH") {
+        PathBuf::from(dir_path).join("cgbasis.db")
     } else {
         PathBuf::from(".yuzuha/cgbasis.db")
     }
@@ -233,6 +234,7 @@ impl TestCacheGuard {
         
         // Set the cache path using thread-local storage (not env var)
         // This ensures proper isolation between parallel tests
+        // Thread-local path is returned directly, so we store the full file path
         let cache_path = temp_dir.join("cgbasis.db");
         TEST_CACHE_PATH.with(|p: &std::cell::RefCell<Option<PathBuf>>| {
             *p.borrow_mut() = Some(cache_path);
@@ -265,12 +267,12 @@ impl TestCacheGuard {
         
         fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
         
-        // Set the cache path using environment variable (for integration tests)
-        let cache_path = temp_dir.join("cgbasis.db");
+        // Set the cache directory using environment variable (for integration tests)
+        // The cache will append cgbasis.db to this directory
         // SAFETY: Setting environment variable in tests is safe as each test
         // gets its own unique temporary directory, preventing conflicts.
         unsafe {
-            std::env::set_var("YUZUHA_CACHE_PATH", &cache_path);
+            std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
         }
         
         // Reset any existing connection for this thread
