@@ -1,61 +1,86 @@
-# Yuzuha: SU(2) X-symbols for Tensor Networks
+<h1 align="center">
+  <img src="docs/images/yuzuha.png" alt="Yuzuha SU(2) Protocol" width="300">
+</h1>
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-Yuzuha is a Rust library for computing SU(2) X-symbols (also known as recoupling coefficients or 6j-symbols) for arbitrary tensor network contractions using left-associative fusion trees.
+Yuzuha is a high-performance library for computing SU(2) recoupling coefficients in tensor network applications, providing efficient implementations of X-symbols (recoupling coefficients for arbitrary tensor network contractions) and R-symbols (axes permutation). The library features automatic database caching for computed canonical bases, enabling significant performance improvements for repeated calculations. Available for both **Rust** and **Python**, while optimized for [**Nicole**](https://github.com/Ideogenesis-AI/Nicole) tensor library.
+
 
 ## Features
 
-- ✅ **Clebsch-Gordan coefficients**: Real-valued Condon-Shortley convention with automatic caching
-- ✅ **Invariant metric**: Full support for arbitrary arrow directions via metric tensor
-- ✅ **Outer multiplicity (OM) enumeration**: Systematic enumeration of internal spin configurations
-- ✅ **CGT amplitudes**: Efficient computation without materializing full tensors
-- ✅ **Tensor networks**: Generic contraction engine with greedy optimization
-- ✅ **X-symbols**: Complete computation for arbitrary contraction patterns
-- ✅ **Type safety**: Extensive use of Rust's type system for correctness
-- ✅ **Comprehensive tests**: >95% code coverage with unit and integration tests
+- **X-symbols**: Complete computation for arbitrary tensor network contractions
+- **R-symbols**: Tensor axis permutation transformations
+- **Clebsch-Gordan (CG) coefficients**: Real-valued Condon-Shortley convention with automatic caching
+- **Invariant metric**: Full support for arbitrary arrow directions via metric tensor
+- **Outer multiplicity (OM) enumeration**: Systematic enumeration of internal spin configurations
+- **CG database**: SQLite database for CG bases with automatic connection management
+- **Python bindings**: High-performance Python interface with NumPy integration
+- **Type safety**: Extensive use of Rust's type system for correctness
+- **Comprehensive tests**: >95% code coverage with unit and integration tests
 
-## Quick Start
 
-Add Yuzuha to your `Cargo.toml`:
+## Database Caching
 
-```toml
-[dependencies]
-yuzuha = "0.1"
-```
+Yuzuha automatically caches computed canonical basis data in an SQLite database for significant performance improvements on repeated calculations.
+
+- **Persistent storage**: Cached data survives between program runs
+- **Thread-safe**: Automatic connection management with mutex protection
+- **Automatic**: No explicit connection management needed
+- **Efficient**: Subsequent computations with same spin configurations are near-instantaneous
+
 ## Conventions
 
 ### Clebsch-Gordan Coefficients
 
-Yuzuha uses the **Condon-Shortley convention** for CG coefficients:
+Yuzuha uses the **Condon-Shortley convention** for Clebsch-Gordan (CG) coefficients, which describe the coupling of two angular momentum states:
 
-⟨j₁ m₁, j₂ m₂ | j₃ m₃⟩
+$$C^{\,j_3 m_3}_{\,j_1 m_1, j_2 m_2} \equiv \langle\, j_1 m_1, j_2 m_2\, | \,j_3 m_3 \,\rangle$$
 
-Properties:
-- Real-valued
-- Orthonormal: Σ_{m₁,m₂} CG² = 1
-- Selection rules: m₁ + m₂ = m₃ and triangle inequality
+These coefficients satisfy several important properties:
 
-### Arrow Directions
+- **Real-valued**: All CG coefficients are real numbers in the Condon-Shortley convention
+- **Orthonormality**: The coefficients form an orthonormal basis:
+  $$\sum_{m_1, m_2} \langle\, j_1 m_1, j_2 m_2\, | \,j_3 m_3 \,\rangle^2 = 1$$
+- **Selection rules**: Non-zero coefficients require:
+  - Magnetic quantum number conservation: $m_1 + m_2 = m_3$
+  - Triangle inequality: $|j_1 - j_2| \leqslant j_3 \leqslant j_1 + j_2$
+  - Integer total spin: $j_1 + j_2 + j_3 \in \mathbb{Z}$
 
-The invariant metric g implements arrow reversal:
+The library automatically caches computed CG coefficients in an SQLite database for efficient reuse across calculations.
 
-g^(j)_{m,m'} = (-1)^(j-m) δ_{m,-m'}
+### Arrow Directions and the Invariant Metric
 
-This allows converting between incoming and outgoing legs.
+In tensor network diagrams, tensor edges can point either inward (incoming) or outward (outgoing), corresponding to primal and dual spaces, respectively. The **invariant metric** $g$ implements arrow reversal transformations:
+
+$$g^{(j)}_{m,m'} = (-1)^{j-m} \delta_{m,-m'}$$
+
+This metric tensor allows seamless conversion between incoming and outgoing edges while maintaining the correct sign conventions. Arrow inversion from incoming to outgoing uses the metric tensor $g$, while inversion from outgoing to incoming uses the inverse transformation $g^{-1}$.
 
 ### Fusion Trees
 
-- **Left-associative**: (((J₁ ⊗ J₂) ⊗ J₃) ⊗ ...)
-- **Internal spins (α)**: Intermediate coupling results
-- **OM indices**: Label different internal spin configurations
+Yuzuha represents tensor network contractions using **left-associative fusion trees**, which provide a systematic way to couple multiple angular momenta:
 
-## Performance
+- **Left-associative structure**: For $n$ spins, the coupling proceeds sequentially from left to right:
+  $$(((j_1 \otimes j_2) \otimes j_3) \otimes \cdots) \otimes j_n$$
+  
+- **Internal spins** ($\alpha$): Each intermediate fusion step produces an internal spin quantum number. For $n$ external edges, there are $n-2$ internal spins that characterize the coupling path.
 
-- **CG coefficient caching**: Automatic memoization for repeated calculations
-- **Greedy contraction**: Optimized tensor network contraction order
-- **Type-level optimization**: Zero-cost abstractions via Rust's type system
+- **Outer Multiplicity (OM) index**: When multiple internal spin configurations (fusion patterns) lead to the same total coupling, they are distinguished by the OM index placed at the end of the canonical bases.
+
+- **CG bases normalization**: The canonical basis is normalized with respect to the OM space. As a result, 3rd order CG bases acquire a scaling factor relative to the standard CG coefficients.
+
+The left-associative structure ensures a unique canonical form for each tensor network, enabling efficient computation and caching of recoupling coefficients.
+
+
+## Contributing
+
+We welcome contributions from the community! Whether you're fixing bugs, adding features, improving algorithms, or enhancing documentation, your help is appreciated. You can also contribute by requesting new features or reporting performance issues.
+
+Yuzuha is created and maintained by [Changkai Zhang](https://chx-zh.cc) as part of the Ideogenesis-AI effort in studying quantum many-body systems. If you have questions about contributing to the project or are interested in collaboration opportunities, please feel free to open an issue on GitHub or contact the maintainer directly.
+
 
 ## License
 
