@@ -8,15 +8,28 @@ keywords = ["tensor-network", "su2", "quantum", "clebsch-gordan", "fusion-trees"
 categories = ["algorithms", "mathematics", "science"]
 readme = "README.md"
 
+[lib]
+name = "yuzuha"
+crate-type = ["rlib", "cdylib"]
+
 [dependencies]
+pyo3 = { version = "0.28", features = ["extension-module", "abi3-py311"], optional = true }
+numpy = { version = "0.28", optional = true }
 ndarray = "0.17"
 ndarray-einsum = "0.9"
 thiserror = "2.0"
 once_cell = "1.20"
+rusqlite = { version = "0.32", features = ["bundled"] }
+ndarray-npy = "0.10"
 
 [dev-dependencies]
 approx = "0.5"
 criterion = "0.5"
+rand = "0.8"
+
+[features]
+default = []
+python = ["pyo3", "numpy"]
 
 [profile.test]
 opt-level = 2
