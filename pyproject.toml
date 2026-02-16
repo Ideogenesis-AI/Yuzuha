@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "yuzuha"
 version = "0.1.0"
-description = "SU(2) X-symbols for Tensor Networks - Python bindings"
+description = "SU(2) Protocol for Tensor Networks"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "GPL-3.0" }
@@ -37,7 +37,7 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/Ideogenesis-AI/Yuzuha"
 Repository = "https://github.com/Ideogenesis-AI/Yuzuha"
-Documentation = "https://github.com/Ideogenesis-AI/Yuzuha/blob/main/README.md"
+Documentation = "https://github.com/Ideogenesis-AI/Yuzuha/blob/stable/README.md"
 
 [tool.maturin]
 features = ["python"]

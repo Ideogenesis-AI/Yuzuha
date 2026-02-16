@@ -2,9 +2,15 @@
   <img src="docs/images/yuzuha.png" alt="Yuzuha SU(2) Protocol" width="300">
 </h1>
 
-[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
-[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+<p align="center">
+  <a href="https://pypi.org/project/yuzuha/"><img src="https://img.shields.io/pypi/v/yuzuha?color=red" alt="PyPI Version"></a>
+  <a href="https://github.com/Ideogenesis-AI/Yuzuha/blob/stable/LICENSE"><img src="https://img.shields.io/github/license/Ideogenesis-AI/Yuzuha?color=orange" alt="License"></a>
+  <a href="#"><img src="https://img.shields.io/badge/docs-github.io-c9a400" alt="Documentation"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/pypi/pyversions/yuzuha?color=228b22" alt="Python Version"></a>
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/rust-1.70+-blue?logo=rust&logoColor=white" alt="Rust"></a>
+  <a href="#"><img src="https://img.shields.io/badge/coverage-%3E95%25-9400d3" alt="Coverage"></a>
+  <a href="https://pypi.org/project/yuzuha/"><img src="https://img.shields.io/pypi/status/yuzuha?color=4b0082" alt="Status"></a>
+</p>
 
 Yuzuha is a high-performance library for computing SU(2) recoupling coefficients in tensor network applications, providing efficient implementations of X-symbols (recoupling coefficients for arbitrary tensor network contractions) and R-symbols (axes permutation). The library features automatic database caching for computed canonical bases, enabling significant performance improvements for repeated calculations. Available for both **Rust** and **Python**, while optimized for [**Nicole**](https://github.com/Ideogenesis-AI/Nicole) tensor library.
 
