@@ -37,13 +37,13 @@ Yuzuha automatically caches computed canonical basis data in an SQLite database 
 
 Yuzuha uses the **Condon-Shortley convention** for Clebsch-Gordan (CG) coefficients, which describe the coupling of two angular momentum states:
 
-$$C^{\,j_3 m_3}_{\,j_1 m_1, j_2 m_2} \equiv \langle\, j_1 m_1, j_2 m_2\, | \,j_3 m_3 \,\rangle$$
+$$C^{j_3 m_3}_{j_1 m_1, j_2 m_2} \equiv \langle j_1 m_1, j_2 m_2 | j_3 m_3 \rangle$$
 
 These coefficients satisfy several important properties:
 
 - **Real-valued**: All CG coefficients are real numbers in the Condon-Shortley convention
 - **Orthonormality**: The coefficients form an orthonormal basis:
-  $$\sum_{m_1, m_2} \langle\, j_1 m_1, j_2 m_2\, | \,j_3 m_3 \,\rangle^2 = 1$$
+  $$\sum_{m_1, m_2} \langle j_1 m_1, j_2 m_2 | j_3 m_3 \rangle^2 = 1$$
 - **Selection rules**: Non-zero coefficients require:
   - Magnetic quantum number conservation: $m_1 + m_2 = m_3$
   - Triangle inequality: $|j_1 - j_2| \leqslant j_3 \leqslant j_1 + j_2$
@@ -68,7 +68,7 @@ Yuzuha represents tensor network contractions using **left-associative fusion tr
   
 - **Internal spins** ($\alpha$): Each intermediate fusion step produces an internal spin quantum number. For $n$ external edges, there are $n-2$ internal spins that characterize the coupling path.
 
-- **Outer Multiplicity (OM) index**: When multiple internal spin configurations (fusion patterns) lead to the same total coupling, they are distinguished by the OM index placed at the end of the canonical bases.
+- **Outer Multiplicity (OM) index** ($\mu$): When multiple internal spin configurations (fusion patterns) lead to the same total coupling, they are distinguished by the OM index placed at the end of the canonical bases.
 
 - **CG bases normalization**: The canonical basis is normalized with respect to the OM space. As a result, 3rd order CG bases acquire a scaling factor relative to the standard CG coefficients.
 
