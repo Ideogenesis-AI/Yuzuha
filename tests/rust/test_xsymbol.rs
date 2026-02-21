@@ -442,6 +442,130 @@ fn test_xsymbol_single_contraction_large() {
     run_consistency_test(&spec_a, &spec_b, &contraction, &[Axis(5)], &[Axis(0)]);
 }
 
+// =============================================================================
+// Two-index contracted outcome (consistency: direct contraction vs X-symbol)
+// =============================================================================
+
+#[test]
+fn test_xsymbol_two_index_consistency_out_out() {
+    // spec_c free edges: out (from A edge 3) + out (from B edge 3)
+    // Contracted axes 0,1,2: in (A) × out (B) — correct invariant pairing
+    let _guard = TestCacheGuard::new();
+    let j_half = Spin::new(1).unwrap();
+    let spec_a = CGSpec::from_edges(vec![
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::outgoing(j_half),
+    ])
+    .unwrap();
+    let spec_b = CGSpec::from_edges(vec![
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+    ])
+    .unwrap();
+    let contraction = Contraction::new(&[0, 1, 2], &[0, 1, 2]);
+    run_consistency_test(
+        &spec_a,
+        &spec_b,
+        &contraction,
+        &[Axis(0), Axis(1), Axis(2)],
+        &[Axis(0), Axis(1), Axis(2)],
+    );
+}
+
+#[test]
+fn test_xsymbol_two_index_consistency_out_in() {
+    // spec_c free edges: out (from A edge 3) + in (from B edge 3)
+    // Contracted axes 0,1,2: in (A) × out (B)
+    let _guard = TestCacheGuard::new();
+    let j_half = Spin::new(1).unwrap();
+    let spec_a = CGSpec::from_edges(vec![
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::outgoing(j_half),
+    ])
+    .unwrap();
+    let spec_b = CGSpec::from_edges(vec![
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::incoming(j_half),
+    ])
+    .unwrap();
+    let contraction = Contraction::new(&[0, 1, 2], &[0, 1, 2]);
+    run_consistency_test(
+        &spec_a,
+        &spec_b,
+        &contraction,
+        &[Axis(0), Axis(1), Axis(2)],
+        &[Axis(0), Axis(1), Axis(2)],
+    );
+}
+
+#[test]
+fn test_xsymbol_two_index_consistency_in_out() {
+    // spec_c free edges: in (from A edge 3) + out (from B edge 3) — canonical (in, out)
+    // Contracted axes 0,1,2: out (A) × in (B)
+    let _guard = TestCacheGuard::new();
+    let j_half = Spin::new(1).unwrap();
+    let spec_a = CGSpec::from_edges(vec![
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::incoming(j_half),
+    ])
+    .unwrap();
+    let spec_b = CGSpec::from_edges(vec![
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::outgoing(j_half),
+    ])
+    .unwrap();
+    let contraction = Contraction::new(&[0, 1, 2], &[0, 1, 2]);
+    run_consistency_test(
+        &spec_a,
+        &spec_b,
+        &contraction,
+        &[Axis(0), Axis(1), Axis(2)],
+        &[Axis(0), Axis(1), Axis(2)],
+    );
+}
+
+#[test]
+fn test_xsymbol_two_index_consistency_in_in() {
+    // spec_c free edges: in (from A edge 3) + in (from B edge 3)
+    // Contracted axes 0,1,2: out (A) × in (B)
+    let _guard = TestCacheGuard::new();
+    let j_half = Spin::new(1).unwrap();
+    let spec_a = CGSpec::from_edges(vec![
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::incoming(j_half),
+    ])
+    .unwrap();
+    let spec_b = CGSpec::from_edges(vec![
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+    ])
+    .unwrap();
+    let contraction = Contraction::new(&[0, 1, 2], &[0, 1, 2]);
+    run_consistency_test(
+        &spec_a,
+        &spec_b,
+        &contraction,
+        &[Axis(0), Axis(1), Axis(2)],
+        &[Axis(0), Axis(1), Axis(2)],
+    );
+}
+
 /// Helper function to run consistency test
 fn run_consistency_test(
     spec_a: &CGSpec,
