@@ -42,10 +42,10 @@ use ndarray::{Array, ArrayD, Axis, IxDyn};
 pub fn build_canonical_basis_data(spec: &CGSpec) -> Result<ArrayD<f64>> {
     let n = spec.num_external();
     
-    // Canonical basis is only defined for n >= 3
-    if n < 3 {
+    // Canonical basis is only defined for n >= 2
+    if n < 2 {
         return Err(YuzuhaError::InvalidCGTSpec(
-            format!("Cannot build canonical basis with {} external edges (minimum is 3)", n)
+            format!("Cannot build canonical basis with {} external edges (minimum is 2)", n)
         ));
     }
     
@@ -108,18 +108,18 @@ fn create_canonical_spec(spins: &[Spin]) -> Result<CGSpec> {
 fn compute_canonical_basis_data(canonical_spec: &CGSpec) -> Result<ArrayD<f64>> {
     let n = canonical_spec.num_external();
     let mut data = ArrayD::zeros(IxDyn(&canonical_spec.shape()));
-    
-    let j_last = canonical_spec.edges[n - 1].j;
-    let norm = (j_last.dimension() as f64).sqrt();
+
+    // Normalization factor: 1/sqrt(dim(j_last)) for all n >= 2.
+    // For n == 2, j_last = j_0 = j_1 (both equal), and 1/sqrt(dim) gives Frobenius norm 1.
+    // For n >= 3, this satisfies the partial-trace orthonormality relation.
+    let norm = (canonical_spec.edges[n - 1].j.dimension() as f64).sqrt();
 
     for (om_idx, alpha) in canonical_spec.alphas.iter().enumerate() {
-        let mut alpha_data = build_single_om_tensor(&canonical_spec, alpha)?;
-        alpha_data.mapv_inplace(|x| x / norm);
-        
-        // No direction inversion here - store in canonical form only
+        let raw = build_single_om_tensor(canonical_spec, alpha)?;
+        let alpha_data = raw.mapv(|x| x / norm);
         set_om_slice(&mut data, om_idx, &alpha_data, n)?;
     }
-    
+
     Ok(data)
 }
 
@@ -211,34 +211,49 @@ fn invert_directions_for_spec(
 /// Creates the fusion tree for a specific alpha and contracts it.
 /// Uses a recursive approach, expanding from the right.
 ///
+/// Returns the raw (unnormalized) fusion-tree tensor for a single OM configuration.
+///
+/// Normalization (dividing by `sqrt(dim(j_last))`) is applied by the caller
+/// (`compute_canonical_basis_data`) after this function returns.
+///
 /// # Arguments
-/// * `spec` - CG specification
+/// * `spec` - CG specification (directions are ignored; call site handles inversions)
 /// * `alpha` - Internal spin configuration [j_12, j_123, ..., j_1...n-1]
 ///
 /// # Returns
-/// Array with shape [external_dims...]
+/// Raw tensor with shape [external_dims...]
 fn build_single_om_tensor(spec: &CGSpec, alpha: &[Spin]) -> Result<ArrayD<f64>> {
     let n = spec.num_external();
-    
-    // Error for invalid cases
-    if n < 3 {
+
+    if n < 2 {
         return Err(YuzuhaError::InvalidCGTSpec(
-            format!("Cannot build OM tensor with {} external edges (minimum is 3)", n)
+            format!("Cannot build OM tensor with {} external edges (minimum is 2)", n)
         ));
     }
-    
-    // Base case: n = 3 (CG3 tensor)
-    if n == 3 {
-        // CG3: edges[0] ⊗ edges[1] → edges[2]
-        return build_cg3(
-            spec.edges[0].j,
-            spec.edges[1].j,
-            spec.edges[2].j,
-        );
+
+    // n == 2: raw identity matrix δ_{m0, m1}
+    // Both spins must be equal so that coupling to j=0 is possible.
+    if n == 2 {
+        let j0 = spec.edges[0].j;
+        let j1 = spec.edges[1].j;
+        if j0 != j1 {
+            return Err(YuzuhaError::InvalidCGTSpec(
+                format!(
+                    "Two-edge CG tensor requires equal spins, got j={}/{} and j={}/{}",
+                    j0.twice(), 2, j1.twice(), 2
+                )
+            ));
+        }
+        let dim = j0.dimension();
+        return Ok(Array::from_diag(&ndarray::Array1::<f64>::ones(dim)).into_dyn());
     }
-    
-    // For n >= 4: Build fusion tree recursively
-    build_fusion_tree_recursive(&spec.edges, alpha)
+
+    // n >= 3: build and return the raw fusion tree tensor
+    if n == 3 {
+        build_cg3(spec.edges[0].j, spec.edges[1].j, spec.edges[2].j)
+    } else {
+        build_fusion_tree_recursive(&spec.edges, alpha)
+    }
 }
 
 /// Recursively build the fusion tree tensor for n >= 4
@@ -420,8 +435,8 @@ mod tests {
             Edge::incoming(j1),
         ]).unwrap();
         
-        // Should error for n=2 (less than minimum of 3)
-        assert!(build_canonical_basis_data(&spec).is_err());
+        // n=2 is now supported — should succeed
+        assert!(build_canonical_basis_data(&spec).is_ok());
     }
 
     #[test]
@@ -756,7 +771,7 @@ mod tests {
     #[test]
     fn test_build_single_om_tensor_three_edges() {
         let _guard = TestCacheGuard::new();
-        
+
         // Three j=1 spins: two incoming, one outgoing
         let j1 = Spin::new(2).unwrap();
         let edges = vec![
@@ -765,25 +780,27 @@ mod tests {
             Edge::outgoing(j1),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
-        
+
         // Test each alpha configuration
         for alpha in spec.alphas.iter() {
             let tensor = build_single_om_tensor(&spec, alpha).unwrap();
-            
+
             // Shape should be [3, 3, 3] for three j=1 spins
             assert_eq!(tensor.shape(), &[3, 3, 3]);
-            
-            // Test normalization: contract over first 2 axes should give identity
+
+            // build_single_om_tensor returns the raw tensor; the caller normalizes.
+            // CG coefficients are orthonormal: contracting over the first 2 axes gives identity.
             let result = ndarray_einsum::tensordot(
                 &tensor,
                 &tensor,
                 &[Axis(0), Axis(1)],
                 &[Axis(0), Axis(1)],
             );
-            
+
+            let expected_diag = 1.0_f64;
             for i in 0..3 {
                 for j in 0..3 {
-                    let expected = if i == j { 1.0 } else { 0.0 };
+                    let expected = if i == j { expected_diag } else { 0.0 };
                     assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
                 }
             }
@@ -793,7 +810,7 @@ mod tests {
     #[test]
     fn test_build_single_om_tensor_four_edges() {
         let _guard = TestCacheGuard::new();
-        
+
         // Four j=1/2 spins: three incoming, one outgoing
         let j_half = Spin::new(1).unwrap();
         let edges = vec![
@@ -803,25 +820,27 @@ mod tests {
             Edge::outgoing(j_half),
         ];
         let spec = CGSpec::from_edges(edges).unwrap();
-        
+
         // Test each alpha configuration
         for alpha in spec.alphas.iter() {
             let tensor = build_single_om_tensor(&spec, alpha).unwrap();
-            
+
             // Shape should be [2, 2, 2, 2] for four j=1/2 spins
             assert_eq!(tensor.shape(), &[2, 2, 2, 2]);
-            
-            // Test normalization: contract over first 3 axes should give identity
+
+            // build_single_om_tensor returns the raw tensor; the caller normalizes.
+            // CG coefficients are orthonormal: contracting over the first 3 axes gives identity.
             let result = ndarray_einsum::tensordot(
                 &tensor,
                 &tensor,
                 &[Axis(0), Axis(1), Axis(2)],
                 &[Axis(0), Axis(1), Axis(2)],
             );
-            
+
+            let expected_diag = 1.0_f64;
             for i in 0..2 {
                 for j in 0..2 {
-                    let expected = if i == j { 1.0 } else { 0.0 };
+                    let expected = if i == j { expected_diag } else { 0.0 };
                     assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
                 }
             }
@@ -831,28 +850,47 @@ mod tests {
     #[test]
     fn test_build_single_om_tensor_invalid_cases() {
         let _guard = TestCacheGuard::new();
-        
-        // Test that n < 3 returns error
+
         let j1 = Spin::new(2).unwrap();
-        
-        // n = 2 case
-        let edges_2 = vec![
-            Edge::incoming(j1),
-            Edge::incoming(j1),
-        ];
-        let spec_2 = CGSpec::from_edges(edges_2).unwrap();
-        let alpha_2 = &spec_2.alphas[0];
-        
-        let result = build_single_om_tensor(&spec_2, alpha_2);
-        assert!(result.is_err(), "n=2 should return error");
-        
-        // n = 1 case
+
+        // n = 1 is still invalid
         let edges_1 = vec![Edge::incoming(j1)];
         let spec_1 = CGSpec::from_edges(edges_1).unwrap();
         let alpha_1 = &spec_1.alphas[0];
-        
         let result = build_single_om_tensor(&spec_1, alpha_1);
         assert!(result.is_err(), "n=1 should return error");
+
+        // Mismatched spins for n=2 are invalid
+        let j_half = Spin::new(1).unwrap();
+        let edges_mismatch = vec![Edge::incoming(j1), Edge::outgoing(j_half)];
+        let spec_mismatch = CGSpec::from_edges(edges_mismatch).unwrap();
+        let alpha_mismatch = &spec_mismatch.alphas[0];
+        let result = build_single_om_tensor(&spec_mismatch, alpha_mismatch);
+        assert!(result.is_err(), "n=2 with mismatched spins should return error");
+    }
+
+    #[test]
+    fn test_build_single_om_tensor_two_edges() {
+        let _guard = TestCacheGuard::new();
+
+        let j1 = Spin::new(2).unwrap(); // j=1, dim=3
+
+        // Canonical directions: (incoming, outgoing)
+        let edges = vec![Edge::incoming(j1), Edge::outgoing(j1)];
+        let spec = CGSpec::from_edges(edges).unwrap();
+        let alpha = &spec.alphas[0];
+
+        let tensor = build_single_om_tensor(&spec, alpha).unwrap();
+
+        // Shape should be [3, 3] (raw identity, normalization applied by caller)
+        assert_eq!(tensor.shape(), &[3, 3]);
+
+        for i in 0..3 {
+            for j in 0..3 {
+                let expected = if i == j { 1.0 } else { 0.0 };
+                assert_relative_eq!(tensor[[i, j]], expected, epsilon = 1e-10);
+            }
+        }
     }
 
     #[test]
