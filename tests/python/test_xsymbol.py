@@ -537,6 +537,144 @@ class TestXSymbolConsistency:
         contraction = yuzuha.Contraction([5], [0])
         run_consistency_test(spec_a, spec_b, contraction, [5], [0])
 
+    def test_two_index_outcome_out_out(self):
+        """Two-edge outcome (out, out): contracted axes pair in(A) × out(B)."""
+        j_half = yuzuha.Spin(1)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
+        run_consistency_test(spec_a, spec_b, contraction, [0, 1, 2], [0, 1, 2])
+
+    def test_two_index_outcome_out_in(self):
+        """Two-edge outcome (out, in): contracted axes pair in(A) × out(B)."""
+        j_half = yuzuha.Spin(1)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
+        run_consistency_test(spec_a, spec_b, contraction, [0, 1, 2], [0, 1, 2])
+
+    def test_two_index_outcome_in_out(self):
+        """Two-edge outcome (in, out): canonical spec_c, contracted axes pair out(A) × in(B)."""
+        j_half = yuzuha.Spin(1)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
+        run_consistency_test(spec_a, spec_b, contraction, [0, 1, 2], [0, 1, 2])
+
+    def test_two_index_outcome_in_in(self):
+        """Two-edge outcome (in, in): contracted axes pair out(A) × in(B)."""
+        j_half = yuzuha.Spin(1)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
+        run_consistency_test(spec_a, spec_b, contraction, [0, 1, 2], [0, 1, 2])
+
+    def test_two_index_tensor_left(self):
+        """Two-index tensor A contracted with an intermediate edge of higher-order tensor B.
+
+        Contracts spec_a axis 0 (out j=1) with spec_b axis 2 (in j=1) — not the
+        first or last axis of B. Tests both directions for the free edge of spec_a.
+        """
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+
+        # 5-edge tensor B; axis 2 (in j=1) is the contracted edge (middle, not first/last)
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+
+        # Case 1: free edge of the 2-edge tensor is incoming
+        spec_a_free_in = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j1),  # contracted: out(A) × in(B axis 2) ✓
+            yuzuha.Edge.incoming(j1),  # free edge: incoming
+        ])
+        contraction = yuzuha.Contraction([0], [2])
+        run_consistency_test(spec_a_free_in, spec_b, contraction, [0], [2])
+
+        # Case 2: free edge of the 2-edge tensor is outgoing
+        spec_a_free_out = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j1),  # contracted: out(A) × in(B axis 2) ✓
+            yuzuha.Edge.outgoing(j1),  # free edge: outgoing
+        ])
+        run_consistency_test(spec_a_free_out, spec_b, contraction, [0], [2])
+
+    def test_two_index_tensor_right(self):
+        """Higher-order tensor A contracted with a two-index tensor B via an intermediate edge.
+
+        Contracts spec_a axis 2 (out j=1) — not the first or last axis of A — with
+        spec_b axis 0 (in j=1). Tests both directions for the free edge of spec_b.
+        """
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+
+        # 5-edge tensor A; axis 2 (out j=1) is the contracted edge (middle, not first/last)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),   # contracted: out(A axis 2) × in(B) ✓
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+
+        # Case 1: free edge of the 2-edge tensor is outgoing
+        spec_b_free_out = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),  # contracted: in(B) × out(A axis 2) ✓
+            yuzuha.Edge.outgoing(j1),  # free edge: outgoing
+        ])
+        contraction = yuzuha.Contraction([2], [0])
+        run_consistency_test(spec_a, spec_b_free_out, contraction, [2], [0])
+
+        # Case 2: free edge of the 2-edge tensor is incoming
+        spec_b_free_in = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),  # contracted: in(B) × out(A axis 2) ✓
+            yuzuha.Edge.incoming(j1),  # free edge: incoming
+        ])
+        run_consistency_test(spec_a, spec_b_free_in, contraction, [2], [0])
+
 
 class TestXSymbolStress:
     """Stress tests with random configurations to ensure robustness."""
@@ -914,6 +1052,130 @@ class TestXSymbolStress:
                 
             except Exception as e:
                 pytest.fail(f"Failed for high spin config ({j1.twice()}/2, {j2.twice()}/2, {j3.twice()}/2): {e}")
+
+    def test_two_index_outcome_j1(self):
+        """Two-edge outcome with j=1: 4-edge tensors contracting 3 edges each."""
+        j1 = yuzuha.Spin(2)  # j=1, integer spin
+        # Contracted: in(A) × out(B); free: out(A) + out(B)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
+        run_consistency_test(spec_a, spec_b, contraction, [0, 1, 2], [0, 1, 2])
+
+    def test_two_index_outcome_j3_half(self):
+        """Two-edge outcome with j=3/2: 4-edge tensors contracting 3 edges each."""
+        j_3_2 = yuzuha.Spin(3)  # j=3/2, 4 half-integer edges → even → valid
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_3_2),
+            yuzuha.Edge.incoming(j_3_2),
+            yuzuha.Edge.incoming(j_3_2),
+            yuzuha.Edge.outgoing(j_3_2),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_3_2),
+            yuzuha.Edge.outgoing(j_3_2),
+            yuzuha.Edge.outgoing(j_3_2),
+            yuzuha.Edge.outgoing(j_3_2),
+        ])
+        contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
+        run_consistency_test(spec_a, spec_b, contraction, [0, 1, 2], [0, 1, 2])
+
+    def test_two_index_outcome_five_edges_j1(self):
+        """Two-edge outcome with j=1: 5-edge tensors contracting 4 edges each."""
+        j1 = yuzuha.Spin(2)  # j=1, all integer → valid for any edge count
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        contraction = yuzuha.Contraction([0, 1, 2, 3], [0, 1, 2, 3])
+        run_consistency_test(spec_a, spec_b, contraction, [0, 1, 2, 3], [0, 1, 2, 3])
+
+    def test_two_index_outcome_five_edges_mixed(self):
+        """Two-edge outcome with mixed spins: 5-edge tensors contracting 4 edges each."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        # 3× j=1/2 + 1× j=1 contracted; free: j=1/2
+        # 4 half-integer edges per tensor → even → valid
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        contraction = yuzuha.Contraction([0, 1, 2, 3], [0, 1, 2, 3])
+        run_consistency_test(spec_a, spec_b, contraction, [0, 1, 2, 3], [0, 1, 2, 3])
+
+    def test_two_index_outcome_six_edges_j_half(self):
+        """Two-edge outcome with j=1/2: 6-edge tensors contracting 5 edges each."""
+        j_half = yuzuha.Spin(1)
+        # 6 half-integer edges → even → valid
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        contraction = yuzuha.Contraction([0, 1, 2, 3, 4], [0, 1, 2, 3, 4])
+        run_consistency_test(spec_a, spec_b, contraction, [0, 1, 2, 3, 4], [0, 1, 2, 3, 4])
+
+    def test_two_index_outcome_mixed_spins(self):
+        """Two-edge outcome with mixed contracted spins: 4-edge A + 4-edge B."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        # Contracted: 2× j=1 + 1× j=1/2; free: j=1/2
+        # 2 half-integer edges per tensor → even → valid
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
+        run_consistency_test(spec_a, spec_b, contraction, [0, 1, 2], [0, 1, 2])
 
 
 class TestXSymbolEdgeCases:
