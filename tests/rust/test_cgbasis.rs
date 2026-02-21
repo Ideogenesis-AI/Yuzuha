@@ -26,6 +26,89 @@ use yuzuha::builders::TestCacheGuard;
 use yuzuha::core::{CGSpec, Direction, Edge, Spin};
 
 // ============================================================================
+// Two-edge identity tests
+// ============================================================================
+
+/// Helper: verify that `build_canonical_basis_data` for a two-edge spec with
+/// equal spins returns a [dim, dim, 1] array whose single OM slice has
+/// Frobenius norm 1 (normalized like n>=3 bases).
+fn test_two_edges_helper(j: Spin, dir0: Direction, dir1: Direction) {
+    let _guard = TestCacheGuard::new();
+
+    let edges = vec![Edge::new(j, dir0), Edge::new(j, dir1)];
+    let spec = CGSpec::from_edges(edges).unwrap();
+
+    let data = build_canonical_basis_data(&spec).unwrap();
+    let dim = j.dimension();
+
+    // Shape: [dim, dim, 1]
+    assert_eq!(data.shape(), &[dim, dim, 1]);
+
+    let slice = data.slice(ndarray::s![.., .., 0]);
+
+    // Frobenius norm of the slice must be 1
+    let frob_sq: f64 = slice.iter().map(|x| x * x).sum();
+    assert_relative_eq!(frob_sq, 1.0, epsilon = 1e-10);
+
+    // slice * slice^T == (1/dim) I for normalized identity-like basis
+    let expected_diag = 1.0 / (dim as f64);
+    for i in 0..dim {
+        for k in 0..dim {
+            let mut dot = 0.0_f64;
+            for m in 0..dim {
+                dot += slice[[i, m]] * slice[[k, m]];
+            }
+            let expected = if i == k { expected_diag } else { 0.0 };
+            assert_relative_eq!(dot, expected, epsilon = 1e-10);
+        }
+    }
+}
+
+#[test]
+fn test_two_edges_canonical_j_half() {
+    // Canonical (in, out) — plain identity
+    let j_half = Spin::new(1).unwrap();
+    test_two_edges_helper(j_half, Direction::Incoming, Direction::Outgoing);
+}
+
+#[test]
+fn test_two_edges_canonical_j1() {
+    let j1 = Spin::new(2).unwrap();
+    test_two_edges_helper(j1, Direction::Incoming, Direction::Outgoing);
+}
+
+#[test]
+fn test_two_edges_canonical_j2() {
+    let j2 = Spin::new(4).unwrap();
+    test_two_edges_helper(j2, Direction::Incoming, Direction::Outgoing);
+}
+
+#[test]
+fn test_two_edges_both_incoming_j_half() {
+    let j_half = Spin::new(1).unwrap();
+    test_two_edges_helper(j_half, Direction::Incoming, Direction::Incoming);
+}
+
+#[test]
+fn test_two_edges_both_incoming_j1() {
+    let j1 = Spin::new(2).unwrap();
+    test_two_edges_helper(j1, Direction::Incoming, Direction::Incoming);
+}
+
+#[test]
+fn test_two_edges_both_outgoing_j1() {
+    let j1 = Spin::new(2).unwrap();
+    test_two_edges_helper(j1, Direction::Outgoing, Direction::Outgoing);
+}
+
+#[test]
+fn test_two_edges_reversed_j1() {
+    // (out, in) — reversed canonical
+    let j1 = Spin::new(2).unwrap();
+    test_two_edges_helper(j1, Direction::Outgoing, Direction::Incoming);
+}
+
+// ============================================================================
 // Three-edge orthonormality tests
 // ============================================================================
 
