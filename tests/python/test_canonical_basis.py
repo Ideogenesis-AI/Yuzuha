@@ -30,25 +30,94 @@ class TestCanonicalBasisErrors:
     """Test error handling for invalid inputs."""
 
     def test_single_edge_error(self):
-        """Test that single edge raises ValueError."""
+        """Test that a single edge raises ValueError."""
         j1 = yuzuha.Spin(2)
         spec = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j1),
         ])
-        
+
         with pytest.raises(ValueError, match="Cannot build canonical basis with 1 external edges"):
             yuzuha.canonical_basis(spec)
 
-    def test_two_edges_error(self):
-        """Test that two edges raises ValueError."""
+    def test_one_edge_error(self):
+        """Test that a single edge raises ValueError."""
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+        ])
+
+        with pytest.raises(ValueError, match="Cannot build canonical basis with 1 external edges"):
+            yuzuha.canonical_basis(spec)
+
+
+class TestTwoEdgesBasis:
+    """Test two-edge (n=2) canonical basis.
+
+    The normalized basis is (1/sqrt(dim)) * I, so Frobenius norm = 1 and
+    mat @ mat.T = (1/dim) * I (not a full unitary, but proportional to one).
+    """
+
+    def _check_normalized(self, basis, dim):
+        """Assert the [dim, dim, 1] slice is a normalized identity-like matrix."""
+        assert basis.shape == (dim, dim, 1), f"Expected ({dim}, {dim}, 1), got {basis.shape}"
+        mat = basis[:, :, 0]
+        # Frobenius norm must be 1
+        np.testing.assert_allclose(np.linalg.norm(mat, 'fro'), 1.0, atol=1e-10)
+        # Must be proportional to identity: mat @ mat.T = (1/dim) * I
+        np.testing.assert_allclose(mat @ mat.T, np.eye(dim) / dim, atol=1e-10)
+        np.testing.assert_allclose(mat.T @ mat, np.eye(dim) / dim, atol=1e-10)
+
+    def test_two_edges_canonical_j1(self):
+        """Canonical (in, out) directions return (1/sqrt(dim)) * identity."""
+        j1 = yuzuha.Spin(2)  # j=1, dim=3
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        basis = yuzuha.canonical_basis(spec)
+        self._check_normalized(basis, 3)
+        # Canonical directions: slice must be exactly (1/sqrt(3)) * identity
+        np.testing.assert_allclose(basis[:, :, 0], np.eye(3) / np.sqrt(3), atol=1e-10)
+
+    def test_two_edges_canonical_j_half(self):
+        """Canonical (in, out) directions for j=1/2."""
+        j_half = yuzuha.Spin(1)  # j=1/2, dim=2
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        basis = yuzuha.canonical_basis(spec)
+        self._check_normalized(basis, 2)
+        np.testing.assert_allclose(basis[:, :, 0], np.eye(2) / np.sqrt(2), atol=1e-10)
+
+    def test_two_edges_both_incoming_j1(self):
+        """Both incoming: second edge inverted, result still has Frobenius norm 1."""
         j1 = yuzuha.Spin(2)
         spec = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j1),
             yuzuha.Edge.incoming(j1),
         ])
-        
-        with pytest.raises(ValueError, match="Cannot build canonical basis with 2 external edges"):
-            yuzuha.canonical_basis(spec)
+        basis = yuzuha.canonical_basis(spec)
+        self._check_normalized(basis, 3)
+
+    def test_two_edges_both_outgoing_j1(self):
+        """Both outgoing: both edges inverted, result still has Frobenius norm 1."""
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        basis = yuzuha.canonical_basis(spec)
+        self._check_normalized(basis, 3)
+
+    def test_two_edges_om_dimension_is_one(self):
+        """Two-edge specs always have OM dimension 1."""
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        assert spec.om_dimension() == 1
 
 
 class TestCanonicalBasisShape:
