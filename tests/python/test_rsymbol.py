@@ -914,6 +914,109 @@ class TestRSymbolStress:
         assert np.allclose(r6_t_r6, identity6, atol=1e-10)
 
 
+class TestRSymbolTwoEdge:
+    """Test R-symbol for the transpose of 2-edge bases.
+
+    For a 2-edge tensor the only non-trivial permutation is swapping the two
+    edges: permutation [1, 0].  The OM dimension is always 1, so the R-symbol
+    is a 1×1 scalar.
+
+    Mathematical result
+    ------------------
+    For any direction combination the scalar equals (-1)^{2j}:
+      - half-integer j (j=1/2, 3/2, …) → R = -1
+      - integer j (j=1, 2, …)           → R = +1
+
+    The sign is determined by the SU(2) metric and is the same for all four
+    direction combinations (in-out, out-in, in-in, out-out).
+    """
+
+    def _run_two_edge_transpose(self, j, dir0, dir1):
+        """Build a 2-edge spec, compute R = swap, return the scalar value."""
+        edge0 = yuzuha.Edge.incoming(j) if dir0 == "in" else yuzuha.Edge.outgoing(j)
+        edge1 = yuzuha.Edge.incoming(j) if dir1 == "in" else yuzuha.Edge.outgoing(j)
+        spec = yuzuha.CGSpec.from_edges([edge0, edge1])
+        r_array, _ = yuzuha.compute_rsymbol(spec, [1, 0])
+        assert r_array.shape == (1, 1), \
+            f"Expected (1,1), got {r_array.shape}"
+        return float(r_array[0, 0])
+
+    def test_two_edge_transpose_j_half(self):
+        """j=1/2 (half-integer): R = -1 for all four direction combinations."""
+        j = yuzuha.Spin(1)  # j = 1/2
+        expected = -1.0     # (-1)^{2*(1/2)} = (-1)^1 = -1
+        for d0, d1 in [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]:
+            val = self._run_two_edge_transpose(j, d0, d1)
+            assert abs(val - expected) < 1e-10, \
+                f"j=1/2 ({d0},{d1}): expected {expected}, got {val}"
+
+    def test_two_edge_transpose_j1(self):
+        """j=1 (integer): R = +1 for all four direction combinations."""
+        j = yuzuha.Spin(2)  # j = 1
+        expected = 1.0      # (-1)^{2*1} = (-1)^2 = +1
+        for d0, d1 in [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]:
+            val = self._run_two_edge_transpose(j, d0, d1)
+            assert abs(val - expected) < 1e-10, \
+                f"j=1 ({d0},{d1}): expected {expected}, got {val}"
+
+    def test_two_edge_transpose_j3_half(self):
+        """j=3/2 (half-integer): R = -1 for all four direction combinations."""
+        j = yuzuha.Spin(3)  # j = 3/2
+        expected = -1.0     # (-1)^{2*(3/2)} = (-1)^3 = -1
+        for d0, d1 in [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]:
+            val = self._run_two_edge_transpose(j, d0, d1)
+            assert abs(val - expected) < 1e-10, \
+                f"j=3/2 ({d0},{d1}): expected {expected}, got {val}"
+
+    def test_two_edge_transpose_j2(self):
+        """j=2 (integer): R = +1 for all four direction combinations."""
+        j = yuzuha.Spin(4)  # j = 2
+        expected = 1.0      # (-1)^{2*2} = (-1)^4 = +1
+        for d0, d1 in [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]:
+            val = self._run_two_edge_transpose(j, d0, d1)
+            assert abs(val - expected) < 1e-10, \
+                f"j=2 ({d0},{d1}): expected {expected}, got {val}"
+
+    def test_two_edge_transpose_sign_pattern(self):
+        """Verify that the sign alternates with spin: (-1)^{2j}.
+
+        Half-integer spins → -1, integer spins → +1.
+        The sign is identical across all four direction combinations.
+        """
+        cases = [
+            (yuzuha.Spin(1), -1.0),   # j=1/2
+            (yuzuha.Spin(2),  1.0),   # j=1
+            (yuzuha.Spin(3), -1.0),   # j=3/2
+            (yuzuha.Spin(4),  1.0),   # j=2
+            (yuzuha.Spin(5), -1.0),   # j=5/2
+        ]
+        directions = [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]
+        for j, expected in cases:
+            signs = []
+            for d0, d1 in directions:
+                val = self._run_two_edge_transpose(j, d0, d1)
+                assert abs(abs(val) - 1.0) < 1e-10, \
+                    f"j={j.twice()}/2 ({d0},{d1}): R must be ±1, got {val}"
+                signs.append(val)
+            # All four direction combos must agree
+            assert len(set(round(s, 8) for s in signs)) == 1, \
+                f"j={j.twice()}/2: direction combinations give different signs: {signs}"
+            assert abs(signs[0] - expected) < 1e-10, \
+                f"j={j.twice()}/2: expected {expected}, got {signs[0]}"
+
+    def test_two_edge_identity_permutation(self):
+        """Identity permutation [0, 1] on a 2-edge spec gives R = +1."""
+        for j in [yuzuha.Spin(1), yuzuha.Spin(2), yuzuha.Spin(3)]:
+            for d0, d1 in [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]:
+                edge0 = yuzuha.Edge.incoming(j) if d0 == "in" else yuzuha.Edge.outgoing(j)
+                edge1 = yuzuha.Edge.incoming(j) if d1 == "in" else yuzuha.Edge.outgoing(j)
+                spec = yuzuha.CGSpec.from_edges([edge0, edge1])
+                r_array, _ = yuzuha.compute_rsymbol(spec, [0, 1])
+                assert r_array.shape == (1, 1)
+                assert abs(float(r_array[0, 0]) - 1.0) < 1e-10, \
+                    f"Identity permutation must give +1, got {r_array[0,0]}"
+
+
 class TestRSymbolEdgeCases:
     """Test edge cases and boundary conditions."""
     
