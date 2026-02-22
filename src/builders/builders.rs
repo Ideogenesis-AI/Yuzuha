@@ -132,7 +132,7 @@ fn compute_canonical_basis_data(canonical_spec: &CGSpec) -> Result<ArrayD<f64>> 
 /// * `tensor` - Input tensor with shape [external_dims..., om_dim]
 /// * `axis_idx` - Index of the external axis to invert
 /// * `j` - Spin of the edge being inverted
-/// * `from_dir` - Current direction of the edge
+/// * `_from_dir` - Direction of the edge (unused; both directions use the same metric)
 /// * `_n_external` - Number of external axes (excluding OM axis)
 ///
 /// # Returns
@@ -141,7 +141,7 @@ fn invert_edge_direction_full_basis(
     tensor: &ArrayD<f64>,
     axis_idx: usize,
     j: Spin,
-    from_dir: Direction,
+    _from_dir: Direction,
     _n_external: usize,
 ) -> Result<ArrayD<f64>> {
     let mut result = tensor.clone();
@@ -154,17 +154,30 @@ fn invert_edge_direction_full_basis(
     for m_idx in 0..dim {
         let m = MagneticNumber::from_index(m_idx, j);
         
-        // Calculate phase
-        let phase = if from_dir == Direction::Incoming {
-            // Incoming → Outgoing: (-1)^{j+m}
-            if (j.twice() + m.twice()) % 4 == 0 { 1.0 } else { -1.0 }
-        } else {
-            // Outgoing → Incoming: (-1)^{2j} * (-1)^{j+m}
-            let phase_2j = if j.twice() % 2 == 0 { 1.0 } else { -1.0 };
-            let phase_jm = if (j.twice() + m.twice()) % 4 == 0 { 1.0 } else { -1.0 };
-            phase_2j * phase_jm
-        };
+        // The following convention has been abandoned, after taking the domain/codomain
+        // concept into account. See following comments for the reasoning.
+        // // Calculate phase
+        // let phase = if _from_dir == Direction::Incoming {
+        //     // Incoming → Outgoing: (-1)^{j-m}
+        //     if (j.twice() - m.twice()) % 4 == 0 { 1.0 } else { -1.0 }
+        // } else {
+        //     // Outgoing → Incoming: (-1)^{2j} * (-1)^{j-m}
+        //     let phase_2j = if j.twice() % 2 == 0 { 1.0 } else { -1.0 };
+        //     let phase_jm = if (j.twice() - m.twice()) % 4 == 0 { 1.0 } else { -1.0 };
+        //     phase_2j * phase_jm
+        // };
+
+        // The following convention is used instead. The canonical arrow direction is:
+        // incoming for the first n-1 edges, outgoing for the last edge. Therefore, the 
+        // first n-1 edges are in the domain, and the last edge is in the codomain.
+        // 
+        // In principle, inverting from outgoing to incoming should use the inverse metric
+        // (-1)^{2j} * (-1)^{j-m}. However, converting from domain to codomain gives a
+        // transpose to the inverse metric, which eventually leads to the same metric (-1)^{j-m}.
         
+        // Both in→out and out→in use the same metric (-1)^{j-m}.
+        let phase = if (j.twice() - m.twice()) % 4 == 0 { 1.0 } else { -1.0 };
+
         // Apply phase to the entire slice at this m value (including all OM values)
         result.index_axis_mut(Axis(axis_idx), m_idx).mapv_inplace(|x| x * phase);
     }
