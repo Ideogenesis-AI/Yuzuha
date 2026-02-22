@@ -923,12 +923,18 @@ class TestRSymbolTwoEdge:
 
     Mathematical result
     ------------------
-    For any direction combination the scalar equals (-1)^{2j}:
-      - half-integer j (j=1/2, 3/2, …) → R = -1
-      - integer j (j=1, 2, …)           → R = +1
+    The scalar depends on the direction combination:
 
-    The sign is determined by the SU(2) metric and is the same for all four
-    direction combinations (in-out, out-in, in-in, out-out).
+    - Opposite directions (in, out) or (out, in):
+        R = +1 for all j.
+        With the symmetric metric g (g_{in→out} = g_{out→in} = (-1)^{j-m}),
+        swapping two legs of opposite type is equivalent to a relabelling that
+        leaves the contraction invariant.
+
+    - Same directions (in, in) or (out, out):
+        R = (-1)^{2j}.
+        Swapping two legs of the same type requires one insertion of the metric,
+        which contributes (-1)^{2j} for half-integer j and +1 for integer j.
     """
 
     def _run_two_edge_transpose(self, j, dir0, dir1):
@@ -942,46 +948,51 @@ class TestRSymbolTwoEdge:
         return float(r_array[0, 0])
 
     def test_two_edge_transpose_j_half(self):
-        """j=1/2 (half-integer): R = -1 for all four direction combinations."""
+        """j=1/2: R = +1 for opposite directions, R = -1 for same directions."""
         j = yuzuha.Spin(1)  # j = 1/2
-        expected = -1.0     # (-1)^{2*(1/2)} = (-1)^1 = -1
-        for d0, d1 in [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]:
+        for d0, d1 in [("in", "out"), ("out", "in")]:
             val = self._run_two_edge_transpose(j, d0, d1)
-            assert abs(val - expected) < 1e-10, \
-                f"j=1/2 ({d0},{d1}): expected {expected}, got {val}"
+            assert abs(val - 1.0) < 1e-10, \
+                f"j=1/2 ({d0},{d1}): expected +1, got {val}"
+        for d0, d1 in [("in", "in"), ("out", "out")]:
+            val = self._run_two_edge_transpose(j, d0, d1)
+            assert abs(val - (-1.0)) < 1e-10, \
+                f"j=1/2 ({d0},{d1}): expected -1, got {val}"
 
     def test_two_edge_transpose_j1(self):
-        """j=1 (integer): R = +1 for all four direction combinations."""
+        """j=1: R = +1 for all four direction combinations."""
         j = yuzuha.Spin(2)  # j = 1
-        expected = 1.0      # (-1)^{2*1} = (-1)^2 = +1
         for d0, d1 in [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]:
             val = self._run_two_edge_transpose(j, d0, d1)
-            assert abs(val - expected) < 1e-10, \
-                f"j=1 ({d0},{d1}): expected {expected}, got {val}"
+            assert abs(val - 1.0) < 1e-10, \
+                f"j=1 ({d0},{d1}): expected +1, got {val}"
 
     def test_two_edge_transpose_j3_half(self):
-        """j=3/2 (half-integer): R = -1 for all four direction combinations."""
+        """j=3/2: R = +1 for opposite directions, R = -1 for same directions."""
         j = yuzuha.Spin(3)  # j = 3/2
-        expected = -1.0     # (-1)^{2*(3/2)} = (-1)^3 = -1
-        for d0, d1 in [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]:
+        for d0, d1 in [("in", "out"), ("out", "in")]:
             val = self._run_two_edge_transpose(j, d0, d1)
-            assert abs(val - expected) < 1e-10, \
-                f"j=3/2 ({d0},{d1}): expected {expected}, got {val}"
+            assert abs(val - 1.0) < 1e-10, \
+                f"j=3/2 ({d0},{d1}): expected +1, got {val}"
+        for d0, d1 in [("in", "in"), ("out", "out")]:
+            val = self._run_two_edge_transpose(j, d0, d1)
+            assert abs(val - (-1.0)) < 1e-10, \
+                f"j=3/2 ({d0},{d1}): expected -1, got {val}"
 
     def test_two_edge_transpose_j2(self):
-        """j=2 (integer): R = +1 for all four direction combinations."""
+        """j=2: R = +1 for all four direction combinations."""
         j = yuzuha.Spin(4)  # j = 2
-        expected = 1.0      # (-1)^{2*2} = (-1)^4 = +1
         for d0, d1 in [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]:
             val = self._run_two_edge_transpose(j, d0, d1)
-            assert abs(val - expected) < 1e-10, \
-                f"j=2 ({d0},{d1}): expected {expected}, got {val}"
+            assert abs(val - 1.0) < 1e-10, \
+                f"j=2 ({d0},{d1}): expected +1, got {val}"
 
     def test_two_edge_transpose_sign_pattern(self):
-        """Verify that the sign alternates with spin: (-1)^{2j}.
+        """Verify the sign pattern across spins and direction combinations.
 
-        Half-integer spins → -1, integer spins → +1.
-        The sign is identical across all four direction combinations.
+        Opposite directions (in,out)/(out,in): always +1.
+        Same directions (in,in)/(out,out): (-1)^{2j}, i.e. -1 for half-integer,
+        +1 for integer spins.
         """
         cases = [
             (yuzuha.Spin(1), -1.0),   # j=1/2
@@ -990,19 +1001,19 @@ class TestRSymbolTwoEdge:
             (yuzuha.Spin(4),  1.0),   # j=2
             (yuzuha.Spin(5), -1.0),   # j=5/2
         ]
-        directions = [("in", "out"), ("out", "in"), ("in", "in"), ("out", "out")]
-        for j, expected in cases:
-            signs = []
-            for d0, d1 in directions:
+        for j, expected_same in cases:
+            for d0, d1 in [("in", "out"), ("out", "in")]:
                 val = self._run_two_edge_transpose(j, d0, d1)
                 assert abs(abs(val) - 1.0) < 1e-10, \
                     f"j={j.twice()}/2 ({d0},{d1}): R must be ±1, got {val}"
-                signs.append(val)
-            # All four direction combos must agree
-            assert len(set(round(s, 8) for s in signs)) == 1, \
-                f"j={j.twice()}/2: direction combinations give different signs: {signs}"
-            assert abs(signs[0] - expected) < 1e-10, \
-                f"j={j.twice()}/2: expected {expected}, got {signs[0]}"
+                assert abs(val - 1.0) < 1e-10, \
+                    f"j={j.twice()}/2 ({d0},{d1}): expected +1, got {val}"
+            for d0, d1 in [("in", "in"), ("out", "out")]:
+                val = self._run_two_edge_transpose(j, d0, d1)
+                assert abs(abs(val) - 1.0) < 1e-10, \
+                    f"j={j.twice()}/2 ({d0},{d1}): R must be ±1, got {val}"
+                assert abs(val - expected_same) < 1e-10, \
+                    f"j={j.twice()}/2 ({d0},{d1}): expected {expected_same}, got {val}"
 
     def test_two_edge_identity_permutation(self):
         """Identity permutation [0, 1] on a 2-edge spec gives R = +1."""
