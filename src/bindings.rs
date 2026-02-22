@@ -29,6 +29,7 @@ use crate::core::{Spin as RustSpin, Edge as RustEdge, CGSpec as RustCGSpec,
 use crate::builders::{compute_xsymbol as rust_compute_xsymbol, 
                       compute_rsymbol as rust_compute_rsymbol,
                       build_canonical_basis_data as rust_build_canonical_basis_data};
+use crate::builders::fs_phase::compute_fs_phase as rust_compute_fs_phase;
 use crate::error::YuzuhaError;
 
 /// Convert Rust YuzuhaError to Python exception
@@ -627,6 +628,55 @@ fn canonical_basis<'py>(
     Ok(basis_array)
 }
 
+/// Compute the Frobenius-Schur (FS) phase factor for a contraction.
+///
+/// For each contracted pair ``(axis_a, axis_b)``, if both axes lie in the same
+/// canonical region of their respective tensors — either both among the first
+/// ``(n-1)`` external edges or both the last edge — and the directions are
+/// ``(Incoming, Outgoing)``, then a factor of ``(-1)^{2j}`` is accumulated.
+///
+/// Parameters
+/// ----------
+/// spec_a : CGSpec
+///     First CGSpec.
+/// spec_b : CGSpec
+///     Second CGSpec.
+/// contraction : Contraction
+///     The contraction specification (which axes of A are paired with which
+///     axes of B).
+///
+/// Returns
+/// -------
+/// float
+///     The overall FS phase: ``+1.0`` or ``-1.0``.
+///
+/// Examples
+/// --------
+/// >>> import yuzuha
+/// >>> j_half = yuzuha.Spin(1)
+/// >>> j1 = yuzuha.Spin(2)
+/// >>> spec_a = yuzuha.CGSpec.from_edges([
+/// ...     yuzuha.Edge.incoming(j_half),
+/// ...     yuzuha.Edge.incoming(j_half),
+/// ...     yuzuha.Edge.outgoing(j1),
+/// ... ])
+/// >>> spec_b = yuzuha.CGSpec.from_edges([
+/// ...     yuzuha.Edge.incoming(j1),
+/// ...     yuzuha.Edge.outgoing(j_half),
+/// ...     yuzuha.Edge.outgoing(j_half),
+/// ... ])
+/// >>> contraction = yuzuha.Contraction([2], [0])
+/// >>> yuzuha.compute_fs_phase(spec_a, spec_b, contraction)
+/// 1.0
+#[pyfunction]
+fn compute_fs_phase(
+    spec_a: &PyCGSpec,
+    spec_b: &PyCGSpec,
+    contraction: &PyContraction,
+) -> f64 {
+    rust_compute_fs_phase(&spec_a.inner, &spec_b.inner, &contraction.inner)
+}
+
 /// Yuzuha: SU(2) X-symbols for Tensor Networks
 ///
 /// A library for computing SU(2) X-symbols (recoupling coefficients) for
@@ -676,5 +726,6 @@ fn yuzuha(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compute_xsymbol, m)?)?;
     m.add_function(wrap_pyfunction!(compute_rsymbol, m)?)?;
     m.add_function(wrap_pyfunction!(canonical_basis, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_fs_phase, m)?)?;
     Ok(())
 }
