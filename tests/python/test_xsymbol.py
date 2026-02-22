@@ -677,6 +677,194 @@ class TestXSymbolConsistency:
         ])
         run_consistency_test(spec_a, spec_b_free_in, contraction, [2], [0])
 
+    # ------------------------------------------------------------------
+    # 2-edge × 2-edge consistency
+    # ------------------------------------------------------------------
+
+    def test_consistency_2edge_2edge_j_half(self):
+        """2-edge A × 2-edge B: A[1] (out j=1/2) × B[0] (in j=1/2), j=1/2."""
+        j_half = yuzuha.Spin(1)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        contraction = yuzuha.Contraction([1], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [1], [0])
+
+    def test_consistency_2edge_2edge_j1(self):
+        """2-edge A × 2-edge B: A[1] (out j=1) × B[0] (in j=1), j=1."""
+        j1 = yuzuha.Spin(2)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        contraction = yuzuha.Contraction([1], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [1], [0])
+
+    def test_consistency_2edge_2edge_j3_half(self):
+        """2-edge A × 2-edge B: A[1] (out j=3/2) × B[0] (in j=3/2), j=3/2."""
+        j3_half = yuzuha.Spin(3)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+        ])
+        contraction = yuzuha.Contraction([1], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [1], [0])
+
+    def test_consistency_2edge_2edge_first_axis(self):
+        """2-edge A × 2-edge B: contract A[0] (out) × B[0] (in), j=1/2."""
+        j_half = yuzuha.Spin(1)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),   # contracted
+            yuzuha.Edge.incoming(j_half),   # free
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),   # contracted — opposite direction to A[0]
+            yuzuha.Edge.outgoing(j_half),   # free
+        ])
+        contraction = yuzuha.Contraction([0], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [0], [0])
+
+    def test_consistency_2edge_2edge_same_dir_pair(self):
+        """2-edge A × 2-edge B: same-direction contracted pair (in, in), j=1/2."""
+        j_half = yuzuha.Spin(1)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        contraction = yuzuha.Contraction([0], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [0], [0])
+
+    def test_consistency_2edge_2edge_j2(self):
+        """2-edge A × 2-edge B: A[0] (in j=2) × B[0] (in j=2), j=2."""
+        j2 = yuzuha.Spin(4)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j2),
+            yuzuha.Edge.outgoing(j2),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j2),
+            yuzuha.Edge.outgoing(j2),
+        ])
+        contraction = yuzuha.Contraction([1], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [1], [0])
+
+    # ------------------------------------------------------------------
+    # 2-edge × 3-edge and 3-edge × 2-edge consistency
+    # ------------------------------------------------------------------
+
+    def test_consistency_2edge_3edge_j_half(self):
+        """2-edge A (j=1/2) × 3-edge B: A[1] (out j=1/2) × B[0] (in j=1/2)."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),   # free
+            yuzuha.Edge.outgoing(j_half),   # contracted — equal j on both edges ✓
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),   # contracted — opposite to A[1] ✓
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        contraction = yuzuha.Contraction([1], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [1], [0])
+
+    def test_consistency_2edge_3edge_j1(self):
+        """2-edge A × 3-edge B: A[1] (out j=1) × B[0] (in j=1), j=1 free."""
+        j1 = yuzuha.Spin(2)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        contraction = yuzuha.Contraction([1], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [1], [0])
+
+    def test_consistency_2edge_3edge_j3_half(self):
+        """2-edge A × 3-edge B: A[1] (out j=3/2) × B[0] (in j=3/2)."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        j3_half = yuzuha.Spin(3)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        contraction = yuzuha.Contraction([1], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [1], [0])
+
+    def test_consistency_3edge_2edge_j_half(self):
+        """3-edge A × 2-edge B: A[2] (out j=1) × B[0] (in j=1), j=1/2 free."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        contraction = yuzuha.Contraction([2], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [2], [0])
+
+    def test_consistency_3edge_2edge_j1(self):
+        """3-edge A × 2-edge B: A[2] (out j=1) × B[0] (in j=1), j=1 free."""
+        j1 = yuzuha.Spin(2)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        contraction = yuzuha.Contraction([2], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [2], [0])
+
+    def test_consistency_3edge_2edge_j3_half(self):
+        """3-edge A × 2-edge B: A[2] (out j=3/2) × B[0] (in j=3/2)."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        j3_half = yuzuha.Spin(3)
+        spec_a = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_b = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        contraction = yuzuha.Contraction([2], [0])
+        run_consistency_test(spec_a, spec_b, contraction, [2], [0])
+
 
 class TestXSymbolStress:
     """Stress tests with random configurations to ensure robustness."""
