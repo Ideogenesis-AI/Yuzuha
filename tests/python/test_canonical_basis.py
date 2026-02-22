@@ -439,6 +439,682 @@ class TestCanonicalBasisOrthogonality:
         assert np.allclose(gram, expected, rtol=1e-10, atol=1e-10)
 
 
+class TestCanonicalBasisCrossOrthogonality:
+    """Test cross-Gram orthogonality between bases with opposite edge directions.
+
+    Each test constructs a spec and its direction-flipped counterpart spec_inv,
+    then verifies that the cross-Gram matrix ``B_inv^T @ B`` equals
+    ``fs_phase * I``, where ``fs_phase`` is the Frobenius-Schur phase computed
+    by :func:`yuzuha.compute_fs_phase` for the full contraction.
+    """
+
+    def _assert_cross_gram_is_identity(self, spec, spec_inv):
+        """Assert that the cross-Gram matrix B_inv^T @ B equals fs_phase * I.
+
+        Contracting all external edges of spec_inv (left tensor) with spec
+        (right tensor) is equivalent to a full X-symbol contraction.  The
+        result therefore carries the same Frobenius-Schur (FS) phase that the
+        X-symbol convention attaches to contracted (Incoming, Outgoing) pairs,
+        so the expected value is ``fs_phase * identity``.
+        """
+        basis = yuzuha.canonical_basis(spec)
+        basis_inv = yuzuha.canonical_basis(spec_inv)
+        om_dim = spec.om_dimension()
+
+        assert spec_inv.om_dimension() == om_dim
+
+        physical_dim = np.prod(basis.shape[:-1])
+        basis_matrix = basis.reshape(physical_dim, om_dim)
+        basis_matrix_inv = basis_inv.reshape(physical_dim, om_dim)
+
+        cross_gram = basis_matrix_inv.T @ basis_matrix
+
+        # The cross-gram is computed by contracting all n external axes of
+        # spec_inv (spec_a) with those of spec (spec_b).
+        n = spec.num_external()
+        contraction = yuzuha.Contraction(list(range(n)), list(range(n)))
+        fs_phase = yuzuha.compute_fs_phase(spec_inv, spec, contraction)
+
+        assert np.allclose(cross_gram, fs_phase * np.eye(om_dim), rtol=1e-10, atol=1e-10)
+
+    # ------------------------------------------------------------------
+    # 2-edge tests
+    # ------------------------------------------------------------------
+
+    def test_cross_orthonormality_two_edge_j_half(self):
+        """2-edge j=1/2: [in, out] vs [out, in]."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_two_edge_j1(self):
+        """2-edge j=1: [in, out] vs [out, in]."""
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.incoming(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_two_edge_j3_half(self):
+        """2-edge j=3/2: [in, out] vs [out, in]."""
+        j3_half = yuzuha.Spin(3)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j3_half),
+            yuzuha.Edge.incoming(j3_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    # ------------------------------------------------------------------
+    # 3-edge tests — spin variety
+    # ------------------------------------------------------------------
+
+    def test_cross_orthonormality_j_half_three_edges(self):
+        """3-edge with j=1/2 inputs coupling to singlet j=0 output.
+
+        Two j=1/2 edges couple to a j=0 output (singlet).  Sum of 2j = 2
+        (even), so the spec is valid.  [in,in,out(j=0)] vs [out,out,in(j=0)].
+        """
+        j_half = yuzuha.Spin(1)
+        j0 = yuzuha.Spin(0)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j0),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j0),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j1_three_edges(self):
+        """3× j=1 all-in/all-out: [in,in,out] vs [out,out,in]."""
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.incoming(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j3_half_three_edges(self):
+        """3-edge with j=3/2 inputs, j=1 output.
+
+        Two j=3/2 edges couple to a j=1 output.  Sum of 2j = 8 (even),
+        triangle |3/2−3/2|=0 ≤ 1 ≤ 3 satisfied.  [in,in,out] vs [out,out,in].
+        """
+        j3_half = yuzuha.Spin(3)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+            yuzuha.Edge.incoming(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_j1_three_edges(self):
+        """3-edge mixed spins: [in(j=1/2), in(j=1/2), out(j=1)] vs [out, out, in]."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_j1_three_edges_j_half_out(self):
+        """3-edge mixed spins: [in(j=1), in(j=1), out(j=1/2)] vs [out, out, in]."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    # ------------------------------------------------------------------
+    # 3-edge tests — direction variety
+    # ------------------------------------------------------------------
+
+    def test_cross_orthonormality_j_half_three_edges_all_in(self):
+        """3-edge [j=1/2, j=1/2, j=1]: all-incoming vs all-outgoing.
+
+        Uses the valid spin config [j=1/2, j=1/2, j=1] (sum 2j = 4) and
+        points every edge incoming in spec, outgoing in spec_inv.
+        """
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_three_edges_first_out(self):
+        """3-edge [j=1/2, j=1/2, j=1]: first edge out — [out,in,in] vs [in,out,out]."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_three_edges_middle_out(self):
+        """3-edge [j=1/2, j=1/2, j=1]: middle edge out — [in,out,in] vs [out,in,out]."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    # ------------------------------------------------------------------
+    # 4-edge tests — all-in/all-out (existing), grouped by spin
+    # ------------------------------------------------------------------
+
+    def test_cross_orthonormality_inverted_directions(self):
+        """Test cross-Gram identity for 4× j=1/2 all-incoming vs all-outgoing.
+
+        When all edge directions are flipped, the resulting basis tensors are
+        related to the original ones via metric-tensor insertions.  Despite the
+        direction change the two bases must still satisfy a cross-Gram matrix
+        equal to the identity, reflecting the fact that they span the same
+        invariant space.
+        """
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j1_four_edges(self):
+        """Test cross-Gram identity for 4× j=1 all-incoming vs all-outgoing."""
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j3_half_four_edges(self):
+        """Test cross-Gram identity for 4× j=3/2 all-incoming vs all-outgoing."""
+        j3_half = yuzuha.Spin(3)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.incoming(j3_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j2_four_edges(self):
+        """Test cross-Gram identity for 4× j=2 all-incoming vs all-outgoing."""
+        j2 = yuzuha.Spin(4)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j2),
+            yuzuha.Edge.incoming(j2),
+            yuzuha.Edge.incoming(j2),
+            yuzuha.Edge.incoming(j2),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j2),
+            yuzuha.Edge.outgoing(j2),
+            yuzuha.Edge.outgoing(j2),
+            yuzuha.Edge.outgoing(j2),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    # ------------------------------------------------------------------
+    # 4-edge tests — direction variety (j=1/2)
+    # ------------------------------------------------------------------
+
+    def test_cross_orthonormality_j_half_four_last_out(self):
+        """4× j=1/2: first-region all-in, last edge out vs flipped."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_four_first_out(self):
+        """4× j=1/2: first edge out, rest in vs flipped."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_four_second_out(self):
+        """4× j=1/2: second edge out, rest in vs flipped."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_four_third_out(self):
+        """4× j=1/2: third edge (last of first region) out, rest in vs flipped."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_four_alternating(self):
+        """4× j=1/2: alternating directions [in,out,in,out] vs [out,in,out,in]."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_four_all_out(self):
+        """4× j=1/2: all-outgoing vs all-incoming (reversed roles)."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j3_half_four_mixed_dir(self):
+        """4× j=3/2: [in,out,in,out] vs [out,in,out,in] (alternating)."""
+        j3_half = yuzuha.Spin(3)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j3_half),
+            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.outgoing(j3_half),
+            yuzuha.Edge.incoming(j3_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_j1_four_mixed_dir(self):
+        """4-edge mixed spins j=1/2,j=1 with mixed directions."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.incoming(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    # ------------------------------------------------------------------
+    # 5-edge tests
+    # ------------------------------------------------------------------
+
+    def test_cross_orthonormality_five_edges(self):
+        """Test cross-Gram identity for a 5-edge spec: 4× j=1/2 + 1× j=1.
+
+        Five j=1/2 edges cannot couple to j=0 (odd total 2j), so a j=1 edge
+        is added to give a valid angular-momentum-conserving configuration.
+        """
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_six_edges(self):
+        """Test cross-Gram identity for 6× j=1/2 all-incoming vs all-outgoing."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_five_edges_mixed_dir(self):
+        """5-edge (4× j=1/2 + 1× j=1) with mixed directions.
+
+        The spec has the j=1 edge incoming while two of the j=1/2 edges are
+        outgoing; all directions are flipped in spec_inv.
+        """
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    # ------------------------------------------------------------------
+    # 6-edge tests — direction variety
+    # ------------------------------------------------------------------
+
+    def test_cross_orthonormality_j_half_six_edges_alternating(self):
+        """6× j=1/2: alternating [in,out,in,out,in,out] vs [out,in,out,in,out,in]."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_six_edges_last_out(self):
+        """6× j=1/2: first five in, last out vs flipped."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    # ------------------------------------------------------------------
+    # High-order tests: 7-edge and 8-edge
+    # ------------------------------------------------------------------
+
+    def test_cross_orthonormality_j_half_seven_edges(self):
+        """7-edge: 6× j=1/2 + 1× j=1, all-incoming vs all-outgoing.
+
+        Seven j=1/2 edges give an odd sum of 2j and are invalid.  A single
+        j=1 edge is substituted for the last position so that sum 2j = 8
+        (even), maintaining the seven-edge structure.
+        """
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges(
+            [yuzuha.Edge.incoming(j_half)] * 6 + [yuzuha.Edge.incoming(j1)]
+        )
+        spec_inv = yuzuha.CGSpec.from_edges(
+            [yuzuha.Edge.outgoing(j_half)] * 6 + [yuzuha.Edge.outgoing(j1)]
+        )
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_eight_edges(self):
+        """8× j=1/2 all-incoming vs all-outgoing (larger OM space)."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges(
+            [yuzuha.Edge.incoming(j_half)] * 8
+        )
+        spec_inv = yuzuha.CGSpec.from_edges(
+            [yuzuha.Edge.outgoing(j_half)] * 8
+        )
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j_half_eight_edges_alternating(self):
+        """8× j=1/2: alternating directions vs flipped."""
+        j_half = yuzuha.Spin(1)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_j1_eight_edges(self):
+        """8× j=1 all-incoming vs all-outgoing (large integer-spin space)."""
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges(
+            [yuzuha.Edge.incoming(j1)] * 8
+        )
+        spec_inv = yuzuha.CGSpec.from_edges(
+            [yuzuha.Edge.outgoing(j1)] * 8
+        )
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_mixed_spins(self):
+        """Test cross-Gram identity for mixed j=1/2 and j=1 edges."""
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+    def test_cross_orthonormality_mixed_directions(self):
+        """Test cross-Gram identity when the original spec already has mixed directions.
+
+        Only the directions are flipped edge-by-edge; incoming becomes outgoing
+        and vice versa.
+        """
+        j_half = yuzuha.Spin(1)
+        j1 = yuzuha.Spin(2)
+        spec = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.incoming(j1),
+        ])
+        spec_inv = yuzuha.CGSpec.from_edges([
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j1),
+        ])
+        self._assert_cross_gram_is_identity(spec, spec_inv)
+
+
 class TestCanonicalBasisConsistency:
     """Test consistency and determinism of canonical basis."""
 
