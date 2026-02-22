@@ -23,6 +23,7 @@
 pub mod atomic;
 pub mod builders;
 pub mod cache;
+pub mod fs_phase;
 pub mod om_basis;
 pub mod rsymbol;
 pub mod xsymbol;
