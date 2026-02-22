@@ -22,6 +22,7 @@
 
 use yuzuha::core::{CGSpec, Contraction, Edge, Spin};
 use yuzuha::builders::builders::build_canonical_basis_data;
+use yuzuha::builders::fs_phase::compute_fs_phase;
 use yuzuha::builders::xsymbol::{compute_xsymbol, build_output_spec};
 use yuzuha::builders::TestCacheGuard;
 use ndarray::{ArrayD, Axis};
@@ -593,13 +594,14 @@ fn run_consistency_test(
     let cg_tensor_a = build_weighted_tensor(&basis_a, &w_a);
     let cg_tensor_b = build_weighted_tensor(&basis_b, &w_b);
     
-    // Direct contraction
+    // Direct contraction, scaled by the FS phase so it matches the X-symbol convention
+    let fs_phase = compute_fs_phase(spec_a, spec_b, contraction);
     let cg_tensor_c = ndarray_einsum::tensordot(
         &cg_tensor_a,
         &cg_tensor_b,
         axes_a,
         axes_b,
-    );
+    ).mapv(|v| v * fs_phase);
     
     // Compute X-symbol
     let xsymbol = compute_xsymbol(&spec_a, &spec_b, &contraction).unwrap();
