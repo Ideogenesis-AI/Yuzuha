@@ -168,6 +168,131 @@ impl PySpin {
     }
 }
 
+/// Python wrapper for Direction (edge orientation)
+///
+/// Represents the orientation of a tensor edge: incoming (+1) or outgoing (-1).
+///
+/// Examples
+/// --------
+/// >>> import yuzuha
+/// >>> d = yuzuha.Direction.incoming()
+/// >>> print(d.sign())
+/// 1
+/// >>> print(d.flip())
+/// Direction.outgoing
+#[pyclass(name = "Direction")]
+#[derive(Clone)]
+pub struct PyDirection {
+    inner: Direction,
+}
+
+#[pymethods]
+impl PyDirection {
+    /// Create an incoming Direction.
+    ///
+    /// Returns
+    /// -------
+    /// Direction
+    ///     An incoming direction (sign = +1).
+    #[staticmethod]
+    fn incoming() -> Self {
+        PyDirection { inner: Direction::Incoming }
+    }
+
+    /// Create an outgoing Direction.
+    ///
+    /// Returns
+    /// -------
+    /// Direction
+    ///     An outgoing direction (sign = -1).
+    #[staticmethod]
+    fn outgoing() -> Self {
+        PyDirection { inner: Direction::Outgoing }
+    }
+
+    /// Create a Direction from its sign value (+1 or -1).
+    ///
+    /// Parameters
+    /// ----------
+    /// sign : int
+    ///     +1 for incoming, -1 for outgoing.
+    ///
+    /// Returns
+    /// -------
+    /// Direction
+    ///     The corresponding Direction.
+    ///
+    /// Raises
+    /// ------
+    /// ValueError
+    ///     If sign is not +1 or -1.
+    #[staticmethod]
+    fn from_sign(sign: i32) -> PyResult<Self> {
+        Ok(PyDirection {
+            inner: Direction::from_sign(sign)?,
+        })
+    }
+
+    /// Get the numerical sign of this direction.
+    ///
+    /// Returns
+    /// -------
+    /// int
+    ///     +1 for incoming, -1 for outgoing.
+    fn sign(&self) -> i32 {
+        self.inner.sign()
+    }
+
+    /// Return the flipped Direction.
+    ///
+    /// Returns
+    /// -------
+    /// Direction
+    ///     The opposite direction.
+    fn flip(&self) -> Self {
+        PyDirection { inner: self.inner.flip() }
+    }
+
+    /// Check if this direction is incoming.
+    ///
+    /// Returns
+    /// -------
+    /// bool
+    ///     True if incoming.
+    fn is_incoming(&self) -> bool {
+        self.inner == Direction::Incoming
+    }
+
+    /// Check if this direction is outgoing.
+    ///
+    /// Returns
+    /// -------
+    /// bool
+    ///     True if outgoing.
+    fn is_outgoing(&self) -> bool {
+        self.inner == Direction::Outgoing
+    }
+
+    fn __repr__(&self) -> String {
+        match self.inner {
+            Direction::Incoming => "Direction.incoming".to_string(),
+            Direction::Outgoing => "Direction.outgoing".to_string(),
+        }
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    fn __eq__(&self, other: &PyDirection) -> bool {
+        self.inner == other.inner
+    }
+
+    fn __hash__(&self) -> i32 {
+        self.inner.sign()
+    }
+}
+
 /// Python wrapper for Edge (tensor leg)
 ///
 /// Represents a tensor edge with a spin quantum number and direction.
@@ -235,18 +360,15 @@ impl PyEdge {
         }
     }
 
-    /// Get the direction of this edge as an integer.
+    /// Get the direction of this edge.
     ///
     /// Returns
     /// -------
-    /// int
-    ///     +1 for incoming, -1 for outgoing
+    /// Direction
+    ///     The edge direction (incoming or outgoing).
     #[getter]
-    fn dir(&self) -> i8 {
-        match self.inner.dir {
-            Direction::Incoming => 1,
-            Direction::Outgoing => -1,
-        }
+    fn dir(&self) -> PyDirection {
+        PyDirection { inner: self.inner.dir }
     }
 
     /// Check if this edge is incoming.
@@ -719,6 +841,7 @@ fn compute_fs_phase(
 /// >>> x_array, spec_c = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)
 #[pymodule]
 fn yuzuha(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<PyDirection>()?;
     m.add_class::<PySpin>()?;
     m.add_class::<PyEdge>()?;
     m.add_class::<PyCGSpec>()?;
