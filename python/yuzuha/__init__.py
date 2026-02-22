@@ -23,6 +23,7 @@ for quantum recoupling theory, with persistent caching.
 """
 
 from .yuzuha import (
+    Direction,
     Spin,
     Edge,
     CGSpec,
@@ -44,6 +45,7 @@ from .cache import (
 __version__ = "0.1.0"
 
 __all__ = [
+    "Direction",
     "Spin",
     "Edge",
     "CGSpec",
