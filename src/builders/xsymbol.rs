@@ -21,6 +21,7 @@
 //! the coupling coefficients for contracting two coupled gauge trees (CGTs).
 
 use crate::builders::builders::build_canonical_basis_data;
+use crate::builders::fs_phase::compute_fs_phase;
 use crate::core::{CGSpec, Contraction};
 use crate::error::Result;
 use ndarray::{Array3, Axis};
@@ -97,6 +98,9 @@ pub fn compute_xsymbol(
     let basis_b = build_canonical_basis_data(spec_b)?;
     let basis_c = build_canonical_basis_data(&spec_c)?;
 
+    // Compute the Frobenius-Schur (FS) phase factor for this contraction.
+    let fs_phase = compute_fs_phase(spec_a, spec_b, contraction);
+
     // Contract basis_a and basis_b over specified external edges
     // The last axis of each basis is the OM axis, which we keep separate
     let axes_a_to_contract: Vec<_> = contraction.axes_a.iter().map(|&i| Axis(i)).collect();
@@ -143,9 +147,11 @@ pub fn compute_xsymbol(
     );
     
     // x_tensor now has shape [om_a, om_b, om_c]
-    // Convert to Array3 (it should already be 3D)
-    let x_data = x_tensor.into_dimensionality::<ndarray::Ix3>()
-        .expect("X-symbol should be 3-dimensional");
+    // Convert to Array3 (it should already be 3D) and apply the FS phase
+    let x_data = x_tensor
+        .into_dimensionality::<ndarray::Ix3>()
+        .expect("X-symbol should be 3-dimensional")
+        .mapv(|v| v * fs_phase);
 
     Ok(XSymbol {
         data: x_data,
