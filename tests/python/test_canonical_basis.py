@@ -21,6 +21,7 @@ Tests for canonical basis computation.
 Tests the canonical_basis function for various spin configurations,
 edge directions, and validates normalization properties.
 """
+import itertools
 import pytest
 import numpy as np
 import yuzuha
@@ -1452,6 +1453,139 @@ class TestCanonicalBasisCrossOrthogonality:
             yuzuha.Edge.outgoing(j1),
         ])
         self._assert_cross_gram_is_identity(spec, spec_inv)
+
+
+class TestCanonicalBasisCrossOrthogonalityStress:
+    """Stress tests for cross-Gram orthogonality using canonical tensor direction.
+
+    For each tensor size n in 3..8 the test systematically enumerates valid
+    spin configurations, constructs the canonical spec — (n-1) incoming edges
+    followed by one outgoing edge — and its direction-flipped counterpart
+    spec_inv, then verifies that the cross-Gram matrix equals ``fs_phase * I``.
+
+    A spin configuration (2j_1, …, 2j_n) is considered valid when:
+      1. Even number of half-integer spins (even count of odd 2j values).
+      2. Largest spin ≤ sum of all others (generalised triangle condition).
+    Configurations whose canonical spec has om_dimension == 0 are additionally
+    skipped at runtime so the assertion is never vacuous.
+    """
+
+    def _assert_cross_gram_is_identity(self, spec, spec_inv):
+        """Assert that the cross-Gram matrix B_inv^T @ B equals fs_phase * I."""
+        basis = yuzuha.canonical_basis(spec)
+        basis_inv = yuzuha.canonical_basis(spec_inv)
+        om_dim = spec.om_dimension()
+
+        assert spec_inv.om_dimension() == om_dim
+
+        physical_dim = np.prod(basis.shape[:-1])
+        basis_matrix = basis.reshape(physical_dim, om_dim)
+        basis_matrix_inv = basis_inv.reshape(physical_dim, om_dim)
+
+        cross_gram = basis_matrix_inv.T @ basis_matrix
+
+        n = spec.num_external()
+        contraction = yuzuha.Contraction(list(range(n)), list(range(n)))
+        fs_phase = yuzuha.compute_fs_phase(spec_inv, spec, contraction)
+
+        assert np.allclose(cross_gram, fs_phase * np.eye(om_dim), rtol=1e-10, atol=1e-10)
+
+    @staticmethod
+    def _generate_spin_configs(n, max_2j, max_configs):
+        """Yield spin tuples (each entry is 2j) of length n.
+
+        Tuples are drawn from ``range(1, max_2j + 1)^n`` and pre-filtered by:
+          - parity: even count of odd entries,
+          - triangle: largest entry ≤ sum of all others.
+        At most ``max_configs`` tuples are yielded.
+        """
+        count = 0
+        for two_js in itertools.product(range(1, max_2j + 1), repeat=n):
+            if count >= max_configs:
+                break
+            if sum(1 for x in two_js if x % 2 == 1) % 2 != 0:
+                continue
+            max_val = max(two_js)
+            if max_val > sum(two_js) - max_val:
+                continue
+            count += 1
+            yield two_js
+
+    def _run_stress(self, n, max_2j, max_configs):
+        """Run the cross-orthogonality check for all accepted spin configs."""
+        tested = 0
+        for two_js in self._generate_spin_configs(n, max_2j, max_configs):
+            spins = [yuzuha.Spin(tj) for tj in two_js]
+            # canonical direction: (n-1) incoming, last outgoing
+            edges = [yuzuha.Edge.incoming(s) for s in spins[:-1]]
+            edges.append(yuzuha.Edge.outgoing(spins[-1]))
+            edges_inv = [yuzuha.Edge.outgoing(s) for s in spins[:-1]]
+            edges_inv.append(yuzuha.Edge.incoming(spins[-1]))
+
+            spec = yuzuha.CGSpec.from_edges(edges)
+            spec_inv = yuzuha.CGSpec.from_edges(edges_inv)
+
+            if spec.om_dimension() == 0:
+                continue
+
+            self._assert_cross_gram_is_identity(spec, spec_inv)
+            tested += 1
+
+        assert tested > 0, (
+            f"No non-trivial spin configs were found for n={n} edges "
+            f"(max_2j={max_2j}); increase max_2j or max_configs."
+        )
+
+    # ------------------------------------------------------------------
+    # One stress test per tensor size
+    # ------------------------------------------------------------------
+
+    def test_stress_cross_orthonormality_3_edges(self):
+        """Stress: canonical direction cross-orthogonality for 3-edge tensors.
+
+        Enumerates spin configs with 2j ∈ {1, …, 6} (j up to 3), exercising
+        all half-integer and integer spins up to j=3.
+        """
+        self._run_stress(n=3, max_2j=6, max_configs=50)
+
+    def test_stress_cross_orthonormality_4_edges(self):
+        """Stress: canonical direction cross-orthogonality for 4-edge tensors.
+
+        Uses spins up to j=2 (2j ≤ 4) to keep the physical space manageable.
+        """
+        self._run_stress(n=4, max_2j=4, max_configs=50)
+
+    def test_stress_cross_orthonormality_5_edges(self):
+        """Stress: canonical direction cross-orthogonality for 5-edge tensors.
+
+        Uses spins up to j=2 (2j ≤ 4); the larger physical dimension of
+        5-edge tensors motivates a slightly smaller config limit.
+        """
+        self._run_stress(n=5, max_2j=4, max_configs=50)
+
+    def test_stress_cross_orthonormality_6_edges(self):
+        """Stress: canonical direction cross-orthogonality for 6-edge tensors.
+
+        Restricts spins to j ≤ 3/2 (2j ≤ 3) to avoid very large tensor
+        dimensions while still exercising mixed half-integer / integer spins.
+        """
+        self._run_stress(n=6, max_2j=3, max_configs=50)
+
+    def test_stress_cross_orthonormality_7_edges(self):
+        """Stress: canonical direction cross-orthogonality for 7-edge tensors.
+
+        Restricts spins to j ≤ 3/2 (2j ≤ 3); seven edges with large spins
+        would produce prohibitively large physical dimensions.
+        """
+        self._run_stress(n=7, max_2j=3, max_configs=50)
+
+    def test_stress_cross_orthonormality_8_edges(self):
+        """Stress: canonical direction cross-orthogonality for 8-edge tensors.
+
+        Restricts spins to j = 1/2 or j = 1 (2j ≤ 2) so the physical
+        dimension of the 8-edge tensor remains tractable.
+        """
+        self._run_stress(n=8, max_2j=3, max_configs=50)
 
 
 class TestCanonicalBasisConsistency:
