@@ -35,20 +35,17 @@ use std::sync::Mutex;
 /// Stores (path, connection) to detect when path changes
 static DB_CONNECTION: Lazy<Mutex<Option<(PathBuf, Connection)>>> = Lazy::new(|| Mutex::new(None));
 
-/// Test-only: Override cache path (using thread-local storage for test isolation)
-#[cfg(test)]
+/// Override cache path per-thread for test isolation (unit and integration tests).
+/// Using thread-local storage ensures parallel tests do not interfere with each other.
 thread_local! {
     static TEST_CACHE_PATH: std::cell::RefCell<Option<PathBuf>> = std::cell::RefCell::new(None);
 }
 
-/// Get the database path from environment variable or use default
+/// Get the database path: thread-local override → env var → default
 fn get_db_path() -> PathBuf {
-    // In tests, check thread-local override first
-    #[cfg(test)]
-    {
-        if let Some(path) = TEST_CACHE_PATH.with(|p| p.borrow().clone()) {
-            return path;
-        }
+    // Thread-local override takes priority (set by TestCacheGuard in both unit and integration tests)
+    if let Some(path) = TEST_CACHE_PATH.with(|p| p.borrow().clone()) {
+        return path;
     }
     
     // YUZUHA_CACHE_PATH should be a directory, we append the filename
@@ -249,9 +246,10 @@ impl TestCacheGuard {
 
 #[cfg(not(test))]
 impl TestCacheGuard {
-    /// Create a new test cache in a temporary directory
-    /// 
-    /// This version is used in integration tests where TEST_CACHE_PATH isn't available
+    /// Create a new test cache in a temporary directory.
+    ///
+    /// Uses thread-local storage (same as the unit-test version) so that
+    /// parallel integration tests do not overwrite each other's cache path.
     pub fn new() -> Self {
         use std::fs;
         
@@ -267,15 +265,14 @@ impl TestCacheGuard {
         
         fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
         
-        // Set the cache directory using environment variable (for integration tests)
-        // The cache will append cgbasis.db to this directory
-        // SAFETY: Setting environment variable in tests is safe as each test
-        // gets its own unique temporary directory, preventing conflicts.
-        unsafe {
-            std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
-        }
+        // Store the full DB path in the thread-local so get_db_path() picks it up.
+        // This is thread-safe: each test thread has its own copy of TEST_CACHE_PATH.
+        let cache_path = temp_dir.join("cgbasis.db");
+        TEST_CACHE_PATH.with(|p| {
+            *p.borrow_mut() = Some(cache_path);
+        });
         
-        // Reset any existing connection for this thread
+        // Reset any existing connection so the next query opens the new temp DB.
         reset_connection().expect("Failed to reset connection");
         
         TestCacheGuard { temp_dir }
@@ -301,12 +298,10 @@ impl Drop for TestCacheGuard {
     fn drop(&mut self) {
         use std::fs;
         
-        // Clean up: clear environment variable, reset connection, and remove temp directory
-        // SAFETY: Removing the environment variable we set earlier is safe.
-        // This is only called during test cleanup.
-        unsafe {
-            std::env::remove_var("YUZUHA_CACHE_PATH");
-        }
+        // Clear the thread-local cache path so this thread falls back to the default.
+        TEST_CACHE_PATH.with(|p| {
+            *p.borrow_mut() = None;
+        });
         let _ = reset_connection();
         let _ = fs::remove_dir_all(&self.temp_dir);
     }

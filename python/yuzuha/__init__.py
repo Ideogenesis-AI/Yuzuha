@@ -23,11 +23,13 @@ for quantum recoupling theory, with persistent caching.
 """
 
 from .yuzuha import (
+    Direction,
     Spin,
     Edge,
     CGSpec,
     Contraction,
     canonical_basis,
+    compute_fs_phase,
 )
 from .symbols import compute_xsymbol, compute_rsymbol
 from .database import startup_database
@@ -43,12 +45,14 @@ from .cache import (
 __version__ = "0.1.0"
 
 __all__ = [
+    "Direction",
     "Spin",
     "Edge",
     "CGSpec",
     "Contraction",
     "compute_xsymbol",
     "compute_rsymbol",
+    "compute_fs_phase",
     "canonical_basis",
     "startup_database",
     "set_cache_path",

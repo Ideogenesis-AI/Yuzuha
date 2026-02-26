@@ -29,6 +29,7 @@ use crate::core::{Spin as RustSpin, Edge as RustEdge, CGSpec as RustCGSpec,
 use crate::builders::{compute_xsymbol as rust_compute_xsymbol, 
                       compute_rsymbol as rust_compute_rsymbol,
                       build_canonical_basis_data as rust_build_canonical_basis_data};
+use crate::builders::fs_phase::compute_fs_phase as rust_compute_fs_phase;
 use crate::error::YuzuhaError;
 
 /// Convert Rust YuzuhaError to Python exception
@@ -167,6 +168,131 @@ impl PySpin {
     }
 }
 
+/// Python wrapper for Direction (edge orientation)
+///
+/// Represents the orientation of a tensor edge: incoming (+1) or outgoing (-1).
+///
+/// Examples
+/// --------
+/// >>> import yuzuha
+/// >>> d = yuzuha.Direction.incoming()
+/// >>> print(d.sign())
+/// 1
+/// >>> print(d.flip())
+/// Direction.outgoing
+#[pyclass(name = "Direction")]
+#[derive(Clone)]
+pub struct PyDirection {
+    inner: Direction,
+}
+
+#[pymethods]
+impl PyDirection {
+    /// Create an incoming Direction.
+    ///
+    /// Returns
+    /// -------
+    /// Direction
+    ///     An incoming direction (sign = +1).
+    #[staticmethod]
+    fn incoming() -> Self {
+        PyDirection { inner: Direction::Incoming }
+    }
+
+    /// Create an outgoing Direction.
+    ///
+    /// Returns
+    /// -------
+    /// Direction
+    ///     An outgoing direction (sign = -1).
+    #[staticmethod]
+    fn outgoing() -> Self {
+        PyDirection { inner: Direction::Outgoing }
+    }
+
+    /// Create a Direction from its sign value (+1 or -1).
+    ///
+    /// Parameters
+    /// ----------
+    /// sign : int
+    ///     +1 for incoming, -1 for outgoing.
+    ///
+    /// Returns
+    /// -------
+    /// Direction
+    ///     The corresponding Direction.
+    ///
+    /// Raises
+    /// ------
+    /// ValueError
+    ///     If sign is not +1 or -1.
+    #[staticmethod]
+    fn from_sign(sign: i32) -> PyResult<Self> {
+        Ok(PyDirection {
+            inner: Direction::from_sign(sign)?,
+        })
+    }
+
+    /// Get the numerical sign of this direction.
+    ///
+    /// Returns
+    /// -------
+    /// int
+    ///     +1 for incoming, -1 for outgoing.
+    fn sign(&self) -> i32 {
+        self.inner.sign()
+    }
+
+    /// Return the flipped Direction.
+    ///
+    /// Returns
+    /// -------
+    /// Direction
+    ///     The opposite direction.
+    fn flip(&self) -> Self {
+        PyDirection { inner: self.inner.flip() }
+    }
+
+    /// Check if this direction is incoming.
+    ///
+    /// Returns
+    /// -------
+    /// bool
+    ///     True if incoming.
+    fn is_incoming(&self) -> bool {
+        self.inner == Direction::Incoming
+    }
+
+    /// Check if this direction is outgoing.
+    ///
+    /// Returns
+    /// -------
+    /// bool
+    ///     True if outgoing.
+    fn is_outgoing(&self) -> bool {
+        self.inner == Direction::Outgoing
+    }
+
+    fn __repr__(&self) -> String {
+        match self.inner {
+            Direction::Incoming => "Direction.incoming".to_string(),
+            Direction::Outgoing => "Direction.outgoing".to_string(),
+        }
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    fn __eq__(&self, other: &PyDirection) -> bool {
+        self.inner == other.inner
+    }
+
+    fn __hash__(&self) -> i32 {
+        self.inner.sign()
+    }
+}
+
 /// Python wrapper for Edge (tensor leg)
 ///
 /// Represents a tensor edge with a spin quantum number and direction.
@@ -234,18 +360,15 @@ impl PyEdge {
         }
     }
 
-    /// Get the direction of this edge as an integer.
+    /// Get the direction of this edge.
     ///
     /// Returns
     /// -------
-    /// int
-    ///     +1 for incoming, -1 for outgoing
+    /// Direction
+    ///     The edge direction (incoming or outgoing).
     #[getter]
-    fn dir(&self) -> i8 {
-        match self.inner.dir {
-            Direction::Incoming => 1,
-            Direction::Outgoing => -1,
-        }
+    fn dir(&self) -> PyDirection {
+        PyDirection { inner: self.inner.dir }
     }
 
     /// Check if this edge is incoming.
@@ -627,6 +750,55 @@ fn canonical_basis<'py>(
     Ok(basis_array)
 }
 
+/// Compute the Frobenius-Schur (FS) phase factor for a contraction.
+///
+/// For each contracted pair ``(axis_a, axis_b)``, if both axes lie in the same
+/// canonical region of their respective tensors — either both among the first
+/// ``(n-1)`` external edges or both the last edge — and the directions are
+/// ``(Incoming, Outgoing)``, then a factor of ``(-1)^{2j}`` is accumulated.
+///
+/// Parameters
+/// ----------
+/// spec_a : CGSpec
+///     First CGSpec.
+/// spec_b : CGSpec
+///     Second CGSpec.
+/// contraction : Contraction
+///     The contraction specification (which axes of A are paired with which
+///     axes of B).
+///
+/// Returns
+/// -------
+/// float
+///     The overall FS phase: ``+1.0`` or ``-1.0``.
+///
+/// Examples
+/// --------
+/// >>> import yuzuha
+/// >>> j_half = yuzuha.Spin(1)
+/// >>> j1 = yuzuha.Spin(2)
+/// >>> spec_a = yuzuha.CGSpec.from_edges([
+/// ...     yuzuha.Edge.incoming(j_half),
+/// ...     yuzuha.Edge.incoming(j_half),
+/// ...     yuzuha.Edge.outgoing(j1),
+/// ... ])
+/// >>> spec_b = yuzuha.CGSpec.from_edges([
+/// ...     yuzuha.Edge.incoming(j1),
+/// ...     yuzuha.Edge.outgoing(j_half),
+/// ...     yuzuha.Edge.outgoing(j_half),
+/// ... ])
+/// >>> contraction = yuzuha.Contraction([2], [0])
+/// >>> yuzuha.compute_fs_phase(spec_a, spec_b, contraction)
+/// 1.0
+#[pyfunction]
+fn compute_fs_phase(
+    spec_a: &PyCGSpec,
+    spec_b: &PyCGSpec,
+    contraction: &PyContraction,
+) -> f64 {
+    rust_compute_fs_phase(&spec_a.inner, &spec_b.inner, &contraction.inner)
+}
+
 /// Yuzuha: SU(2) X-symbols for Tensor Networks
 ///
 /// A library for computing SU(2) X-symbols (recoupling coefficients) for
@@ -669,6 +841,7 @@ fn canonical_basis<'py>(
 /// >>> x_array, spec_c = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)
 #[pymodule]
 fn yuzuha(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<PyDirection>()?;
     m.add_class::<PySpin>()?;
     m.add_class::<PyEdge>()?;
     m.add_class::<PyCGSpec>()?;
@@ -676,5 +849,6 @@ fn yuzuha(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compute_xsymbol, m)?)?;
     m.add_function(wrap_pyfunction!(compute_rsymbol, m)?)?;
     m.add_function(wrap_pyfunction!(canonical_basis, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_fs_phase, m)?)?;
     Ok(())
 }

@@ -22,6 +22,7 @@
 
 use yuzuha::core::{CGSpec, Contraction, Edge, Spin};
 use yuzuha::builders::builders::build_canonical_basis_data;
+use yuzuha::builders::fs_phase::compute_fs_phase;
 use yuzuha::builders::xsymbol::{compute_xsymbol, build_output_spec};
 use yuzuha::builders::TestCacheGuard;
 use ndarray::{ArrayD, Axis};
@@ -442,6 +443,130 @@ fn test_xsymbol_single_contraction_large() {
     run_consistency_test(&spec_a, &spec_b, &contraction, &[Axis(5)], &[Axis(0)]);
 }
 
+// =============================================================================
+// Two-index contracted outcome (consistency: direct contraction vs X-symbol)
+// =============================================================================
+
+#[test]
+fn test_xsymbol_two_index_consistency_out_out() {
+    // spec_c free edges: out (from A edge 3) + out (from B edge 3)
+    // Contracted axes 0,1,2: in (A) × out (B) — correct invariant pairing
+    let _guard = TestCacheGuard::new();
+    let j_half = Spin::new(1).unwrap();
+    let spec_a = CGSpec::from_edges(vec![
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::outgoing(j_half),
+    ])
+    .unwrap();
+    let spec_b = CGSpec::from_edges(vec![
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+    ])
+    .unwrap();
+    let contraction = Contraction::new(&[0, 1, 2], &[0, 1, 2]);
+    run_consistency_test(
+        &spec_a,
+        &spec_b,
+        &contraction,
+        &[Axis(0), Axis(1), Axis(2)],
+        &[Axis(0), Axis(1), Axis(2)],
+    );
+}
+
+#[test]
+fn test_xsymbol_two_index_consistency_out_in() {
+    // spec_c free edges: out (from A edge 3) + in (from B edge 3)
+    // Contracted axes 0,1,2: in (A) × out (B)
+    let _guard = TestCacheGuard::new();
+    let j_half = Spin::new(1).unwrap();
+    let spec_a = CGSpec::from_edges(vec![
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::outgoing(j_half),
+    ])
+    .unwrap();
+    let spec_b = CGSpec::from_edges(vec![
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::incoming(j_half),
+    ])
+    .unwrap();
+    let contraction = Contraction::new(&[0, 1, 2], &[0, 1, 2]);
+    run_consistency_test(
+        &spec_a,
+        &spec_b,
+        &contraction,
+        &[Axis(0), Axis(1), Axis(2)],
+        &[Axis(0), Axis(1), Axis(2)],
+    );
+}
+
+#[test]
+fn test_xsymbol_two_index_consistency_in_out() {
+    // spec_c free edges: in (from A edge 3) + out (from B edge 3) — canonical (in, out)
+    // Contracted axes 0,1,2: out (A) × in (B)
+    let _guard = TestCacheGuard::new();
+    let j_half = Spin::new(1).unwrap();
+    let spec_a = CGSpec::from_edges(vec![
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::incoming(j_half),
+    ])
+    .unwrap();
+    let spec_b = CGSpec::from_edges(vec![
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::outgoing(j_half),
+    ])
+    .unwrap();
+    let contraction = Contraction::new(&[0, 1, 2], &[0, 1, 2]);
+    run_consistency_test(
+        &spec_a,
+        &spec_b,
+        &contraction,
+        &[Axis(0), Axis(1), Axis(2)],
+        &[Axis(0), Axis(1), Axis(2)],
+    );
+}
+
+#[test]
+fn test_xsymbol_two_index_consistency_in_in() {
+    // spec_c free edges: in (from A edge 3) + in (from B edge 3)
+    // Contracted axes 0,1,2: out (A) × in (B)
+    let _guard = TestCacheGuard::new();
+    let j_half = Spin::new(1).unwrap();
+    let spec_a = CGSpec::from_edges(vec![
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::outgoing(j_half),
+        Edge::incoming(j_half),
+    ])
+    .unwrap();
+    let spec_b = CGSpec::from_edges(vec![
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+        Edge::incoming(j_half),
+    ])
+    .unwrap();
+    let contraction = Contraction::new(&[0, 1, 2], &[0, 1, 2]);
+    run_consistency_test(
+        &spec_a,
+        &spec_b,
+        &contraction,
+        &[Axis(0), Axis(1), Axis(2)],
+        &[Axis(0), Axis(1), Axis(2)],
+    );
+}
+
 /// Helper function to run consistency test
 fn run_consistency_test(
     spec_a: &CGSpec,
@@ -469,13 +594,14 @@ fn run_consistency_test(
     let cg_tensor_a = build_weighted_tensor(&basis_a, &w_a);
     let cg_tensor_b = build_weighted_tensor(&basis_b, &w_b);
     
-    // Direct contraction
+    // Direct contraction, scaled by the FS phase so it matches the X-symbol convention
+    let fs_phase = compute_fs_phase(spec_a, spec_b, contraction);
     let cg_tensor_c = ndarray_einsum::tensordot(
         &cg_tensor_a,
         &cg_tensor_b,
         axes_a,
         axes_b,
-    );
+    ).mapv(|v| v * fs_phase);
     
     // Compute X-symbol
     let xsymbol = compute_xsymbol(&spec_a, &spec_b, &contraction).unwrap();

@@ -24,6 +24,96 @@ import pytest
 import yuzuha
 
 
+class TestDirection:
+    """Test Direction class."""
+
+    def test_incoming_sign(self):
+        """Incoming direction has sign +1."""
+        d = yuzuha.Direction.incoming()
+        assert d.sign() == 1
+
+    def test_outgoing_sign(self):
+        """Outgoing direction has sign -1."""
+        d = yuzuha.Direction.outgoing()
+        assert d.sign() == -1
+
+    def test_from_sign_incoming(self):
+        """from_sign(+1) yields incoming."""
+        d = yuzuha.Direction.from_sign(1)
+        assert d.is_incoming()
+        assert d.sign() == 1
+
+    def test_from_sign_outgoing(self):
+        """from_sign(-1) yields outgoing."""
+        d = yuzuha.Direction.from_sign(-1)
+        assert d.is_outgoing()
+        assert d.sign() == -1
+
+    def test_from_sign_invalid(self):
+        """from_sign with a value other than ±1 raises ValueError."""
+        with pytest.raises(ValueError):
+            yuzuha.Direction.from_sign(0)
+        with pytest.raises(ValueError):
+            yuzuha.Direction.from_sign(2)
+
+    def test_is_incoming_outgoing(self):
+        """is_incoming / is_outgoing are mutually exclusive."""
+        inc = yuzuha.Direction.incoming()
+        out = yuzuha.Direction.outgoing()
+        assert inc.is_incoming()
+        assert not inc.is_outgoing()
+        assert out.is_outgoing()
+        assert not out.is_incoming()
+
+    def test_flip(self):
+        """flip() returns the opposite direction."""
+        inc = yuzuha.Direction.incoming()
+        out = yuzuha.Direction.outgoing()
+        assert inc.flip().is_outgoing()
+        assert out.flip().is_incoming()
+        assert inc.flip().sign() == -1
+        assert out.flip().sign() == 1
+
+    def test_flip_twice_is_identity(self):
+        """Flipping twice returns the original direction."""
+        inc = yuzuha.Direction.incoming()
+        out = yuzuha.Direction.outgoing()
+        assert inc.flip().flip().is_incoming()
+        assert out.flip().flip().is_outgoing()
+
+    def test_equality_same(self):
+        """Two directions of the same kind compare equal."""
+        assert yuzuha.Direction.incoming() == yuzuha.Direction.incoming()
+        assert yuzuha.Direction.outgoing() == yuzuha.Direction.outgoing()
+
+    def test_equality_different(self):
+        """Incoming and outgoing compare not equal."""
+        assert yuzuha.Direction.incoming() != yuzuha.Direction.outgoing()
+
+    def test_compare_two_edge_dirs(self):
+        """edge.dir from two edges of the same orientation compare equal."""
+        j = yuzuha.Spin(1)
+        edge_a = yuzuha.Edge.incoming(j)
+        edge_b = yuzuha.Edge.incoming(j)
+        assert edge_a.dir == edge_b.dir
+
+    def test_compare_two_edge_dirs_different(self):
+        """edge.dir from edges of opposite orientations compare not equal."""
+        j = yuzuha.Spin(1)
+        assert yuzuha.Edge.incoming(j).dir != yuzuha.Edge.outgoing(j).dir
+
+    def test_hashable_in_set(self):
+        """Direction objects can be stored in sets and used as dict keys."""
+        directions = {yuzuha.Direction.incoming(), yuzuha.Direction.outgoing()}
+        assert len(directions) == 2
+        assert yuzuha.Direction.incoming() in directions
+
+    def test_repr(self):
+        """repr contains the direction name."""
+        assert "incoming" in repr(yuzuha.Direction.incoming())
+        assert "outgoing" in repr(yuzuha.Direction.outgoing())
+
+
 class TestSpin:
     """Test Spin class."""
 
@@ -76,7 +166,8 @@ class TestEdge:
         assert edge.is_incoming()
         assert not edge.is_outgoing()
         assert edge.j.twice() == 1
-        assert edge.dir == 1  # +1 for incoming
+        assert edge.dir == yuzuha.Direction.incoming()
+        assert edge.dir.sign() == 1
 
     def test_outgoing_edge(self):
         """Test creating outgoing edges."""
@@ -85,7 +176,8 @@ class TestEdge:
         assert edge.is_outgoing()
         assert not edge.is_incoming()
         assert edge.j.twice() == 2
-        assert edge.dir == -1  # -1 for outgoing
+        assert edge.dir == yuzuha.Direction.outgoing()
+        assert edge.dir.sign() == -1
 
     def test_edge_repr(self):
         """Test string representation."""
