@@ -29,7 +29,10 @@ use crate::core::{Spin as RustSpin, Edge as RustEdge, CGSpec as RustCGSpec,
 use crate::builders::{compute_xsymbol as rust_compute_xsymbol, 
                       compute_rsymbol as rust_compute_rsymbol,
                       build_canonical_basis_data as rust_build_canonical_basis_data};
-use crate::builders::fs_phase::compute_fs_phase as rust_compute_fs_phase;
+use crate::builders::dualize::{
+    fs_phase_for_spin as rust_fs_phase_for_spin,
+    compute_conjugate as rust_compute_conjugate,
+};
 use crate::error::YuzuhaError;
 
 /// Convert Rust YuzuhaError to Python exception
@@ -750,53 +753,70 @@ fn canonical_basis<'py>(
     Ok(basis_array)
 }
 
-/// Compute the Frobenius-Schur (FS) phase factor for a contraction.
-///
-/// For each contracted pair ``(axis_a, axis_b)``, if both axes lie in the same
-/// canonical region of their respective tensors — either both among the first
-/// ``(n-1)`` external edges or both the last edge — and the directions are
-/// ``(Incoming, Outgoing)``, then a factor of ``(-1)^{2j}`` is accumulated.
+/// Return the Frobenius-Schur phase ``(-1)^{2j}`` for a single spin.
 ///
 /// Parameters
 /// ----------
-/// spec_a : CGSpec
-///     First CGSpec.
-/// spec_b : CGSpec
-///     Second CGSpec.
-/// contraction : Contraction
-///     The contraction specification (which axes of A are paired with which
-///     axes of B).
+/// spin : Spin
+///     The spin quantum number.
 ///
 /// Returns
 /// -------
 /// float
-///     The overall FS phase: ``+1.0`` or ``-1.0``.
+///     ``+1.0`` for integer spins, ``-1.0`` for half-integer spins.
+///
+/// Examples
+/// --------
+/// >>> import yuzuha
+/// >>> yuzuha.fs_phase_for_spin(yuzuha.Spin(1))   # j=1/2, half-integer
+/// -1.0
+/// >>> yuzuha.fs_phase_for_spin(yuzuha.Spin(2))   # j=1, integer
+/// 1.0
+#[pyfunction]
+fn fs_phase_for_spin(spin: &PySpin) -> f64 {
+    rust_fs_phase_for_spin(spin.inner)
+}
+
+/// Compute the conjugate CGSpec and the cumulated Frobenius-Schur phase.
+///
+/// The conjugated spec has all edge directions reversed. The cumulated FS
+/// phase corrects for edges in the conjugated spec that differ from the
+/// canonical conjugate pattern (first ``n-1`` edges Outgoing, last edge
+/// Incoming). Each such differing edge contributes a factor of ``(-1)^{2j}``.
+///
+/// Parameters
+/// ----------
+/// spec : CGSpec
+///     The CGSpec to conjugate.
+///
+/// Returns
+/// -------
+/// tuple[float, CGSpec]
+///     A tuple ``(phase, conj_spec)`` where ``phase`` is ``+1.0`` or ``-1.0``
+///     and ``conj_spec`` has the same spins as ``spec`` with all directions
+///     flipped.
+///
+/// Raises
+/// ------
+/// ValueError
+///     If the conjugated edge configuration is invalid.
 ///
 /// Examples
 /// --------
 /// >>> import yuzuha
 /// >>> j_half = yuzuha.Spin(1)
-/// >>> j1 = yuzuha.Spin(2)
-/// >>> spec_a = yuzuha.CGSpec.from_edges([
+/// >>> spec = yuzuha.CGSpec.from_edges([
 /// ...     yuzuha.Edge.incoming(j_half),
 /// ...     yuzuha.Edge.incoming(j_half),
-/// ...     yuzuha.Edge.outgoing(j1),
+/// ...     yuzuha.Edge.outgoing(yuzuha.Spin(2)),
 /// ... ])
-/// >>> spec_b = yuzuha.CGSpec.from_edges([
-/// ...     yuzuha.Edge.incoming(j1),
-/// ...     yuzuha.Edge.outgoing(j_half),
-/// ...     yuzuha.Edge.outgoing(j_half),
-/// ... ])
-/// >>> contraction = yuzuha.Contraction([2], [0])
-/// >>> yuzuha.compute_fs_phase(spec_a, spec_b, contraction)
+/// >>> phase, conj = yuzuha.compute_conjugate(spec)
+/// >>> phase
 /// 1.0
 #[pyfunction]
-fn compute_fs_phase(
-    spec_a: &PyCGSpec,
-    spec_b: &PyCGSpec,
-    contraction: &PyContraction,
-) -> f64 {
-    rust_compute_fs_phase(&spec_a.inner, &spec_b.inner, &contraction.inner)
+fn compute_conjugate(spec: &PyCGSpec) -> PyResult<(f64, PyCGSpec)> {
+    let (phase, conj_spec) = rust_compute_conjugate(&spec.inner)?;
+    Ok((phase, PyCGSpec { inner: conj_spec }))
 }
 
 /// Yuzuha: SU(2) X-symbols for Tensor Networks
@@ -849,6 +869,7 @@ fn yuzuha(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compute_xsymbol, m)?)?;
     m.add_function(wrap_pyfunction!(compute_rsymbol, m)?)?;
     m.add_function(wrap_pyfunction!(canonical_basis, m)?)?;
-    m.add_function(wrap_pyfunction!(compute_fs_phase, m)?)?;
+    m.add_function(wrap_pyfunction!(fs_phase_for_spin, m)?)?;
+    m.add_function(wrap_pyfunction!(compute_conjugate, m)?)?;
     Ok(())
 }
