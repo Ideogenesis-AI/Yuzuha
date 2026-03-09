@@ -123,9 +123,8 @@ def run_consistency_test(spec_a, spec_b, contraction, axes_a, axes_b, tol=1e-10)
     cg_tensor_a = build_weighted_tensor(basis_a, w_a)
     cg_tensor_b = build_weighted_tensor(basis_b, w_b)
     
-    # Method 1: Direct contraction, scaled by the FS phase to match X-symbol convention
-    fs_phase = yuzuha.compute_fs_phase(spec_a, spec_b, contraction)
-    cg_tensor_c = np.tensordot(cg_tensor_a, cg_tensor_b, axes=(axes_a, axes_b)) * fs_phase
+    # Method 1: Direct contraction (no FS phase — that now belongs to compute_conjugate)
+    cg_tensor_c = np.tensordot(cg_tensor_a, cg_tensor_b, axes=(axes_a, axes_b))
     
     # Method 2: Via X-symbol
     x_array, spec_c = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)
@@ -1459,171 +1458,209 @@ class TestXSymbolEdgeCases:
         run_consistency_test(spec_a, spec_b, contraction, [5], [0])
 
 class TestXSymbolInversionConsistency:
-    """Test that flipping both edges of a contracted pair leaves the X-symbol unchanged.
+    """Test that inverting both edges of a contracted pair scales the X-symbol by the FS phase.
 
     Mathematical basis
     ------------------
-    Inverting both edges in a contracted pair inserts g^{-1} ∘ g = I on that
-    index, so the X-symbol is invariant.  Concretely, if spec_a has edge i with
-    direction d and spec_b has edge j with direction −d (the valid pairing), then
-    flipping both to (−d, d) gives a new pair that is still opposite — and the
-    resulting X-symbol array is element-wise identical.
+    The X-symbol no longer absorbs the Frobenius-Schur (FS) phase.  Inverting
+    both edges of a contracted pair (A[k], B[l]) — with spin j — introduces a
+    factor of ``(-1)^{2j}`` (the FS phase for spin j) relative to the original
+    X-symbol.  Concretely:
+
+        X(spec_a', spec_b', C) = phase * X(spec_a, spec_b, C)
+
+    where ``phase = ∏_k fs_phase_for_spin(j_k)`` over every contracted pair k
+    that is inverted.  The FS phase is +1 for integer j and -1 for half-integer j.
+
+    ``_xsymbol_consistency`` accepts the spins of all *flipped* contracted pairs
+    and computes the expected phase automatically.
 
     Tests cover:
-    - single contracted pair flipped
-    - one pair flipped out of several contracted pairs
-    - all contracted pairs flipped simultaneously
-    - different spin values (j=1/2, j=1, j=3/2)
-    - two-index outcome scenario
+    - single contracted pair, various half-integer and integer spins
+    - contracted pair at non-last position (middle of spec), last position
+    - multiple contracted pairs (phase accumulation = product of individual phases)
+    - partial inversion (flip only one pair out of several contracted)
+    - mixed integer + half-integer contracted pairs
+    - different numbers of edges in A and B
     """
 
-    def _xsymbol_equal(self, spec_a1, spec_b1, spec_a2, spec_b2, contraction, tol=1e-10):
-        """Assert the two X-symbol arrays are element-wise equal."""
+    def _xsymbol_consistency(
+        self, spec_a1, spec_b1, spec_a2, spec_b2, contraction, contracted_spins, tol=1e-10
+    ):
+        """Assert X(spec_a2, spec_b2, C) = phase * X(spec_a1, spec_b1, C).
+
+        ``phase = ∏ fs_phase_for_spin(j)`` over the spins of the flipped contracted pairs.
+        """
+        expected_phase = 1.0
+        for j in contracted_spins:
+            expected_phase *= yuzuha.fs_phase_for_spin(j)
         x1, _ = yuzuha.compute_xsymbol(spec_a1, spec_b1, contraction)
         x2, _ = yuzuha.compute_xsymbol(spec_a2, spec_b2, contraction)
         assert x1.shape == x2.shape, \
             f"Shape mismatch: {x1.shape} vs {x2.shape}"
-        assert np.allclose(x1, x2, atol=tol), \
-            f"X-symbols differ after flipping contracted pair; max diff={np.max(np.abs(x1-x2)):.2e}"
+        assert np.allclose(x2, expected_phase * x1, atol=tol), (
+            f"X-symbols do not differ by expected FS phase {expected_phase:.1f}; "
+            f"max diff={np.max(np.abs(x2 - expected_phase * x1)):.2e}"
+        )
+
 
     def test_single_pair_flip_j_half(self):
-        """Flip the sole contracted pair for j=1/2, 3-edge × 3-edge."""
-        j_half = yuzuha.Spin(1)
-        j1 = yuzuha.Spin(2)
+        """Single contracted j=1/2 pair: X2 = -X1, fs_phase(j_half) = -1."""
+        j_half = yuzuha.Spin(1)  # j=1/2
+        j1 = yuzuha.Spin(2)      # j=1
 
-        # Original: A[2] (out j=1) × B[0] (in j=1)
         spec_a1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j_half),   # contracted axis 2
+            yuzuha.Edge.outgoing(j_half),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j1),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j_half),   # contracted axis 2
             yuzuha.Edge.outgoing(j_half),
         ])
 
-        # Flipped contracted pair: A'[2] (in j=1) × B'[0] (out j=1)
+        # Flip pair at axis 2: A[2] in→out, B[2] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j_half),   # flipped
+            yuzuha.Edge.outgoing(j_half),
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.outgoing(j1),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
         ])
 
-        contraction = yuzuha.Contraction([2], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        contraction = yuzuha.Contraction([2], [2])
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_single_pair_flip_j1(self):
-        """Flip the sole contracted pair for j=1, 3-edge × 3-edge."""
-        j1 = yuzuha.Spin(2)
-        j2 = yuzuha.Spin(4)
+        """Single contracted j=1 (integer) pair: X2 = +X1, fs_phase(j1) = +1.
+
+        Uses j1 for free edges to keep sum of 2j even (1+1+2+2=6).
+        """
+        j_half = yuzuha.Spin(1)  # j=1/2
+        j1 = yuzuha.Spin(2)      # j=1
 
         spec_a1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j1),
-            yuzuha.Edge.incoming(j1),
-            yuzuha.Edge.outgoing(j2),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j1),       # contracted axis 2
+            yuzuha.Edge.outgoing(j1),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j2),
-            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j1),       # contracted axis 2
             yuzuha.Edge.outgoing(j1),
         ])
 
-        # Flipped: A'[2] (in j=2) × B'[0] (out j=2)
+        # Flip pair at axis 2: A[2] in→out, B[2] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j1),
-            yuzuha.Edge.incoming(j1),
-            yuzuha.Edge.incoming(j2),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),       # flipped
+            yuzuha.Edge.outgoing(j1),
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j2),
-            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j1),       # flipped
             yuzuha.Edge.outgoing(j1),
         ])
 
-        contraction = yuzuha.Contraction([2], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        contraction = yuzuha.Contraction([2], [2])
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
     def test_single_pair_flip_j3_half(self):
-        """Flip the sole contracted pair for j=3/2, 3-edge × 3-edge."""
-        j1    = yuzuha.Spin(2)
-        j_3_2 = yuzuha.Spin(3)
+        """Single contracted j=3/2 pair: X2 = -X1, fs_phase(j3_half) = -1."""
+        j_half = yuzuha.Spin(1)  # j=1/2
+        j_3_2  = yuzuha.Spin(3)  # j=3/2
 
         spec_a1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j1),
-            yuzuha.Edge.incoming(j_3_2),
-            yuzuha.Edge.outgoing(j_3_2),   # contracted axis 2
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_3_2),    # contracted axis 2
+            yuzuha.Edge.outgoing(j_half),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_3_2),   # contracted axis 0
-            yuzuha.Edge.outgoing(j1),
-            yuzuha.Edge.outgoing(j_3_2),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_3_2),    # contracted axis 2
+            yuzuha.Edge.outgoing(j_half),
         ])
 
-        # Flipped contracted pair only
+        # Flip pair at axis 2: A[2] in→out, B[2] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j1),
-            yuzuha.Edge.incoming(j_3_2),
-            yuzuha.Edge.incoming(j_3_2),   # contracted axis 2, now incoming
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_3_2),    # flipped
+            yuzuha.Edge.outgoing(j_half),
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_3_2),   # contracted axis 0, now outgoing
-            yuzuha.Edge.outgoing(j1),
-            yuzuha.Edge.outgoing(j_3_2),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_3_2),    # flipped
+            yuzuha.Edge.outgoing(j_half),
         ])
 
-        contraction = yuzuha.Contraction([2], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        contraction = yuzuha.Contraction([2], [2])
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_3_2])
 
     def test_flip_one_of_multiple_pairs(self):
-        """With three contracted pairs, flip only the middle one."""
+        """With three contracted pairs, flip only the middle one (axis 1).
+
+        Phase = fs_phase(j_half) = -1 for the flipped pair.
+        """
         j_half = yuzuha.Spin(1)
 
-        # Original: A[0,1,2] (in,in,in) × B[0,1,2] (out,out,out)
         spec_a1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
         ])
 
-        # Flip only pair 1 (axis 1 of A, axis 1 of B): in→out and out→in
+        # Flip only pair 1 (axis 1): A[1] in→out, B[1] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),  # flipped
+            yuzuha.Edge.outgoing(j_half),   # flipped
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),  # flipped
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),   # flipped
+            yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_flip_all_contracted_pairs(self):
-        """Flip all three contracted pairs simultaneously."""
+        """Flip all three contracted pairs simultaneously.
+
+        Phase accumulation: fs(j_half)^3 = (-1)^3 = -1.
+        """
         j_half = yuzuha.Spin(1)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j_half),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.outgoing(j_half),
@@ -1632,57 +1669,63 @@ class TestXSymbolInversionConsistency:
             yuzuha.Edge.outgoing(j_half),
         ])
 
-        # All three contracted axes flipped: in→out for A, out→in for B
+        # Flip all three contracted pairs
         spec_a2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),   # flipped
+            yuzuha.Edge.outgoing(j_half),   # flipped
+            yuzuha.Edge.outgoing(j_half),   # flipped
+            yuzuha.Edge.incoming(j_half),
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),   # flipped
+            yuzuha.Edge.incoming(j_half),   # flipped
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(
+            spec_a1, spec_b1, spec_a2, spec_b2, contraction,
+            [j_half, j_half, j_half],
+        )
 
     def test_flip_two_index_outcome(self):
-        """Flip the contracted pair when the outcome is a two-edge tensor."""
-        j_half = yuzuha.Spin(1)
+        """Single j=1/2 pair contracted, leaving two free edges per side.
 
-        # Original: A[0,1,2] (in) × B[0,1,2] (out); free: out(A) + out(B)
+        fs_phase(j_half) = -1.
+        """
+        j_half = yuzuha.Spin(1)  # j=1/2
+        j1 = yuzuha.Spin(2)      # j=1
+
         spec_a1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j_half),   # contracted axis 2
             yuzuha.Edge.outgoing(j_half),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j_half),   # contracted axis 2
             yuzuha.Edge.outgoing(j_half),
         ])
 
-        # Flipped: A'[0,1,2] (out) × B'[0,1,2] (in)
+        # Flip axis 2: A[2] in→out, B[2] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.incoming(j1),
+            yuzuha.Edge.outgoing(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
         ])
 
-        contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        contraction = yuzuha.Contraction([2], [2])
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_flip_mixed_spins(self):
         """Flip one contracted pair when contracted edges have mixed spins."""
@@ -1718,14 +1761,17 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     # ------------------------------------------------------------------
     # Single contracted pair — more spin values
     # ------------------------------------------------------------------
 
     def test_single_pair_flip_j2(self):
-        """Flip the sole contracted pair for j=2, 3-edge × 3-edge."""
+        """Flip the sole contracted pair for j=2, 3-edge × 3-edge.
+
+        j=2 is integer → fs_phase(j2) = +1.
+        """
         j1 = yuzuha.Spin(2)
         j2 = yuzuha.Spin(4)
 
@@ -1752,13 +1798,16 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([2], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j2])
 
     def test_single_pair_flip_j5_half(self):
-        """Flip the sole contracted pair for j=5/2, 3-edge × 3-edge."""
-        j2     = yuzuha.Spin(4)  # j=2
-        j_half = yuzuha.Spin(1)  # j=1/2
-        j5_half = yuzuha.Spin(5) # j=5/2; |2−1/2|=3/2 ≤ 5/2 ≤ 5/2 ✓
+        """Flip the sole contracted pair for j=5/2, 3-edge × 3-edge.
+
+        fs_phase(j5_half) = (-1)^5 = -1.
+        """
+        j2      = yuzuha.Spin(4)  # j=2
+        j_half  = yuzuha.Spin(1)  # j=1/2
+        j5_half = yuzuha.Spin(5)  # j=5/2
 
         spec_a1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j2),
@@ -1766,31 +1815,35 @@ class TestXSymbolInversionConsistency:
             yuzuha.Edge.outgoing(j5_half),  # contracted axis 2
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j5_half),  # contracted axis 0
+            yuzuha.Edge.outgoing(j5_half),  # contracted axis 0
             yuzuha.Edge.outgoing(j2),
             yuzuha.Edge.outgoing(j_half),
         ])
 
+        # Flip pair: A[2] out→in, B[0] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j2),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j5_half),  # flipped
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j5_half),  # flipped
+            yuzuha.Edge.incoming(j5_half),  # flipped
             yuzuha.Edge.outgoing(j2),
             yuzuha.Edge.outgoing(j_half),
         ])
 
         contraction = yuzuha.Contraction([2], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j5_half])
 
     # ------------------------------------------------------------------
     # Single contracted pair — varied axis positions
     # ------------------------------------------------------------------
 
     def test_single_pair_flip_axis_0(self):
-        """Flip contracted pair at axis 0 of A and axis 2 of B."""
+        """Flip contracted pair at axis 0 of A and axis 2 of B.
+
+        j=1 is integer → fs_phase(j1) = +1.
+        """
         j_half = yuzuha.Spin(1)
         j1 = yuzuha.Spin(2)
 
@@ -1818,22 +1871,24 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0], [2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
     def test_single_pair_flip_middle_axis(self):
-        """Flip contracted pair at axis 1 of both A and B."""
+        """Flip contracted pair at axis 1 of both A and B.
+
+        j=1 is integer → fs_phase(j1) = +1.
+        """
         j_half = yuzuha.Spin(1)
         j1 = yuzuha.Spin(2)
 
-        # A[1]=out(j=1) contracted with B[1]=in(j=1)
         spec_a1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j1),    # contracted axis 1: out
+            yuzuha.Edge.outgoing(j1),    # contracted axis 1
             yuzuha.Edge.incoming(j_half),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.incoming(j1),    # contracted axis 1: in
+            yuzuha.Edge.incoming(j1),    # contracted axis 1
             yuzuha.Edge.outgoing(j_half),
         ])
 
@@ -1849,27 +1904,30 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([1], [1])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
     # ------------------------------------------------------------------
     # Single contracted pair — last edge (index n−1) of each spec
     # ------------------------------------------------------------------
 
     def test_single_pair_flip_last_edge_j_half(self):
-        """Flip the last-edge contracted pair for j=1/2, 4-edge × 4-edge."""
+        """Flip the last-edge contracted pair for j=1/2, 4-edge × 4-edge.
+
+        fs_phase(j_half) = -1.
+        """
         j_half = yuzuha.Spin(1)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),  # last edge (axis 3): out
+            yuzuha.Edge.outgoing(j_half),  # contracted axis 3 (last edge)
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.incoming(j_half),  # last edge (axis 3): in
+            yuzuha.Edge.incoming(j_half),  # contracted axis 3 (last edge)
         ])
 
         spec_a2 = yuzuha.CGSpec.from_edges([
@@ -1886,25 +1944,27 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([3], [3])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_single_pair_flip_last_edge_j1(self):
-        """Flip the last-edge contracted pair for j=1, 4-edge × 4-edge."""
+        """Flip the last-edge contracted pair for j=1, 4-edge × 4-edge.
+
+        j=1 is integer → fs_phase(j1) = +1.
+        """
         j_half = yuzuha.Spin(1)
         j1 = yuzuha.Spin(2)
 
-        # sum 2j = 1+1+2+2 = 6 ✓
         spec_a1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j1),
-            yuzuha.Edge.outgoing(j1),    # last edge (axis 3): out(j=1)
+            yuzuha.Edge.outgoing(j1),    # contracted axis 3 (last edge)
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j1),
-            yuzuha.Edge.incoming(j1),    # last edge (axis 3): in(j=1)
+            yuzuha.Edge.incoming(j1),    # contracted axis 3 (last edge)
         ])
 
         spec_a2 = yuzuha.CGSpec.from_edges([
@@ -1921,25 +1981,27 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([3], [3])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
     def test_single_pair_flip_last_edge_j3_half(self):
-        """Flip the last-edge contracted pair for j=3/2, 4-edge × 4-edge."""
+        """Flip the last-edge contracted pair for j=3/2, 4-edge × 4-edge.
+
+        fs_phase(j3_half) = -1.
+        """
         j_half  = yuzuha.Spin(1)
         j3_half = yuzuha.Spin(3)
 
-        # 3× j=1/2 couple via j=1 intermediate → j=3/2 last edge; sum 2j = 6 ✓
         spec_a1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j3_half),  # last edge (axis 3): out(j=3/2)
+            yuzuha.Edge.outgoing(j3_half),  # contracted axis 3 (last edge)
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.incoming(j3_half),  # last edge (axis 3): in(j=3/2)
+            yuzuha.Edge.incoming(j3_half),  # contracted axis 3 (last edge)
         ])
 
         spec_a2 = yuzuha.CGSpec.from_edges([
@@ -1956,114 +2018,127 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([3], [3])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j3_half])
 
     # ------------------------------------------------------------------
     # Multiple contracted pairs — which pair is flipped
     # ------------------------------------------------------------------
 
     def test_flip_one_of_multiple_pairs_first(self):
-        """With three contracted pairs, flip only the first one (axis 0)."""
+        """With three contracted pairs, flip only the first one (axis 0).
+
+        Phase = fs_phase(j_half) = -1.
+        """
         j_half = yuzuha.Spin(1)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),   # contracted 0
+            yuzuha.Edge.incoming(j_half),   # contracted 1
+            yuzuha.Edge.incoming(j_half),   # contracted 2
             yuzuha.Edge.outgoing(j_half),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),   # contracted 0
+            yuzuha.Edge.incoming(j_half),   # contracted 1
+            yuzuha.Edge.incoming(j_half),   # contracted 2
             yuzuha.Edge.outgoing(j_half),
         ])
 
+        # Flip only pair 0: A[0] in→out, B[0] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),  # flipped
+            yuzuha.Edge.outgoing(j_half),   # flipped
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.outgoing(j_half),
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),  # flipped
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.outgoing(j_half),
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_flip_one_of_multiple_pairs_last(self):
-        """With three contracted pairs, flip only the last one (axis 2)."""
+        """With three contracted pairs, flip only the last one (axis 2).
+
+        Phase = fs_phase(j_half) = -1.
+        """
         j_half = yuzuha.Spin(1)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),   # contracted 0
+            yuzuha.Edge.incoming(j_half),   # contracted 1
+            yuzuha.Edge.incoming(j_half),   # contracted 2
             yuzuha.Edge.outgoing(j_half),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),   # contracted 0
+            yuzuha.Edge.incoming(j_half),   # contracted 1
+            yuzuha.Edge.outgoing(j_half),   # contracted 2
             yuzuha.Edge.outgoing(j_half),
         ])
 
+        # Flip only pair 2: A[2] in→out, B[2] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),  # flipped
+            yuzuha.Edge.outgoing(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),  # flipped
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_flip_first_and_last_of_multiple_pairs(self):
-        """With three contracted pairs, flip the first and last but not the middle."""
+        """With three contracted pairs, flip the first and last but not the middle.
+
+        Phase accumulation: fs(j_half)^2 = +1.
+        """
         j_half = yuzuha.Spin(1)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),   # contracted 0
+            yuzuha.Edge.incoming(j_half),   # contracted 1
+            yuzuha.Edge.incoming(j_half),   # contracted 2
             yuzuha.Edge.outgoing(j_half),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),   # contracted 0
+            yuzuha.Edge.incoming(j_half),   # contracted 1
+            yuzuha.Edge.outgoing(j_half),   # contracted 2
             yuzuha.Edge.outgoing(j_half),
         ])
 
         # Flip pairs 0 and 2, leave pair 1 unchanged
         spec_a2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),  # flipped
+            yuzuha.Edge.outgoing(j_half),   # flipped
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),  # flipped
+            yuzuha.Edge.outgoing(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),  # flipped
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),  # flipped
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(
+            spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half, j_half]
+        )
 
     def test_flip_two_index_outcome_j1(self):
-        """Flip contracted pair when outcome is a two-edge tensor, integer spin j=1."""
+        """Flip all 3 contracted j=1 pairs; accumulated phase = +1^3 = +1."""
         j1 = yuzuha.Spin(2)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
@@ -2093,14 +2168,16 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(
+            spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1, j1, j1]
+        )
 
     # ------------------------------------------------------------------
     # Multiple contracted pairs — different spins
     # ------------------------------------------------------------------
 
     def test_flip_all_pairs_j1(self):
-        """Flip all three contracted first-region pairs with integer spin j=1."""
+        """Flip all three contracted j=1 pairs; accumulated phase = +1^3 = +1."""
         j1 = yuzuha.Spin(2)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
@@ -2130,10 +2207,12 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(
+            spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1, j1, j1]
+        )
 
     def test_flip_all_pairs_j3_half(self):
-        """Flip all three contracted first-region pairs with half-integer spin j=3/2."""
+        """Flip all three contracted j=3/2 pairs; phase = (-1)^3 = -1."""
         j3_half = yuzuha.Spin(3)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
@@ -2163,7 +2242,10 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(
+            spec_a1, spec_b1, spec_a2, spec_b2, contraction,
+            [j3_half, j3_half, j3_half],
+        )
 
     def test_flip_j2_pair_among_mixed(self):
         """Flip the j=2 pair in a 3-pair scenario with mixed j=2 and j=1/2."""
@@ -2199,17 +2281,16 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j2])
 
     # ------------------------------------------------------------------
     # Higher-order: more contracted pairs
     # ------------------------------------------------------------------
 
     def test_flip_four_contracted_pairs(self):
-        """Flip all four contracted first-region pairs in a 5-edge × 5-edge scenario.
+        """Flip all four contracted j=1/2 pairs in a 5-edge × 5-edge scenario.
 
-        Five j=1/2 edges give an odd sum of 2j, so the last edge is j=1
-        (sum 2j = 4+2 = 6, even), preserving the five-edge structure.
+        Phase accumulation: fs(j_half)^4 = +1.
         """
         j_half = yuzuha.Spin(1)
         j1 = yuzuha.Spin(2)
@@ -2219,17 +2300,17 @@ class TestXSymbolInversionConsistency:
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j1),      # last edge: j=1
+            yuzuha.Edge.outgoing(j1),      # last edge: j=1, free
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
-            yuzuha.Edge.outgoing(j1),
+            yuzuha.Edge.outgoing(j1),      # last edge: j=1, free
         ])
 
-        # All four first-region axes flipped: in→out for A, out→in for B
+        # All four contracted axes flipped: in→out for A, out→in for B
         spec_a2 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
@@ -2246,10 +2327,16 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2, 3], [0, 1, 2, 3])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(
+            spec_a1, spec_b1, spec_a2, spec_b2, contraction,
+            [j_half, j_half, j_half, j_half],
+        )
 
     def test_flip_five_contracted_pairs(self):
-        """Flip all five contracted first-region pairs in a 6-edge × 6-edge scenario."""
+        """Flip all five contracted j=1/2 pairs in a 6-edge × 6-edge scenario.
+
+        Phase accumulation: fs(j_half)^5 = -1.
+        """
         j_half = yuzuha.Spin(1)
 
         # 6× j=1/2: sum 2j = 6 ✓
@@ -2288,14 +2375,20 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2, 3, 4], [0, 1, 2, 3, 4])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(
+            spec_a1, spec_b1, spec_a2, spec_b2, contraction,
+            [j_half, j_half, j_half, j_half, j_half],
+        )
 
     # ------------------------------------------------------------------
     # 2-edge cases: 2-edge × 2-edge and 2-edge × higher-order
     # ------------------------------------------------------------------
 
     def test_2edge_2edge_j_half_first_axis(self):
-        """2-edge × 2-edge: flip A[0]×B[0], an (in, out) pair, j=1/2."""
+        """2-edge × 2-edge: flip A[0]×B[0] (in, out) pair, j=1/2.
+
+        fs_phase(j_half) = -1.
+        """
         j_half = yuzuha.Spin(1)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
@@ -2317,10 +2410,13 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_2edge_2edge_j1_last_axis(self):
-        """2-edge × 2-edge: flip A[1]×B[1], an (out, out) pair, j=1."""
+        """2-edge × 2-edge: flip A[1]×B[1] (out, out) pair, j=1.
+
+        j=1 is integer → fs_phase(j1) = +1.
+        """
         j1 = yuzuha.Spin(2)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
@@ -2342,10 +2438,13 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([1], [1])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
     def test_2edge_2edge_j3_half(self):
-        """2-edge × 2-edge: flip A[0]×B[0], an (in, out) pair, j=3/2."""
+        """2-edge × 2-edge: flip A[0]×B[0] (in, out) pair, j=3/2.
+
+        fs_phase(j3_half) = -1.
+        """
         j3_half = yuzuha.Spin(3)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
@@ -2367,12 +2466,12 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j3_half])
 
     def test_2edge_2edge_j1_same_direction_pair(self):
-        """2-edge × 2-edge: flip A[0]×B[0], an (in, in) pair, j=1.
+        """2-edge × 2-edge: flip A[0]×B[0] (in, in) pair, j=1.
 
-        Both contracted edges point inward; flipping gives an (out, out) pair.
+        j=1 is integer → fs_phase(j1) = +1.
         """
         j1 = yuzuha.Spin(2)
 
@@ -2395,39 +2494,46 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
     def test_2edge_a_vs_4edge_b_j_half(self):
-        """2-edge A × 4-edge B: flip A[1]×B[0], an (out, in) pair, j=1/2."""
+        """2-edge A × 4-edge B: flip A[1]×B[0], j=1/2.
+
+        fs_phase(j_half) = -1.
+        """
         j_half = yuzuha.Spin(1)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),   # contracted axis 1
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),   # contracted axis 0
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
         ])
 
+        # Flip pair: A[1] out→in, B[0] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),   # flipped
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),   # flipped
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
         ])
 
         contraction = yuzuha.Contraction([1], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_4edge_a_vs_2edge_b_j1(self):
-        """4-edge A × 2-edge B: flip A[3]×B[0], an (out, in) pair, j=1."""
+        """4-edge A × 2-edge B: flip A[3]×B[0] (out, in) pair, j=1.
+
+        j=1 is integer → fs_phase(j1) = +1.
+        """
         j1 = yuzuha.Spin(2)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
@@ -2453,18 +2559,21 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([3], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
     def test_2edge_a_vs_6edge_b_j_half(self):
-        """2-edge A × 6-edge B: flip A[1]×B[0], an (out, in) pair, j=1/2."""
+        """2-edge A × 6-edge B: flip A[1]×B[0], j=1/2.
+
+        fs_phase(j_half) = -1.
+        """
         j_half = yuzuha.Spin(1)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),   # contracted axis 1
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),   # contracted axis 0
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
@@ -2472,12 +2581,13 @@ class TestXSymbolInversionConsistency:
             yuzuha.Edge.outgoing(j_half),
         ])
 
+        # Flip pair: A[1] out→in, B[0] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),   # flipped
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),   # flipped
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
@@ -2486,39 +2596,40 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([1], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_2edge_a_vs_3edge_b_j3_half(self):
-        """2-edge A × 3-edge B: flip A[1]×B[0], an (out, in) pair, j=3/2.
+        """2-edge A × 3-edge B: flip A[1]×B[0], j=3/2.
 
-        B uses [j=3/2, j=1/2, j=1] to keep the sum of 2j even (3+1+2=6).
+        fs_phase(j3_half) = -1.
         """
-        j_half = yuzuha.Spin(1)
-        j1 = yuzuha.Spin(2)
+        j_half  = yuzuha.Spin(1)
+        j1      = yuzuha.Spin(2)
         j3_half = yuzuha.Spin(3)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j3_half),
-            yuzuha.Edge.outgoing(j3_half),
+            yuzuha.Edge.outgoing(j3_half),  # contracted axis 1
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j3_half),
+            yuzuha.Edge.outgoing(j3_half),  # contracted axis 0
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j1),
         ])
 
+        # Flip pair: A[1] out→in, B[0] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j3_half),
             yuzuha.Edge.incoming(j3_half),  # flipped
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j3_half),  # flipped
+            yuzuha.Edge.incoming(j3_half),  # flipped
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j1),
         ])
 
         contraction = yuzuha.Contraction([1], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j3_half])
 
     # ------------------------------------------------------------------
     # Different-order: spec_a and spec_b have different numbers of edges
@@ -2558,7 +2669,7 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([2], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
     def test_different_orders_4a_3b(self):
         """Flip the sole contracted pair between a 4-edge A and 3-edge B.
@@ -2594,7 +2705,7 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([3], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
     def test_different_orders_3a_5b(self):
         """Flip the sole contracted pair between a 3-edge A and 5-edge B.
@@ -2632,13 +2743,12 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([2], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
     def test_different_orders_4a_6b(self):
         """Flip the sole contracted pair between a 4-edge A and 6-edge B.
 
-        A[3] (out j=1/2) is contracted with B[0] (in j=1/2).
-        Free indices: A[0,1,2], B[1,2,3,4,5].
+        fs_phase(j_half) = -1.
         """
         j_half = yuzuha.Spin(1)
 
@@ -2646,10 +2756,10 @@ class TestXSymbolInversionConsistency:
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.outgoing(j_half),
+            yuzuha.Edge.outgoing(j_half),   # contracted axis 3
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),   # contracted axis 0
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
@@ -2657,6 +2767,7 @@ class TestXSymbolInversionConsistency:
             yuzuha.Edge.outgoing(j_half),
         ])
 
+        # Flip pair: A[3] out→in, B[0] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
@@ -2664,7 +2775,7 @@ class TestXSymbolInversionConsistency:
             yuzuha.Edge.incoming(j_half),   # flipped
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),   # flipped
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
             yuzuha.Edge.outgoing(j_half),
@@ -2673,13 +2784,12 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([3], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_different_orders_5a_4b_two_pairs(self):
-        """Flip both first-region contracted pairs between a 5-edge A and 4-edge B.
+        """Flip both contracted j=1/2 pairs between a 5-edge A and 4-edge B.
 
-        A[0,1] (in j=1/2) contracted with B[0,1] (out j=1/2); A has one more free edge.
-        Free indices: A[2,3,4], B[2,3].
+        Phase accumulation: fs(j_half)^2 = +1.
         """
         j_half = yuzuha.Spin(1)
         j1 = yuzuha.Spin(2)
@@ -2713,40 +2823,41 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0, 1], [0, 1])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(
+            spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half, j_half]
+        )
 
     def test_different_orders_4a_5b_three_pairs_flip_one(self):
         """Flip one of three contracted pairs between a 4-edge A and 5-edge B.
 
-        A[0,1,2] (in j=1/2) contracted with B[0,1,2] (in j=1/2).
-        Flip only pair 0: A[0] in→out, B[0] in→out.
-        Free indices: A[3], B[3,4].
+        Phase = fs_phase(j_half) = -1.
         """
         j_half = yuzuha.Spin(1)
         j1 = yuzuha.Spin(2)
 
         spec_a1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.incoming(j_half),   # contracted 0
+            yuzuha.Edge.incoming(j_half),   # contracted 1
+            yuzuha.Edge.incoming(j_half),   # contracted 2
             yuzuha.Edge.outgoing(j_half),
         ])
         spec_b1 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
-            yuzuha.Edge.incoming(j_half),
+            yuzuha.Edge.outgoing(j_half),   # contracted 0
+            yuzuha.Edge.incoming(j_half),   # contracted 1
+            yuzuha.Edge.incoming(j_half),   # contracted 2
             yuzuha.Edge.outgoing(j1),
             yuzuha.Edge.outgoing(j_half),
         ])
 
+        # Flip only pair 0: A[0] in→out, B[0] out→in
         spec_a2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),   # flipped pair 0
+            yuzuha.Edge.outgoing(j_half),   # flipped
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.outgoing(j_half),
         ])
         spec_b2 = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.outgoing(j_half),   # flipped pair 0
+            yuzuha.Edge.incoming(j_half),   # flipped
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.incoming(j_half),
             yuzuha.Edge.outgoing(j1),
@@ -2754,13 +2865,12 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([0, 1, 2], [0, 1, 2])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j_half])
 
     def test_different_orders_5a_3b_last_vs_first(self):
         """Flip the contracted pair between the last edge of 5-edge A and first of 3-edge B.
 
-        A[4] (out j=1) contracted with B[0] (in j=1) — asymmetric axis positions.
-        Free indices: A[0,1,2,3], B[1,2].
+        A[4] (out j=1) contracted with B[0] (in j=1).
         """
         j_half = yuzuha.Spin(1)
         j1 = yuzuha.Spin(2)
@@ -2792,5 +2902,5 @@ class TestXSymbolInversionConsistency:
         ])
 
         contraction = yuzuha.Contraction([4], [0])
-        self._xsymbol_equal(spec_a1, spec_b1, spec_a2, spec_b2, contraction)
+        self._xsymbol_consistency(spec_a1, spec_b1, spec_a2, spec_b2, contraction, [j1])
 
