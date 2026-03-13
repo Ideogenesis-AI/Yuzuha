@@ -29,7 +29,8 @@ from .yuzuha import (
     CGSpec,
     Contraction,
     canonical_basis,
-    compute_fs_phase,
+    fs_phase_for_spin,
+    compute_conjugate,
 )
 from .symbols import compute_xsymbol, compute_rsymbol
 from .database import startup_database
@@ -52,7 +53,8 @@ __all__ = [
     "Contraction",
     "compute_xsymbol",
     "compute_rsymbol",
-    "compute_fs_phase",
+    "fs_phase_for_spin",
+    "compute_conjugate",
     "canonical_basis",
     "startup_database",
     "set_cache_path",
