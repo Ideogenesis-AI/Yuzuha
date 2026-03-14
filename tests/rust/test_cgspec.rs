@@ -691,3 +691,111 @@ mod test_manually_verified {
         }
     }
 }
+
+#[cfg(test)]
+mod test_with_inverted_axes {
+    use super::*;
+
+    fn make_spec() -> CGSpec {
+        // in, in, in, out — 4-edge j=1/2 spec; om_dim=2
+        CGSpec::from_edges(vec![
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::outgoing(j(1)),
+        ]).unwrap()
+    }
+
+    #[test]
+    fn test_single_axis_flipped() {
+        let spec = make_spec();
+        let result = spec.with_inverted_axes(&[0]).unwrap();
+
+        assert_eq!(result.edges[0].dir, Direction::Outgoing); // flipped
+        assert_eq!(result.edges[1].dir, Direction::Incoming);  // unchanged
+        assert_eq!(result.edges[2].dir, Direction::Incoming);  // unchanged
+        assert_eq!(result.edges[3].dir, Direction::Outgoing);  // unchanged
+    }
+
+    #[test]
+    fn test_multiple_axes_flipped() {
+        let spec = make_spec();
+        let result = spec.with_inverted_axes(&[1, 3]).unwrap();
+
+        assert_eq!(result.edges[0].dir, Direction::Incoming);  // unchanged
+        assert_eq!(result.edges[1].dir, Direction::Outgoing);  // flipped
+        assert_eq!(result.edges[2].dir, Direction::Incoming);  // unchanged
+        assert_eq!(result.edges[3].dir, Direction::Incoming);  // flipped
+    }
+
+    #[test]
+    fn test_all_axes_flipped() {
+        let spec = make_spec();
+        let result = spec.with_inverted_axes(&[0, 1, 2, 3]).unwrap();
+
+        assert_eq!(result.edges[0].dir, Direction::Outgoing);
+        assert_eq!(result.edges[1].dir, Direction::Outgoing);
+        assert_eq!(result.edges[2].dir, Direction::Outgoing);
+        assert_eq!(result.edges[3].dir, Direction::Incoming);
+    }
+
+    #[test]
+    fn test_empty_axes_is_clone() {
+        let spec = make_spec();
+        let result = spec.with_inverted_axes(&[]).unwrap();
+
+        for (orig, new) in spec.edges.iter().zip(result.edges.iter()) {
+            assert_eq!(orig.dir, new.dir);
+            assert_eq!(orig.j, new.j);
+        }
+    }
+
+    #[test]
+    fn test_spins_are_preserved() {
+        let spec = make_spec();
+        let result = spec.with_inverted_axes(&[0, 1, 2, 3]).unwrap();
+
+        for (orig, new) in spec.edges.iter().zip(result.edges.iter()) {
+            assert_eq!(orig.j, new.j);
+        }
+    }
+
+    #[test]
+    fn test_alphas_are_preserved() {
+        let spec = make_spec();
+        let result = spec.with_inverted_axes(&[0, 2]).unwrap();
+
+        assert_eq!(spec.alphas, result.alphas);
+        assert_eq!(result.om_dimension(), 2); // non-trivial OM
+    }
+
+    #[test]
+    fn test_double_invert_restores_original() {
+        let spec = make_spec();
+        let once = spec.with_inverted_axes(&[0, 2]).unwrap();
+        let twice = once.with_inverted_axes(&[0, 2]).unwrap();
+
+        for (orig, restored) in spec.edges.iter().zip(twice.edges.iter()) {
+            assert_eq!(orig.dir, restored.dir);
+        }
+    }
+
+    #[test]
+    fn test_out_of_bounds_axis_errors() {
+        let spec = make_spec();
+        assert!(spec.with_inverted_axes(&[4]).is_err());
+        assert!(spec.with_inverted_axes(&[0, 99]).is_err());
+    }
+
+    #[test]
+    fn test_original_is_unchanged() {
+        let spec = make_spec();
+        let _result = spec.with_inverted_axes(&[0, 1, 2, 3]).unwrap();
+
+        // Original spec must not be mutated
+        assert_eq!(spec.edges[0].dir, Direction::Incoming);
+        assert_eq!(spec.edges[1].dir, Direction::Incoming);
+        assert_eq!(spec.edges[2].dir, Direction::Incoming);
+        assert_eq!(spec.edges[3].dir, Direction::Outgoing);
+    }
+}
