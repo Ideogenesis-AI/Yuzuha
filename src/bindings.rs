@@ -504,6 +504,44 @@ impl PyCGSpec {
         }).collect()
     }
 
+    /// Return a new CGSpec with the edge directions at the given axes flipped.
+    ///
+    /// The OM configurations are reused unchanged because they depend only on
+    /// spin values, not directions.
+    ///
+    /// Parameters
+    /// ----------
+    /// axes : list[int]
+    ///     Indices of edges whose direction should be flipped.
+    ///
+    /// Returns
+    /// -------
+    /// CGSpec
+    ///     A new CGSpec with the specified edge directions inverted.
+    ///
+    /// Raises
+    /// ------
+    /// ValueError
+    ///     If any axis index is out of bounds.
+    ///
+    /// Examples
+    /// --------
+    /// >>> import yuzuha
+    /// >>> j = yuzuha.Spin(2)
+    /// >>> spec = yuzuha.CGSpec.from_edges([
+    /// ...     yuzuha.Edge.incoming(j),
+    /// ...     yuzuha.Edge.incoming(j),
+    /// ...     yuzuha.Edge.outgoing(j),
+    /// ... ])
+    /// >>> flipped = spec.with_inverted_axes([0, 1])
+    /// >>> [e.dir for e in flipped.edges]
+    /// [Direction.outgoing, Direction.outgoing, Direction.outgoing]
+    fn with_inverted_axes(&self, axes: Vec<usize>) -> PyResult<Self> {
+        Ok(PyCGSpec {
+            inner: self.inner.with_inverted_axes(&axes)?,
+        })
+    }
+
     fn __repr__(&self) -> String {
         format!("CGSpec(num_external={}, om_dim={})", 
                 self.inner.num_external(), 
