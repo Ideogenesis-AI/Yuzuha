@@ -382,6 +382,30 @@ impl CGSpec {
             .ok_or_else(|| YuzuhaError::IndexOutOfBounds(idx, self.edges.len()))
     }
 
+    /// Return a new CGSpec with the edge directions at the given axes flipped.
+    ///
+    /// The OM configurations (alphas) are reused unchanged because they depend
+    /// only on spin values, not directions.
+    ///
+    /// # Arguments
+    /// * `axes` - Indices of edges whose direction should be flipped.
+    ///
+    /// # Errors
+    /// Returns an error if any axis index is out of bounds.
+    pub fn with_inverted_axes(&self, axes: &[usize]) -> Result<Self> {
+        let n = self.edges.len();
+        for &ax in axes {
+            if ax >= n {
+                return Err(YuzuhaError::IndexOutOfBounds(ax, n));
+            }
+        }
+        let flip_set: std::collections::HashSet<usize> = axes.iter().copied().collect();
+        let new_edges = self.edges.iter().enumerate().map(|(i, e)| {
+            if flip_set.contains(&i) { e.with_flipped_direction() } else { e.clone() }
+        }).collect();
+        CGSpec::new(new_edges, self.alphas.clone())
+    }
+
 }
 
 /// Coupled Gauge Tensor
