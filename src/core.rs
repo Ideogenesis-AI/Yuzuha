@@ -613,7 +613,7 @@ impl Contraction {
             let spin_b = spec_b.edge_spin_at(idx_b)?;
 
             if spin_a != spin_b {
-                return Err(YuzuhaError::IncompatibleLegs(
+                return Err(YuzuhaError::IncompatibleEdges(
                     spin_a.twice(),
                     spin_b.twice(),
                 ));
