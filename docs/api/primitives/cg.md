@@ -71,7 +71,7 @@ $$\sum_{j_3, m_3} C^{j_3 m_3}_{j_1 m_1, j_2 m_2}\, C^{j_3 m_3}_{j_1 m_1', j_2 m_
   full CG tensor for a `CGSpec`
 - [Metric Tensor](metric.md): Arrow-reversal transformation built on CG phases
 - [Triangle Rules](triangle.md): Triangle-inequality utilities
-- [Yuzuha Protocol — SU(2) Conventions](../../protocol/conventions.md): Phase
+- [Yuzuha Protocol — Basis Conventions](../../protocol/conventions/basis.md): Phase
   convention requirements
 
 ## Notes
