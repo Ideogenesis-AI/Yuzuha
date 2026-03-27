@@ -27,7 +27,7 @@ use ndarray::{Array, ArrayD, IxDyn};
 /// Build a CG3 (Clebsch-Gordan 3-j) tensor array
 ///
 /// Represents the CG coefficient structure: ⟨j_a, m_a; j_b, m_b | j_c, m_c⟩
-/// with canonical arrow directions: legs a and b are incoming, leg c is outgoing.
+/// with canonical arrow directions: edges a and b are incoming, edge c is outgoing.
 ///
 /// # Arguments
 /// * `ja` - First input spin (incoming)
@@ -64,16 +64,16 @@ pub fn build_cg3(
     Ok(data)
 }
 
-/// Build a connector array for contracting two legs
+/// Build a connector array for contracting two edges
 ///
-/// When contracting legs with the same spin:
+/// When contracting edges with the same spin:
 /// - Opposite directions: identity δ_{m_x, m_y}
 /// - Same directions: metric g_{m_x, m_y}
 ///
 /// # Arguments
 /// * `j` - Spin quantum number
-/// * `dir_x` - Direction of first leg
-/// * `dir_y` - Direction of second leg
+/// * `dir_x` - Direction of first edge
+/// * `dir_y` - Direction of second edge
 ///
 /// # Returns
 /// 2-index array C[i_x, i_y]

@@ -19,7 +19,7 @@
 //!
 //! This module provides the main API for computing R-symbols, which represent
 //! the transformation of outer multiplicity (OM) indices under permutation of
-//! tensor legs.
+//! tensor edges.
 
 use crate::builders::builders::build_canonical_basis_data;
 use crate::core::CGSpec;
@@ -85,7 +85,7 @@ impl RSymbol {
     }
 }
 
-/// Compute R-symbol for permuting tensor legs
+/// Compute R-symbol for permuting tensor edges
 ///
 /// Given a CGSpec and a permutation, computes the R-symbol matrix R^β_α
 /// representing how OM indices transform under the permutation.
@@ -121,7 +121,7 @@ impl RSymbol {
 ///     Edge::incoming(j_half),
 /// ]).unwrap();
 ///
-/// // Swap first two legs: [1, 0, 2, 3]
+/// // Swap first two edges: [1, 0, 2, 3]
 /// let permutation = vec![1, 0, 2, 3];
 /// let r_symbol = compute_rsymbol(&spec, &permutation).unwrap();
 /// ```
@@ -284,7 +284,7 @@ mod tests {
     fn test_rsymbol_swap_first_two() {
         let _guard = TestCacheGuard::new();
         
-        // Swap first two legs
+        // Swap first two edges
         let j_half = Spin::new(1).unwrap();
         let spec = CGSpec::from_edges(vec![
             Edge::incoming(j_half),
@@ -318,7 +318,7 @@ mod tests {
     fn test_rsymbol_three_legs() {
         let _guard = TestCacheGuard::new();
         
-        // Test with 3 legs (simpler case)
+        // Test with 3 edges (simpler case)
         let j1 = Spin::new(2).unwrap(); // j=1
         let spec = CGSpec::from_edges(vec![
             Edge::incoming(j1),

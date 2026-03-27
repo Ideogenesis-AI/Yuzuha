@@ -171,16 +171,16 @@ impl fmt::Display for MagneticNumber {
     }
 }
 
-/// Arrow direction for tensor legs
+/// Arrow direction for tensor edges
 ///
 /// In tensor category theory:
-/// - `Incoming` (+1): leg points into the tensor
-/// - `Outgoing` (-1): leg points out of the tensor
+/// - `Incoming` (+1): edge points into the tensor
+/// - `Outgoing` (-1): edge points out of the tensor
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
-    /// Incoming leg (arrow points in)
+    /// Incoming edge (arrow points in)
     Incoming,
-    /// Outgoing leg (arrow points out)
+    /// Outgoing edge (arrow points out)
     Outgoing,
 }
 
@@ -228,7 +228,6 @@ impl fmt::Display for Direction {
 /// Edge of a tensor in the category-theoretic sense
 ///
 /// Each edge has a spin quantum number and arrow direction.
-/// This is the unified concept that replaces the old "Leg" terminology.
 /// Edges are identified by their position/index in the edge list.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Edge {

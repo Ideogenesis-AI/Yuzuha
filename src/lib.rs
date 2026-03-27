@@ -23,7 +23,7 @@
 //! ## Features
 //!
 //! - **Clebsch-Gordan coefficients**: Real-valued Condon-Shortley convention with caching
-//! - **Invariant metric**: Arrow reversal support for arbitrary leg directions
+//! - **Invariant metric**: Arrow reversal support for arbitrary edge directions
 //! - **Outer multiplicity enumeration**: Systematic enumeration of internal spin configurations
 //! - **CGT amplitudes**: Efficient computation without materializing full tensors
 //! - **Tensor networks**: Generic contraction with greedy optimization
