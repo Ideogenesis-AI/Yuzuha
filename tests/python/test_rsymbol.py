@@ -96,7 +96,7 @@ class TestRSymbolBasic:
         assert r_array.shape == (dim, dim)
         assert spec_permuted.om_dimension() == dim
 
-    def test_rsymbol_three_legs(self):
+    def test_rsymbol_three_edges(self):
         """Test R-symbol with three edges."""
         j1 = yuzuha.Spin(2)
         spec = yuzuha.CGSpec.from_edges([
@@ -933,7 +933,7 @@ class TestRSymbolTwoEdge:
 
     - Same directions (in, in) or (out, out):
         R = (-1)^{2j}.
-        Swapping two legs of the same type requires one insertion of the metric,
+        Swapping two edges of the same type requires one insertion of the metric,
         which contributes (-1)^{2j} for half-integer j and +1 for integer j.
     """
 
