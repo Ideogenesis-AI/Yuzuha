@@ -15,12 +15,12 @@ $$g^{(j)}_{m,\,m'} = (-1)^{j - m}\,\delta_{m,\,-m'}$$
 
 This is a \((2j+1) \times (2j+1)\) real orthogonal matrix. It satisfies:
 
-$$g^{(j)} \cdot \left(g^{(j)}\right)^T = I$$
+$$g^{(j)} \cdot \left(g^{(j)}\right)^\top = I$$
 
 $$\left(g^{(j)}\right)^2 = (-1)^{2j}\, I$$
 
-For integer spins (\(j \in \mathbb{Z}\)) the metric is symmetric (\(g^T = g\)). For
-half-integer spins it is antisymmetric (\(g^T = -g\)), or equivalently \(g^T = (-1)^{2j} g\).
+For integer spins (\(j \in \mathbb{Z}\)) the metric is symmetric (\(g^\top = g\)). For
+half-integer spins it is antisymmetric (\(g^\top = -g\)), or equivalently \(g^\top = (-1)^{2j} g\).
 
 ### Python API
 
@@ -61,7 +61,7 @@ To convert an **outgoing** edge to an **incoming** edge, contract with \(g^{-1}\
 $$\tilde{T}_{\ldots m'} = \sum_m \left(g^{(j)}\right)^{-1}_{m', m}\, T^{\ldots m}$$
 
 The two operations differ by the Frobenius-Schur phase \((-1)^{2j}\) due to the
-identity \(g^{-1} = (-1)^{2j} g^T\).
+identity \(g^{-1} = (-1)^{2j} g^\top\).
 
 ## Frobenius-Schur Indicator
 
@@ -79,7 +79,7 @@ flipped. In the X-symbol bond inversion scheme, flipping a contracted pair with 
 - [Canonical Basis](../symbols/canonical-basis.md): Conjugate basis computed via
   `compute_conjugate`
 - [Direction](../core/direction.md): The arrow direction that the metric transforms
-- [Yuzuha Protocol — SU(2) Conventions](../../protocol/conventions.md): Full
+- [Yuzuha Protocol — Arrow Conventions](../../protocol/conventions/arrows.md): Full
   specification of the metric convention
 
 ## Notes

@@ -53,7 +53,7 @@ assert np.allclose(r_id, np.eye(spec.om_dimension()))
 
 The R-symbol is always **unitary**:
 
-$$R^T R = R R^T = I$$
+$$R^\top R = R R^\top = I$$
 
 This can be verified for any spec and permutation:
 
