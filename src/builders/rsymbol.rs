@@ -315,7 +315,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rsymbol_three_legs() {
+    fn test_rsymbol_three_edges() {
         let _guard = TestCacheGuard::new();
         
         // Test with 3 edges (simpler case)

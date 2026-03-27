@@ -166,7 +166,7 @@ mod tests {
     }
 
     #[test]
-    fn test_enumerate_alpha_three_legs() {
+    fn test_enumerate_alpha_three_edges() {
         // Three j=1 spins with j_total=0 constraint
         let j1 = Spin::new(2).unwrap();
         let j_list = vec![j1, j1, j1];
@@ -188,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn test_enumerate_alpha_four_legs() {
+    fn test_enumerate_alpha_four_edges() {
         // Four j=1/2 spins
         let j_half = Spin::new(1).unwrap();
         let j_list = vec![j_half, j_half, j_half, j_half];
