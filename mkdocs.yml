@@ -1,0 +1,124 @@
+site_name: Yuzuha Documentation
+site_description: SU(2) recoupling-coefficient library for tensor networks
+site_author: Changkai Zhang
+site_url: https://ideogenesis-ai.github.io/Yuzuha/
+repo_url: https://github.com/Ideogenesis-AI/Yuzuha
+repo_name: Ideogenesis-AI/Yuzuha
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  logo: images/yuzuha-font-awesome.png
+  favicon: images/yuzuha.png
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            heading_level: 2
+            members_order: source
+            docstring_style: numpy
+            docstring_options:
+              ignore_init_summary: false
+            merge_init_into_class: true
+            show_signature_annotations: true
+            separate_signature: true
+
+hooks:
+  - docs/hooks.py
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - stylesheets/extra.css
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - What is Yuzuha?: getting-started/what-is-yuzuha.md
+      - Installation: getting-started/installation.md
+      - Core Concepts: getting-started/core-concepts.md
+      - Contributing: getting-started/contributing.md
+      - Changelog: getting-started/changelog.md
+  - API Reference:
+      - Overview: api/index.md
+      - Core Types:
+          - Spin: api/core/spin.md
+          - Direction: api/core/direction.md
+          - Edge: api/core/edge.md
+          - CGSpec: api/core/cgspec.md
+          - Contraction: api/core/contraction.md
+      - Symbols:
+          - X-Symbol: api/symbols/xsymbol.md
+          - R-Symbol: api/symbols/rsymbol.md
+          - Canonical Basis: api/symbols/canonical-basis.md
+      - Primitives:
+          - Clebsch-Gordan: api/primitives/cg.md
+          - Metric Tensor: api/primitives/metric.md
+          - Triangle Rules: api/primitives/triangle.md
+      - Caching:
+          - Database: api/caching/database.md
+          - Cache Management: api/caching/cache.md
+  - Yuzuha Protocol:
+      - Overview: protocol/index.md
+      - Type System: protocol/types.md
+      - Symbol Interface: protocol/symbols.md
+      - Duality Interface: protocol/duality.md
+      - Data Caching: protocol/caching.md
+      - SU(2) Conventions:
+          - Overview: protocol/conventions/index.md
+          - Fusion Conventions: protocol/conventions/fusion.md
+          - Basis Conventions: protocol/conventions/basis.md
+          - Arrow Conventions: protocol/conventions/arrows.md
