@@ -1,0 +1,12 @@
+/* Custom styles for Yuzuha documentation */
+
+/* Increase spacing between page content and footer */
+.md-content {
+    margin-bottom: 3rem;
+}
+
+/* Reduce spacing between logo and site name */
+.md-header__title {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+}
