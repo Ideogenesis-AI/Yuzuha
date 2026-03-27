@@ -18,7 +18,7 @@
 """
 Comprehensive tests for R-symbol computation and consistency.
 
-R-symbols represent basis transformations for different leg orderings in
+R-symbols represent basis transformations for different edge orderings in
 tensor networks. They possess strong mathematical properties that can be
 tested for self-consistency.
 
@@ -80,7 +80,7 @@ class TestRSymbolBasic:
         assert spec_permuted.om_dimension() == spec.om_dimension()
 
     def test_rsymbol_swap_first_two(self):
-        """Test R-symbol with swap of first two legs."""
+        """Test R-symbol with swap of first two edges."""
         j_half = yuzuha.Spin(1)
         spec = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j_half),
@@ -97,7 +97,7 @@ class TestRSymbolBasic:
         assert spec_permuted.om_dimension() == dim
 
     def test_rsymbol_three_legs(self):
-        """Test R-symbol with three legs."""
+        """Test R-symbol with three edges."""
         j1 = yuzuha.Spin(2)
         spec = yuzuha.CGSpec.from_edges([
             yuzuha.Edge.incoming(j1),
@@ -928,7 +928,7 @@ class TestRSymbolTwoEdge:
     - Opposite directions (in, out) or (out, in):
         R = +1 for all j.
         With the symmetric metric g (g_{in→out} = g_{out→in} = (-1)^{j-m}),
-        swapping two legs of opposite type is equivalent to a relabelling that
+        swapping two edges of opposite type is equivalent to a relabelling that
         leaves the contraction invariant.
 
     - Same directions (in, in) or (out, out):
