@@ -69,7 +69,7 @@ alongside the other Yuzuha caches. The location is controlled by:
 
 - [Cache Management](cache.md): Control cache paths and inspect statistics
 - [Canonical Basis](../symbols/canonical-basis.md): The function whose results are cached
-- [Yuzuha Protocol — Caching Requirements](../../protocol/caching.md): Formal caching
+- [Yuzuha Protocol — Data Caching](../../protocol/caching.md): Formal caching
   specification
 
 ## Notes

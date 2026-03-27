@@ -41,7 +41,7 @@ Arrow reversal from outgoing to incoming uses \(g^{-1} = (-1)^{2j}\, g\), which 
 - [Metric Tensor](../primitives/metric.md): `use_as_incoming`, `use_as_outgoing`
 - [Yuzuha Protocol — Type System](../../protocol/types.md): Abstract `Direction` enum
   specification
-- [Yuzuha Protocol — SU(2) Conventions](../../protocol/conventions.md): Arrow
+- [Yuzuha Protocol — Arrow Conventions](../../protocol/conventions/arrows.md): Arrow
   reversal conventions
 
 ## Notes

@@ -127,7 +127,7 @@ with TestCacheContext():
 - [Database](database.md): Pre-populate the canonical basis cache
 - [X-Symbol](../symbols/xsymbol.md): Uses the X-symbol cache transparently
 - [R-Symbol](../symbols/rsymbol.md): Uses the R-symbol cache transparently
-- [Yuzuha Protocol — Caching Requirements](../../protocol/caching.md): Formal
+- [Yuzuha Protocol — Data Caching](../../protocol/caching.md): Formal
   specification of the caching interface
 
 ## Notes

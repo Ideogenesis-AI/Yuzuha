@@ -53,7 +53,7 @@ When `CGSpec.from_edges` enumerates internal spin configurations:
 - [Clebsch-Gordan Coefficients](cg.md): CG coefficients are zero for triplets violating
   the triangle inequality
 - [CGSpec](../core/cgspec.md): Uses the triangle inequality to enumerate `alphas`
-- [Yuzuha Protocol — SU(2) Conventions](../../protocol/conventions.md): Triangle
+- [Yuzuha Protocol — Fusion Conventions](../../protocol/conventions/fusion.md): Triangle
   inequality as a conformance requirement
 
 ## Notes
