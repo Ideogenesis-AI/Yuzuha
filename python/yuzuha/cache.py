@@ -684,8 +684,8 @@ class TestCacheContext:
     
     Creates temporary cache directories for tests to ensure isolation.
     
-    Example
-    -------
+    Examples
+    --------
     >>> with TestCacheContext():
     ...     # All cache operations use temporary directory
     ...     x_array, spec_c = compute_xsymbol(spec_a, spec_b, contraction)
@@ -735,8 +735,8 @@ def clear_all_caches() -> None:
     This removes all cached entries from both databases but keeps
     the database files and schema intact.
     
-    Example
-    -------
+    Examples
+    --------
     >>> import yuzuha
     >>> from yuzuha.cache import clear_all_caches
     >>> clear_all_caches()
@@ -755,8 +755,8 @@ def get_cache_stats() -> dict:
         Dictionary with keys 'xsymbol' and 'rsymbol', each containing
         cache statistics (size, db_path, db_size_bytes).
     
-    Example
-    -------
+    Examples
+    --------
     >>> import yuzuha
     >>> from yuzuha.cache import get_cache_stats
     >>> stats = get_cache_stats()
@@ -775,8 +775,8 @@ def print_cache_stats() -> None:
     
     This is a convenience function for quickly inspecting cache status.
     
-    Example
-    -------
+    Examples
+    --------
     >>> import yuzuha
     >>> from yuzuha.cache import print_cache_stats
     >>> print_cache_stats()
