@@ -12,7 +12,7 @@
   <a href="https://pypi.org/project/yuzuha/"><img src="https://img.shields.io/pypi/status/yuzuha?color=4b0082" alt="Status"></a>
 </p>
 
-Yuzuha is a high-performance library for computing SU(2) recoupling coefficients in tensor network applications, providing efficient implementations of X-symbols (recoupling coefficients for arbitrary tensor network contractions) and R-symbols (axes permutation). The library features automatic database caching for computed canonical bases, enabling significant performance improvements for repeated calculations. Available for both **Rust** and **Python**, while optimized for [**Nicole**](https://github.com/Ideogenesis-AI/Nicole) tensor library.
+Yuzuha is a high-performance library for computing SU(2) recoupling coefficients in tensor network applications, providing efficient implementations of X-symbols (recoupling coefficients for arbitrary tensor network contractions) and R-symbols (axes permutation). The library features automatic database caching for computed canonical bases, enabling significant performance improvements for repeated calculations. Available for both **Rust** and **Python**, and optimized as the recoupling engine for the [**Nicole**](https://github.com/Ideogenesis-AI/Nicole) tensor library.
 
 
 ## Features
