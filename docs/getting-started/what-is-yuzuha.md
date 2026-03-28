@@ -1,4 +1,4 @@
-# Yuzuha: SU(2) Recoupling Theory Library
+# Yuzuha: SU(2) Recoupling Engine
 
 Welcome to the documentation for **Yuzuha**, a high-performance library for computing
 SU(2) recoupling coefficients in quantum many-body physics and tensor network applications.
@@ -56,19 +56,16 @@ Yuzuha is designed for researchers and developers working on:
 
 - **Tensor Network Algorithms**: DMRG, TEBD, PEPS, and other symmetry-aware tensor methods
 - **Quantum Many-Body Physics**: Systems with SU(2) spin symmetry (e.g. spin-\(\frac{1}{2}\)
-  Heisenberg models)
-- **Condensed Matter Theory**: Strongly correlated systems with angular momentum conservation
+  Heisenberg models, spinful fermion systems like the Hubbard models)
+- **Condensed Matter Theory**: Frustrated spin systems or strongly correlated spinful fermionic systems with angular momentum conservation
 - **Quantum Chemistry**: Multi-reference methods with spin-adapted bases
-
-## Acknowledgments
-
-Yuzuha is inspired by the [QSpace](https://bitbucket.org/qspace4u/) tensor library developed
-for MATLAB, which introduced the systematic use of X-symbols and R-symbols for tensor network
-computations with non-Abelian symmetries. Yuzuha reimplements these ideas in Rust/Python with
-a focus on performance, correctness, and integration with the scientific Python ecosystem.
 
 ## License
 
-Yuzuha is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. You are free to
-use, modify, and distribute this software under the terms of the GPL-3.0 license. See the
-[LICENSE](https://github.com/Ideogenesis-AI/Yuzuha/blob/stable/LICENSE) file for details.
+Yuzuha is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. This means you are
+free to use, modify, and distribute this software under the terms of the GPL-3.0 license. We
+encourage you to share any improvements you make back to the community, helping Yuzuha grow and
+benefit all users. See the
+[LICENSE](https://github.com/Ideogenesis-AI/Yuzuha/blob/stable/LICENSE) file for the full
+license text. For more information about GPL-3.0, visit
+<https://www.gnu.org/licenses/gpl-3.0.html>
