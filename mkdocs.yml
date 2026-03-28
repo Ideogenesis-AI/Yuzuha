@@ -4,6 +4,8 @@ site_author: Changkai Zhang
 site_url: https://ideogenesis-ai.github.io/Yuzuha/
 repo_url: https://github.com/Ideogenesis-AI/Yuzuha
 repo_name: Ideogenesis-AI/Yuzuha
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2025-2026 Changkai Zhang
 
 docs_dir: docs
 site_dir: site
@@ -39,10 +41,18 @@ theme:
     - navigation.expand
     - navigation.path
     - navigation.top
+    - navigation.tracking
+    - navigation.indexes
     - search.suggest
     - search.highlight
+    - search.share
     - content.code.copy
     - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+    - content.action.view
+  icon:
+    repo: fontawesome/brands/github
 
 plugins:
   - search
