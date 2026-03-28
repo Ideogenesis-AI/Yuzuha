@@ -10,21 +10,28 @@ site_dir: site
 
 theme:
   name: material
+  custom_dir: docs/overrides
   logo: images/yuzuha-font-awesome.png
   favicon: images/yuzuha.png
   palette:
-    - scheme: default
-      primary: indigo
-      accent: indigo
+    - media: "(prefers-color-scheme)"
       toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - scheme: slate
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/brightness-4
+        icon: material/link
         name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: red
+      accent: red
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: red
+      accent: red
+      toggle:
+        icon: material/toggle-switch-off
+        name: Switch to system preference
   features:
     - navigation.tabs
     - navigation.tabs.sticky
@@ -77,6 +84,21 @@ markdown_extensions:
   - toc:
       permalink: true
 
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Ideogenesis-AI/Yuzuha
+      name: Yuzuha on GitHub
+    - icon: fontawesome/solid/building
+      link: https://github.com/Ideogenesis-AI
+      name: Ideogenesis-AI Organization
+    - icon: fontawesome/brands/rust
+      link: https://www.rust-lang.org
+      name: Rust
+    - icon: fontawesome/brands/python
+      link: https://www.python.org
+      name: Python
+
 extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
@@ -85,7 +107,6 @@ extra_css:
   - stylesheets/extra.css
 
 nav:
-  - Home: index.md
   - Getting Started:
       - What is Yuzuha?: getting-started/what-is-yuzuha.md
       - Installation: getting-started/installation.md
