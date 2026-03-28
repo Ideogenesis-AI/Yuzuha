@@ -1,0 +1,83 @@
+name: Tests
+
+on:
+  workflow_run:
+    workflows: ["Build Wheels"]
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        python-version:
+          - "3.11"
+          - "3.12"
+          - "3.13"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install maturin and dev dependencies
+        run: pip install "maturin>=1.0,<2.0" "numpy>=2.0" "pytest>=7.0" "pytest-benchmark>=4.0"
+
+      - name: Build and install wheel (maturin develop)
+        run: maturin develop --features python --release
+
+      - name: Run tests
+        run: pytest tests/python -v --tb=short
+
+  # Smoke-test the sdist to catch packaging issues
+  test-sdist:
+    name: Test sdist build
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+
+      - name: Install from sdist
+        run: |
+          pip install "numpy>=2.0" "pytest>=7.0"
+          pip install --no-build-isolation dist/*.tar.gz
+
+      - name: Run tests
+        run: pytest tests/python -v --tb=short
