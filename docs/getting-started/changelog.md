@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.1.4 — March 28, 2026
+
+### What's New
+
+#### Full MkDocs Documentation Site
+
+A comprehensive documentation site is now published, covering the Getting Started
+guide, full API Reference, and the formal Yuzuha Protocol specification. The site
+is built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) and
+includes MathJax for rendered equations, syntax-highlighted code blocks with copy
+buttons, a custom landing page with a full-viewport hero image, and a three-option
+light/dark/system colour palette.
+
+The Protocol section includes a dedicated SU(2) Conventions sub-site covering fusion
+conventions, canonical basis construction (with the Racah formula), and arrow
+conventions — including derivations of the FS phase from bond inversion and the origin
+of the conjugate phase.
+
+#### Python Type Stubs (`yuzuha.pyi`)
+
+A complete `.pyi` stub file for the Rust-compiled extension module has been added at
+`python/yuzuha/yuzuha.pyi`, enabling full IDE auto-completion, inline parameter hints,
+and static type-checking for all Rust-exposed types and functions.
+
+#### Terminology: "Leg" → "Edge"
+
+All occurrences of *leg* have been renamed to *edge* throughout the codebase for
+consistency with standard tensor network literature. Two Rust error variants were
+renamed accordingly:
+
+| Old name | New name |
+|---|---|
+| `LegNotFound` | `EdgeNotFound` |
+| `IncompatibleLegs` | `IncompatibleEdges` |
+
+### Statistics
+
+- **349 Python tests** (unchanged)
+- **29 commits** since v0.1.3
+- 1 new file: `python/yuzuha/yuzuha.pyi`
+
+### API Changes
+
+No new public API methods. Error variant renames are non-breaking — they are not
+exposed through the Python bindings.
+
+---
+
 ## 0.1.3 — March 26, 2026
 
 ### What's New
