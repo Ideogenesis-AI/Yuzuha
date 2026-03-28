@@ -133,8 +133,11 @@ jobs:
       - name: Install maturin and dev dependencies
         run: pip install "maturin>=1.0,<2.0" "numpy>=2.0" "pytest>=7.0" "pytest-benchmark>=4.0"
 
-      - name: Build and install wheel (maturin develop)
-        run: maturin develop --features python --release
+      - name: Build wheel
+        run: maturin build --features python --release --out dist
+
+      - name: Install wheel
+        run: pip install --find-links dist yuzuha
 
       - name: Run tests
         run: pytest tests/python -v --tb=short
@@ -165,7 +168,7 @@ jobs:
 
       - name: Install from sdist
         run: |
-          pip install "numpy>=2.0" "pytest>=7.0"
+          pip install "maturin>=1.0,<2.0" "numpy>=2.0" "pytest>=7.0"
           pip install --no-build-isolation dist/*.tar.gz
 
       - name: Run tests
