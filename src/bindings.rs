@@ -296,7 +296,7 @@ impl PyDirection {
     }
 }
 
-/// Python wrapper for Edge (tensor leg)
+/// Python wrapper for Edge (tensor index)
 ///
 /// Represents a tensor edge with a spin quantum number and direction.
 ///
@@ -679,10 +679,10 @@ fn compute_xsymbol<'py>(
     Ok((x_array, spec_c))
 }
 
-/// Compute R-symbol for tensor leg permutation.
+/// Compute R-symbol for tensor edge permutation.
 ///
 /// The R-symbol represents how outer multiplicity indices transform under
-/// permutation of tensor legs.
+/// permutation of tensor edges.
 ///
 /// Parameters
 /// ----------
@@ -716,7 +716,7 @@ fn compute_xsymbol<'py>(
 /// ...     yuzuha.Edge.incoming(j_half),
 /// ...     yuzuha.Edge.incoming(j_half)
 /// ... ])
-/// >>> # Swap first two legs
+/// >>> # Swap first two edges
 /// >>> permutation = [1, 0, 2, 3]
 /// >>> r_array, spec_permuted = yuzuha.compute_rsymbol(spec, permutation)
 /// >>> print(r_array.shape)
@@ -865,7 +865,7 @@ fn compute_conjugate(spec: &PyCGSpec) -> PyResult<(f64, PyCGSpec)> {
 /// Features
 /// --------
 /// - Compute X-symbols for arbitrary tensor network contractions
-/// - Compute R-symbols for tensor leg permutations
+/// - Compute R-symbols for tensor edge permutations
 /// - Automatic caching of computed basis data using SQLite
 /// - Thread-safe database connection management
 /// - Real-valued Condon-Shortley convention for CG coefficients

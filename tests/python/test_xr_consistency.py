@@ -22,7 +22,7 @@ The key algebraic identity
 --------------------------
 When one of the two CG tensors in an X-symbol contraction is a "2-edge
 identity wire" — a CGSpec with OM dimension 1 that acts as a delta/pass-
-through — the contraction is equivalent to permuting the legs of the other
+through — the contraction is equivalent to permuting the edges of the other
 tensor.  The X-symbol must therefore reduce to the R-symbol for that
 permutation.
 

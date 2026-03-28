@@ -38,13 +38,13 @@ pub enum YuzuhaError {
     #[error("Invalid contraction: {0}")]
     InvalidContraction(String),
 
-    /// Leg ID not found in CGT specification
-    #[error("Leg ID not found: {0}")]
-    LegNotFound(String),
+    /// Edge ID not found in CGT specification
+    #[error("Edge ID not found: {0}")]
+    EdgeNotFound(String),
 
-    /// Incompatible leg spins for contraction
-    #[error("Incompatible leg spins for contraction: J1={0}, J2={1}")]
-    IncompatibleLegs(i32, i32),
+    /// Incompatible edge spins for contraction
+    #[error("Incompatible edge spins for contraction: J1={0}, J2={1}")]
+    IncompatibleEdges(i32, i32),
 
     /// Invalid CGT specification
     #[error("Invalid CGT specification: {0}")]

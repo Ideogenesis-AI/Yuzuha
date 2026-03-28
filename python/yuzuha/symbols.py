@@ -112,10 +112,10 @@ def compute_xsymbol(spec_a, spec_b, contraction) -> Tuple[np.ndarray, object]:
 
 def compute_rsymbol(spec, permutation) -> Tuple[np.ndarray, object]:
     """
-    Compute R-symbol for tensor leg permutation with caching.
+    Compute R-symbol for tensor edge permutation with caching.
     
     The R-symbol represents how outer multiplicity indices transform under
-    permutation of tensor legs. Results are cached to avoid redundant
+    permutation of tensor edges. Results are cached to avoid redundant
     computations.
     
     Parameters
@@ -150,7 +150,7 @@ def compute_rsymbol(spec, permutation) -> Tuple[np.ndarray, object]:
     ...     yuzuha.Edge.incoming(j_half),
     ...     yuzuha.Edge.incoming(j_half)
     ... ])
-    >>> # Swap first two legs
+    >>> # Swap first two edges
     >>> permutation = [1, 0, 2, 3]
     >>> r_array, spec_permuted = yuzuha.compute_rsymbol(spec, permutation)
     >>> print(r_array.shape)

@@ -483,7 +483,7 @@ mod tests {
         }
 
         // Test orthonormality: contract over first 2 axes should give delta * identity
-        // With sqrt(2j+1) normalization, diagonal is 1/(2j+1) for last leg
+        // With sqrt(2j+1) normalization, diagonal is 1/(2j+1) for terminal edge
         let j_last = spec.edges[2].j;
         let expected_diag = 1.0 / (j_last.dimension() as f64);
         for alpha_idx in 0..om_dim {
@@ -543,7 +543,7 @@ mod tests {
         }
 
         // Test orthonormality: contract over first 3 axes should give delta * identity
-        // With sqrt(2j+1) normalization, diagonal is 1/(2j+1) for last leg
+        // With sqrt(2j+1) normalization, diagonal is 1/(2j+1) for terminal edge
         let j_last = spec.edges[3].j;
         let expected_diag = 1.0 / (j_last.dimension() as f64);
         for alpha_idx in 0..om_dim {
@@ -595,7 +595,7 @@ mod tests {
         }
 
         // Test orthonormality: contract over first 2 axes should give delta * identity
-        // With sqrt(2j+1) normalization, diagonal is 1/(2j+1) for last leg
+        // With sqrt(2j+1) normalization, diagonal is 1/(2j+1) for terminal edge
         let j_last = spec.edges[2].j;
         let expected_diag = 1.0 / (j_last.dimension() as f64);
         for alpha_idx in 0..om_dim {

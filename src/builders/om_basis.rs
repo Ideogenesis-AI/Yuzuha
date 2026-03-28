@@ -26,7 +26,7 @@ use std::collections::HashMap;
 
 /// Enumerate all allowed internal spin tuples (alpha) for a left-associative fusion tree
 ///
-/// For n external legs with spins J[0..n-1], this generates all valid tuples:
+/// For n external edges with spins J[0..n-1], this generates all valid tuples:
 /// alpha = [J₁₂, J₁₂₃, ..., J₁...ₙ₋₂]
 ///
 /// where each intermediate spin satisfies triangle inequalities.
@@ -36,7 +36,7 @@ use std::collections::HashMap;
 /// J₁...ₙ₋₁ ⊗ Jₙ = 0
 ///
 /// # Arguments
-/// * `j_list` - External leg spins in fusion order
+/// * `j_list` - External edge spins in fusion order
 ///
 /// # Returns
 /// Vector of all valid internal spin tuples, sorted lexicographically
@@ -63,7 +63,7 @@ pub fn enumerate_alpha(j_list: &[Spin]) -> Vec<Vec<Spin>> {
         let n = j_list.len();
 
         if step == n - 1 {
-            // Reached the last leg - check if final coupling produces j=0
+            // Reached the last edge - check if final coupling produces j=0
             let j_last = j_list[n - 1];
             let allowed_final = allowed_triangle(j_prev, j_last);
             
@@ -84,11 +84,11 @@ pub fn enumerate_alpha(j_list: &[Spin]) -> Vec<Vec<Spin>> {
         }
     }
 
-    // Start by fusing first two legs
+    // Start by fusing first two edges
     for j12 in allowed_triangle(j_list[0], j_list[1]) {
         let mut prefix = vec![j12];
         if n == 3 {
-            // For 3 legs, J12 is the only internal spin
+            // For 3 edges, J12 is the only internal spin
             // Check if J12 ⊗ j3 can produce j=0
             let allowed_final = allowed_triangle(j12, j_list[2]);
             if allowed_final.contains(&j_target) {
@@ -132,7 +132,7 @@ pub fn alpha_to_om_map(alphas: &[Vec<Spin>]) -> HashMap<Vec<Spin>, usize> {
 /// Get the OM dimension (number of unique internal spin configurations)
 ///
 /// # Arguments
-/// * `j_list` - External leg spins
+/// * `j_list` - External edge spins
 ///
 /// # Returns
 /// Number of unique alpha tuples
@@ -148,25 +148,25 @@ mod tests {
 
     #[test]
     fn test_enumerate_alpha_trivial() {
-        // 0 legs
+        // 0 edges
         let alphas = enumerate_alpha(&[]);
         assert_eq!(alphas.len(), 1);
         assert_eq!(alphas[0].len(), 0);
 
-        // 1 leg
+        // 1 edge
         let j1 = Spin::new(2).unwrap();
         let alphas = enumerate_alpha(&[j1]);
         assert_eq!(alphas.len(), 1);
         assert_eq!(alphas[0].len(), 0);
 
-        // 2 legs
+        // 2 edges
         let alphas = enumerate_alpha(&[j1, j1]);
         assert_eq!(alphas.len(), 1);
         assert_eq!(alphas[0].len(), 0);
     }
 
     #[test]
-    fn test_enumerate_alpha_three_legs() {
+    fn test_enumerate_alpha_three_edges() {
         // Three j=1 spins with j_total=0 constraint
         let j1 = Spin::new(2).unwrap();
         let j_list = vec![j1, j1, j1];
@@ -188,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn test_enumerate_alpha_four_legs() {
+    fn test_enumerate_alpha_four_edges() {
         // Four j=1/2 spins
         let j_half = Spin::new(1).unwrap();
         let j_list = vec![j_half, j_half, j_half, j_half];
@@ -238,10 +238,10 @@ mod tests {
     fn test_om_dimension() {
         let j1 = Spin::new(2).unwrap();
 
-        // 2 legs: dimension 1 (j2⊗j2 can give j0)
+        // 2 edges: dimension 1 (j2⊗j2 can give j0)
         assert_eq!(om_dimension(&[j1, j1]), 1);
 
-        // 3 legs with j_total=0 constraint: dimension 1
+        // 3 edges with j_total=0 constraint: dimension 1
         assert_eq!(om_dimension(&[j1, j1, j1]), 1);
     }
 
