@@ -129,7 +129,10 @@ def startup_database(
                 )
         except Exception as e:
             error_msg = str(e)
-            if "Invalid CGSpec" in error_msg or "triangle inequality" in error_msg:
+            # InvalidCGTSpec is raised by CGSpec.from_edges() when no valid
+            # fusion-tree coupling exists (e.g. incompatible spin values or
+            # an odd number of half-integer spins). These are expected and skipped.
+            if "Invalid CGSpec" in error_msg:
                 total_count -= 1
                 logger.debug(
                     f"  Skipped invalid configuration (j1={j1.twice()/2}, "
@@ -189,7 +192,10 @@ def startup_database(
                 )
         except Exception as e:
             error_msg = str(e)
-            if "Invalid CGSpec" in error_msg or "triangle inequality" in error_msg:
+            # InvalidCGTSpec is raised by CGSpec.from_edges() when no valid
+            # fusion-tree coupling exists (e.g. incompatible spin values or
+            # an odd number of half-integer spins). These are expected and skipped.
+            if "Invalid CGSpec" in error_msg:
                 total_count -= 1
                 logger.debug(
                     f"  Skipped invalid configuration (j1={j1.twice()/2}, "
