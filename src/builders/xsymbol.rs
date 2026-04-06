@@ -18,7 +18,7 @@
 //! X-symbol computation for SU(2) tensor network contractions
 //!
 //! This module provides the main API for computing X-symbols, which represent
-//! the coupling coefficients for contracting two coupled gauge trees (CGTs).
+//! the coupling coefficients for contracting two Clebsch-Gordan (CG) tensors.
 
 use crate::builders::builders::build_canonical_basis_data;
 use crate::core::{CGSpec, Contraction};
@@ -61,10 +61,10 @@ impl XSymbol {
     }
 }
 
-/// Compute X-symbol for contracting two CGTs
+/// Compute X-symbol for contracting two CG tensors
 ///
-/// Given two CGTs A and B with a contraction specification, computes the
-/// X-symbol tensor X^γ_{αβ} representing the coupling to output CGT C.
+/// Given two CG tensors A and B with a contraction specification, computes the
+/// X-symbol tensor X^γ_{αβ} representing the coupling to output CG tensor C.
 ///
 /// The X-symbol is computed by:
 /// 1. Building canonical basis tensors for A and B
@@ -183,9 +183,6 @@ pub fn build_output_spec(
     CGSpec::from_edges(output_edges)
 }
 
-
-#[allow(dead_code)]
-fn _future_api_placeholder() {}
 
 #[cfg(test)]
 mod tests {
