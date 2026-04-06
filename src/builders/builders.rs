@@ -434,7 +434,7 @@ mod tests {
         let j1 = crate::core::Spin::new(2).unwrap();
         let spec = CGSpec::from_edges(vec![Edge::incoming(j1)]).unwrap();
         
-        // Should error for n=1 (less than minimum of 3)
+        // Should error for n=1 (less than minimum of 2)
         assert!(build_canonical_basis_data(&spec).is_err());
     }
     
