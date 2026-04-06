@@ -21,7 +21,6 @@ Tests for X-symbol and R-symbol caching.
 Tests the caching mechanism to ensure results are correctly stored
 and retrieved, and that cache keys are properly differentiated.
 """
-import time
 import pytest
 import numpy as np
 import yuzuha
@@ -238,8 +237,11 @@ class TestXSymbolCaching:
             size2 = cache2.size()
             assert size2 == 0
 
-    def test_cache_performance(self):
-        """Test that cache provides performance benefit."""
+    def test_cache_avoids_recomputation(self):
+        """Second call must return from cache, not invoke the Rust backend again."""
+        from unittest.mock import patch
+        import yuzuha.symbols as sym
+
         with yuzuha.TestCacheContext():
             j_half = yuzuha.Spin(1)
             j1 = yuzuha.Spin(2)
@@ -258,22 +260,20 @@ class TestXSymbolCaching:
 
             contraction = yuzuha.Contraction([2], [0])
 
-            # First call (cache miss)
-            start = time.time()
-            x1, _ = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)
-            time_miss = time.time() - start
+            original = sym._rust_compute_xsymbol
+            call_count = [0]
 
-            # Second call (cache hit)
-            start = time.time()
-            x2, _ = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)
-            time_hit = time.time() - start
+            def counting_wrapper(*args, **kwargs):
+                call_count[0] += 1
+                return original(*args, **kwargs)
 
-            # Results should match
+            with patch.object(sym, '_rust_compute_xsymbol', counting_wrapper):
+                x1, _ = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)  # miss
+                x2, _ = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)  # hit
+
+            assert call_count[0] == 1, \
+                f"Rust backend called {call_count[0]} times; expected 1 (cache miss only)"
             assert np.allclose(x1, x2)
-
-            # Cache hit should be faster (though this may not always be true for very small problems)
-            # Just verify it completes without error
-            assert time_hit >= 0
 
 
 class TestRSymbolCaching:
@@ -432,8 +432,11 @@ class TestRSymbolCaching:
             size2 = cache2.size()
             assert size2 == 0
 
-    def test_cache_performance(self):
-        """Test that cache provides performance benefit."""
+    def test_cache_avoids_recomputation(self):
+        """Second call must return from cache, not invoke the Rust backend again."""
+        from unittest.mock import patch
+        import yuzuha.symbols as sym
+
         with yuzuha.TestCacheContext():
             j1 = yuzuha.Spin(2)
             spec = yuzuha.CGSpec.from_edges([
@@ -444,21 +447,20 @@ class TestRSymbolCaching:
 
             permutation = [1, 2, 0]
 
-            # First call (cache miss)
-            start = time.time()
-            r1, _ = yuzuha.compute_rsymbol(spec, permutation)
-            time_miss = time.time() - start
+            original = sym._rust_compute_rsymbol
+            call_count = [0]
 
-            # Second call (cache hit)
-            start = time.time()
-            r2, _ = yuzuha.compute_rsymbol(spec, permutation)
-            time_hit = time.time() - start
+            def counting_wrapper(*args, **kwargs):
+                call_count[0] += 1
+                return original(*args, **kwargs)
 
-            # Results should match
+            with patch.object(sym, '_rust_compute_rsymbol', counting_wrapper):
+                r1, _ = yuzuha.compute_rsymbol(spec, permutation)  # miss
+                r2, _ = yuzuha.compute_rsymbol(spec, permutation)  # hit
+
+            assert call_count[0] == 1, \
+                f"Rust backend called {call_count[0]} times; expected 1 (cache miss only)"
             assert np.allclose(r1, r2)
-
-            # Cache hit should complete without error
-            assert time_hit >= 0
 
 
 class TestCacheUtilities:
