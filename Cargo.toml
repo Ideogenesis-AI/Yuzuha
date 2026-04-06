@@ -30,6 +30,13 @@ rand = "0.8"
 [features]
 default = []
 python = ["pyo3", "numpy"]
+# Exposes TestCacheGuard for integration tests and downstream test code.
+# Enable with: cargo test --features test-utils
+test-utils = []
+
+[[test]]
+name = "rust"
+required-features = ["test-utils"]
 
 [profile.test]
 opt-level = 2
