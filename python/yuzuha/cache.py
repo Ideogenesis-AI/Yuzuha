@@ -67,11 +67,19 @@ def get_cache_dir() -> Path:
 def set_cache_path(path: Optional[str]) -> None:
     """
     Set the cache directory path programmatically.
-    
+
+    This function works by setting the `YUZUHA_CACHE_PATH` environment
+    variable, which is the second-highest priority source consulted by
+    `get_cache_dir`. If the calling thread is inside a `TestCacheContext`
+    block, the context's thread-local path takes precedence (priority 1)
+    and this call will have no visible effect for the duration of that
+    context.
+
     Parameters
     ----------
     path : str or None
-        Cache directory path. If None, uses default.
+        Cache directory path. If None, removes the environment-variable
+        override and falls back to the default `.yuzuha/` directory.
     """
     if path is None:
         if 'YUZUHA_CACHE_PATH' in os.environ:
