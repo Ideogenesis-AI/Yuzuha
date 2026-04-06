@@ -81,7 +81,7 @@ impl From<YuzuhaError> for PyErr {
 /// >>> j1 = yuzuha.Spin(2)  # j=1
 /// >>> print(j1.dimension())
 /// 3
-#[pyclass(name = "Spin")]
+#[pyclass(name = "Spin", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct PySpin {
     inner: RustSpin,
@@ -169,6 +169,18 @@ impl PySpin {
     fn __str__(&self) -> String {
         format!("{}", self.inner)
     }
+
+    fn __eq__(&self, other: &PySpin) -> bool {
+        self.inner == other.inner
+    }
+
+    fn __hash__(&self) -> i32 {
+        self.inner.twice()
+    }
+
+    fn __lt__(&self, other: &PySpin) -> bool {
+        self.inner < other.inner
+    }
 }
 
 /// Python wrapper for Direction (edge orientation)
@@ -183,7 +195,7 @@ impl PySpin {
 /// 1
 /// >>> print(d.flip())
 /// Direction.outgoing
-#[pyclass(name = "Direction")]
+#[pyclass(name = "Direction", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct PyDirection {
     inner: Direction,
@@ -306,7 +318,7 @@ impl PyDirection {
 /// >>> j = yuzuha.Spin(1)
 /// >>> edge_in = yuzuha.Edge.incoming(j)
 /// >>> edge_out = yuzuha.Edge.outgoing(j)
-#[pyclass(name = "Edge")]
+#[pyclass(name = "Edge", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct PyEdge {
     inner: RustEdge,
@@ -402,6 +414,18 @@ impl PyEdge {
         };
         format!("Edge.{}(Spin({}))", dir, self.inner.j)
     }
+
+    fn __eq__(&self, other: &PyEdge) -> bool {
+        self.inner == other.inner
+    }
+
+    fn __hash__(&self) -> isize {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut h = DefaultHasher::new();
+        self.inner.hash(&mut h);
+        h.finish() as isize
+    }
 }
 
 /// Python wrapper for CGSpec (Clebsch-Gordan Specification)
@@ -418,7 +442,7 @@ impl PyEdge {
 /// 3
 /// >>> print(spec.om_dimension())
 /// 1
-#[pyclass(name = "CGSpec")]
+#[pyclass(name = "CGSpec", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct PyCGSpec {
     inner: RustCGSpec,
@@ -547,6 +571,21 @@ impl PyCGSpec {
                 self.inner.num_external(), 
                 self.inner.om_dimension())
     }
+
+    fn __eq__(&self, other: &PyCGSpec) -> bool {
+        self.inner == other.inner
+    }
+
+    fn __hash__(&self) -> isize {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut h = DefaultHasher::new();
+        for e in &self.inner.edges {
+            e.j.twice().hash(&mut h);
+            e.dir.sign().hash(&mut h);
+        }
+        h.finish() as isize
+    }
 }
 
 /// Python wrapper for Contraction specification
@@ -558,7 +597,7 @@ impl PyCGSpec {
 /// >>> import yuzuha
 /// >>> # Contract edge 2 from A with edge 0 from B
 /// >>> contraction = yuzuha.Contraction([2], [0])
-#[pyclass(name = "Contraction")]
+#[pyclass(name = "Contraction", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct PyContraction {
     inner: RustContraction,
@@ -612,6 +651,19 @@ impl PyContraction {
         format!("Contraction(axes_a={:?}, axes_b={:?})", 
                 self.inner.axes_a, 
                 self.inner.axes_b)
+    }
+
+    fn __eq__(&self, other: &PyContraction) -> bool {
+        self.inner == other.inner
+    }
+
+    fn __hash__(&self) -> isize {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut h = DefaultHasher::new();
+        self.inner.axes_a.hash(&mut h);
+        self.inner.axes_b.hash(&mut h);
+        h.finish() as isize
     }
 }
 
