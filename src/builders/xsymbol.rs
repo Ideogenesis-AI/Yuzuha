@@ -156,7 +156,7 @@ pub fn compute_xsymbol(
 }
 
 /// Build the output spec from two input specs and contraction specification
-pub fn build_output_spec(
+fn build_output_spec(
     spec_a: &CGSpec,
     spec_b: &CGSpec,
     contraction: &Contraction,
