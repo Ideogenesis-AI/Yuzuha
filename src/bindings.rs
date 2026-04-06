@@ -404,9 +404,9 @@ impl PyEdge {
     }
 }
 
-/// Python wrapper for CGSpec (Coupled Gauge Tree Specification)
+/// Python wrapper for CGSpec (Clebsch-Gordan Specification)
 ///
-/// Represents a coupled gauge tree with external edges and outer multiplicity configurations.
+/// Represents a Clebsch-Gordan tensor with external edges and outer multiplicity configurations.
 ///
 /// Examples
 /// --------
@@ -618,7 +618,7 @@ impl PyContraction {
 /// Compute X-symbol for tensor network contraction.
 ///
 /// The X-symbol represents the coupling coefficients for contracting two
-/// coupled gauge trees (CGTs) with specified edges.
+/// Clebsch-Gordan (CG) tensors with specified edges.
 ///
 /// Parameters
 /// ----------
@@ -743,7 +743,7 @@ fn compute_rsymbol<'py>(
 /// outer multiplicity (OM) basis for a given CGSpec. The basis is cached for
 /// efficiency using an SQLite database.
 ///
-/// The canonical basis is only defined for CGSpecs with at least 3 external edges.
+/// The canonical basis is only defined for CGSpecs with at least 2 external edges.
 ///
 /// Parameters
 /// ----------
@@ -761,7 +761,7 @@ fn compute_rsymbol<'py>(
 /// Raises
 /// ------
 /// ValueError
-///     If the CGSpec has fewer than 3 external edges.
+///     If the CGSpec has fewer than 2 external edges.
 /// RuntimeError
 ///     If computation fails or cache error occurs.
 ///
