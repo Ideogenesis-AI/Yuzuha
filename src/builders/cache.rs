@@ -35,8 +35,8 @@ use std::sync::Mutex;
 /// Stores (path, connection) to detect when path changes
 static DB_CONNECTION: Lazy<Mutex<Option<(PathBuf, Connection)>>> = Lazy::new(|| Mutex::new(None));
 
-/// Override cache path per-thread for test isolation (unit and integration tests).
-/// Using thread-local storage ensures parallel tests do not interfere with each other.
+// Override cache path per-thread for test isolation (unit and integration tests).
+// Using thread-local storage ensures parallel tests do not interfere with each other.
 thread_local! {
     static TEST_CACHE_PATH: std::cell::RefCell<Option<PathBuf>> = std::cell::RefCell::new(None);
 }
