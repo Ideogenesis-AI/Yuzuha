@@ -130,7 +130,6 @@ class TestXSymbolCaching:
         with yuzuha.TestCacheContext():
             j_half = yuzuha.Spin(1)
             j1 = yuzuha.Spin(2)
-            j3_2 = yuzuha.Spin(3)
 
             # Configuration 1
             spec_a1 = yuzuha.CGSpec.from_edges([
@@ -584,3 +583,76 @@ class TestCacheUtilities:
             # Check that database was created in test context location
             temp_dir = ctx.temp_dir
             assert (temp_dir / 'xsymbol.db').exists()
+
+
+class TestCacheStats:
+    """Tests for cache stats() and get_cache_stats() / print_cache_stats().
+
+    These exercise the stats() path which previously deadlocked because
+    stats() called size() while already holding self._lock (threading.Lock
+    is non-reentrant).
+    """
+
+    def test_xsymbol_stats_does_not_deadlock(self):
+        """stats() on XSymbolCache must return without deadlocking."""
+        with yuzuha.TestCacheContext():
+            from yuzuha.cache import get_xsymbol_cache
+            cache = get_xsymbol_cache()
+            result = cache.stats()
+            assert isinstance(result, dict)
+            assert 'size' in result
+            assert 'db_path' in result
+            assert 'db_size_bytes' in result
+
+    def test_rsymbol_stats_does_not_deadlock(self):
+        """stats() on RSymbolCache must return without deadlocking."""
+        with yuzuha.TestCacheContext():
+            from yuzuha.cache import get_rsymbol_cache
+            cache = get_rsymbol_cache()
+            result = cache.stats()
+            assert isinstance(result, dict)
+            assert 'size' in result
+            assert 'db_path' in result
+            assert 'db_size_bytes' in result
+
+    def test_get_cache_stats_does_not_deadlock(self):
+        """get_cache_stats() must return without deadlocking."""
+        with yuzuha.TestCacheContext():
+            stats = yuzuha.get_cache_stats()
+            assert 'xsymbol' in stats
+            assert 'rsymbol' in stats
+            assert stats['xsymbol']['size'] == 0
+            assert stats['rsymbol']['size'] == 0
+
+    def test_print_cache_stats_does_not_deadlock(self, capsys):
+        """print_cache_stats() must complete without deadlocking."""
+        with yuzuha.TestCacheContext():
+            yuzuha.print_cache_stats()
+            captured = capsys.readouterr()
+            assert "X-symbol cache" in captured.out
+            assert "R-symbol cache" in captured.out
+
+    def test_stats_size_reflects_entries(self):
+        """stats()['size'] must match the number of cached entries."""
+        with yuzuha.TestCacheContext():
+            j_half = yuzuha.Spin(1)
+            j1 = yuzuha.Spin(2)
+
+            spec_a = yuzuha.CGSpec.from_edges([
+                yuzuha.Edge.incoming(j_half),
+                yuzuha.Edge.incoming(j_half),
+                yuzuha.Edge.outgoing(j1),
+            ])
+            spec_b = yuzuha.CGSpec.from_edges([
+                yuzuha.Edge.incoming(j1),
+                yuzuha.Edge.outgoing(j_half),
+                yuzuha.Edge.outgoing(j_half),
+            ])
+            contraction = yuzuha.Contraction([2], [0])
+
+            from yuzuha.cache import get_xsymbol_cache
+            cache = get_xsymbol_cache()
+
+            assert cache.stats()['size'] == 0
+            yuzuha.compute_xsymbol(spec_a, spec_b, contraction)
+            assert cache.stats()['size'] == 1
