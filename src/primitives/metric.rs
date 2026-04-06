@@ -120,9 +120,20 @@ mod tests {
     }
 
     #[test]
-    fn test_g_squared_is_identity() {
-        // g² = I: Σ_m' g^(j)_{m,m'} * g^(j)_{m',m''} = δ_{m,m''}
-        // Since g is sparse (m' = -m), this simplifies to g(m,-m) * g(-m,m) = 1
+    fn test_g_product_diagonal() {
+        // The metric g is NOT equal to its own inverse: g * g ≠ I in general.
+        // The correct identity is g^T g = I (g is unitary, i.e. g^{-1} = g^T).
+        //
+        // Since g_{m,m'} = (-1)^{(J-M)/2} δ_{m',-m} is sparse, we can verify the
+        // diagonal elements of g^T g explicitly:
+        //   (g^T g)_{m,m''} = Σ_m' g_{m',m} g_{m',m''} = g_{-m,m} g_{-m,m''} = g_{-m,m} δ_{m,m''}
+        //
+        // In particular, g_{-m,m} * g_{-m,m} = g_{-m,m}^2.
+        // For j=1/2 and m=+1/2 (doubled: m_val=1):
+        //   g(-1/2, +1/2) = (-1)^{(1-(-1))/2} = (-1)^1 = -1
+        // For j=1/2 and m=-1/2 (doubled: m_val=-1):
+        //   g(+1/2, -1/2) = (-1)^{(1-1)/2}   = (-1)^0 = +1
+        // The product g_{m,-m} * g_{-m,m} gives the phase pair for each m.
         let j_half = Spin::new(1).unwrap(); // j=1/2
 
         for m_val in [-1, 1] {
@@ -132,15 +143,9 @@ mod tests {
             let g1 = g(j_half, m, m_neg);
             let g2 = g(j_half, m_neg, m);
 
-            // g² should give back 1 (identity)
-            // Note: for m=1/2, g(1/2, 1/2, -1/2) = (-1)^0 = 1
-            //       and g(1/2, -1/2, 1/2) = (-1)^1 = -1
-            // So the product is -1, not 1. Let me recalculate...
-            
-            // Actually the property is g^T g = I, not g*g = I pointwise
-            // The correct test is: g is its own inverse up to transpose
-            // For the diagonal test: g_{m,-m} * g_{-m,m} gives back something
-            let exponent_sum = ((j_half.twice() - m_val) / 2) + ((j_half.twice() - (-m_val)) / 2);
+            // g_{m,-m} * g_{-m,m} = (-1)^{(J-M)/2} * (-1)^{(J+M)/2} = (-1)^J.
+            // For j=1/2 (J=1, odd): expected product is -1.
+            let exponent_sum = ((j_half.twice() - m_val) / 2) + ((j_half.twice() + m_val) / 2);
             let expected = if exponent_sum % 2 == 0 { 1.0 } else { -1.0 };
             assert_eq!(g1 * g2, expected);
         }
@@ -183,8 +188,15 @@ mod tests {
     }
 
     #[test]
-    fn test_double_flip_identity() {
-        // Flipping an edge twice via metric should give identity
+    fn test_g_product_for_integer_spin() {
+        // For integer spin J (J even in doubled units), the product
+        // g_{m,-m} * g_{-m,m} = (-1)^J = +1.
+        // This is a special case; for half-integer spins the product is -1 (see test_g_product_diagonal).
+        //
+        // Concretely for j=1 (J=2), m=+1 (M=2):
+        //   g(1, +1, -1) = (-1)^{(2-2)/2} = (-1)^0 = +1
+        //   g(1, -1, +1) = (-1)^{(2+2)/2} = (-1)^2 = +1
+        //   product = +1
         let j1 = Spin::new(2).unwrap();
         let m1 = MagneticNumber::new_unchecked(2);
 
