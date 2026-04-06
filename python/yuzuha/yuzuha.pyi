@@ -612,7 +612,7 @@ def canonical_basis(spec: CGSpec) -> NDArray[np.float64]:
     Raises
     ------
     ValueError
-        If the CGSpec has fewer than 3 external edges.
+        If the CGSpec has fewer than 2 external edges.
     RuntimeError
         If computation or cache access fails.
 
