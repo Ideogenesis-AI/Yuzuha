@@ -24,7 +24,6 @@ CG bases to improve runtime performance.
 
 import logging
 from typing import Optional
-from itertools import product
 
 from .yuzuha import Spin, Edge, CGSpec, canonical_basis
 
