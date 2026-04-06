@@ -181,6 +181,7 @@ pub fn store_canonical_basis(spins: &[Spin], data: &ArrayD<f64>) -> Result<()> {
 }
 
 /// Reset the database connection (used for testing)
+#[cfg(any(test, feature = "test-utils"))]
 fn reset_connection() -> Result<()> {
     let mut guard = DB_CONNECTION.lock()
         .map_err(|e| YuzuhaError::CacheError(format!("Failed to acquire lock: {}", e)))?;
@@ -188,18 +189,21 @@ fn reset_connection() -> Result<()> {
     Ok(())
 }
 
-/// RAII guard for test cache isolation
-/// 
+/// RAII guard for test cache isolation.
+///
 /// Sets up a temporary cache directory and ensures cleanup on drop.
 /// This prevents tests from reading from or polluting the production cache.
-/// 
-/// **Note:** This type is intended for use in tests only. Each instance creates
-/// a unique temporary cache directory to ensure test isolation.
-/// 
+///
+/// Only available with the `test-utils` feature (or inside `#[cfg(test)]` contexts).
+/// Enable for integration tests with: `cargo test --features test-utils`
+///
+/// Each instance creates a unique temporary cache directory using thread-local
+/// storage, ensuring parallel tests do not interfere with each other.
+///
 /// # Example
 /// ```no_run
 /// use yuzuha::builders::TestCacheGuard;
-/// 
+///
 /// #[test]
 /// fn my_test() {
 ///     let _guard = TestCacheGuard::new();
@@ -207,53 +211,17 @@ fn reset_connection() -> Result<()> {
 ///     // Cache is automatically cleaned up when _guard is dropped
 /// }
 /// ```
+#[cfg(any(test, feature = "test-utils"))]
 pub struct TestCacheGuard {
     temp_dir: std::path::PathBuf,
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 impl TestCacheGuard {
-    /// Create a new test cache in a temporary directory
+    /// Create a new test cache in a unique temporary directory.
     pub fn new() -> Self {
         use std::fs;
-        
-        // Create a unique temporary directory for this test
-        let temp_dir = std::env::temp_dir().join(format!(
-            "yuzuha_test_cache_{}_{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        
-        fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
-        
-        // Set the cache path using thread-local storage (not env var)
-        // This ensures proper isolation between parallel tests
-        // Thread-local path is returned directly, so we store the full file path
-        let cache_path = temp_dir.join("cgbasis.db");
-        TEST_CACHE_PATH.with(|p: &std::cell::RefCell<Option<PathBuf>>| {
-            *p.borrow_mut() = Some(cache_path);
-        });
-        
-        // Reset any existing connection for this thread
-        reset_connection().expect("Failed to reset connection");
-        
-        TestCacheGuard { temp_dir }
-    }
-}
 
-#[cfg(not(test))]
-impl TestCacheGuard {
-    /// Create a new test cache in a temporary directory.
-    ///
-    /// Uses thread-local storage (same as the unit-test version) so that
-    /// parallel integration tests do not overwrite each other's cache path.
-    pub fn new() -> Self {
-        use std::fs;
-        
-        // Create a unique temporary directory for this test
         let temp_dir = std::env::temp_dir().join(format!(
             "yuzuha_test_cache_{}_{}",
             std::process::id(),
@@ -264,41 +232,23 @@ impl TestCacheGuard {
         ));
         
         fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
-        
-        // Store the full DB path in the thread-local so get_db_path() picks it up.
-        // This is thread-safe: each test thread has its own copy of TEST_CACHE_PATH.
+
         let cache_path = temp_dir.join("cgbasis.db");
         TEST_CACHE_PATH.with(|p| {
             *p.borrow_mut() = Some(cache_path);
         });
-        
-        // Reset any existing connection so the next query opens the new temp DB.
+
         reset_connection().expect("Failed to reset connection");
         
         TestCacheGuard { temp_dir }
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "test-utils"))]
 impl Drop for TestCacheGuard {
     fn drop(&mut self) {
         use std::fs;
-        
-        // Clean up: clear thread-local cache path, reset connection, and remove temp directory
-        TEST_CACHE_PATH.with(|p: &std::cell::RefCell<Option<PathBuf>>| {
-            *p.borrow_mut() = None;
-        });
-        let _ = reset_connection();
-        let _ = fs::remove_dir_all(&self.temp_dir);
-    }
-}
 
-#[cfg(not(test))]
-impl Drop for TestCacheGuard {
-    fn drop(&mut self) {
-        use std::fs;
-        
-        // Clear the thread-local cache path so this thread falls back to the default.
         TEST_CACHE_PATH.with(|p| {
             *p.borrow_mut() = None;
         });
