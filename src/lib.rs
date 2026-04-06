@@ -25,9 +25,8 @@
 //! - **Clebsch-Gordan coefficients**: Real-valued Condon-Shortley convention with caching
 //! - **Invariant metric**: Arrow reversal support for arbitrary edge directions
 //! - **Outer multiplicity enumeration**: Systematic enumeration of internal spin configurations
-//! - **CGT amplitudes**: Efficient computation without materializing full tensors
-//! - **Tensor networks**: Generic contraction with greedy optimization
 //! - **X-symbols**: Full computation for arbitrary contraction patterns
+//! - **R-symbols**: Tensor edge permutation transformations
 //!
 //! ## Quick Start
 //!
@@ -40,7 +39,7 @@
 //!
 //! // Automatically enumerates all OM configurations
 //! // Uses deterministic Condon-Shortley convention
-//! // Requires at least 3 edges for canonical basis computation
+//! // Requires at least 2 edges for canonical basis computation
 //! let spec_a = CGSpec::from_edges(vec![
 //!     Edge::incoming(j_half),
 //!     Edge::incoming(j_half),
@@ -75,8 +74,8 @@
 //!
 //! - [`core`]: Core data structures (Spin, Edge, CGSpec, CGTensor, etc.)
 //! - [`primitives`]: CG coefficients, metric, triangle rules
-//! - [`cgt_amplitude`]: CGT amplitude computation
-//! - [`builders`]: OM enumeration, atomic builders (CG3, connectors), canonical basis construction, and X-symbol computation
+//! - [`builders`]: OM enumeration, atomic builders (CG3, connectors),
+//!                 canonical basis construction, X-symbol and R-symbol computation
 
 pub mod builders;
 pub mod core;
