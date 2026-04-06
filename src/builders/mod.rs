@@ -35,5 +35,7 @@ pub use om_basis::{enumerate_alpha, om_dimension};
 pub use rsymbol::{compute_rsymbol, RSymbol};
 pub use xsymbol::{compute_xsymbol, XSymbol};
 
-// Test utilities - exported without cfg(test) so integration tests can use it
+// Only available under cfg(test) or with the `test-utils` feature.
+// Integration tests enable this via: cargo test --features test-utils
+#[cfg(any(test, feature = "test-utils"))]
 pub use cache::TestCacheGuard;
