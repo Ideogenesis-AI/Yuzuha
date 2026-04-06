@@ -78,7 +78,7 @@ Test organisation
 - TestXRIdentityPermutation  : special case k = N-1; sigma = identity => X = I
 - TestXRStress               : randomised stress tests
 """
-import pytest
+
 import numpy as np
 import yuzuha
 

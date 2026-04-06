@@ -21,7 +21,7 @@ Tests for X-symbol and R-symbol caching.
 Tests the caching mechanism to ensure results are correctly stored
 and retrieved, and that cache keys are properly differentiated.
 """
-import pytest
+
 import numpy as np
 import yuzuha
 

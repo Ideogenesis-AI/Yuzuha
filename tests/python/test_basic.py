@@ -20,6 +20,7 @@ Basic tests for Yuzuha Python bindings.
 
 Tests basic type construction and properties.
 """
+
 import pytest
 import yuzuha
 

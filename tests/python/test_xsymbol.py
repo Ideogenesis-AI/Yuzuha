@@ -52,6 +52,7 @@ All tests ensure valid spin configurations:
 
 Total: 25 tests covering basic, consistency, stress, and edge cases.
 """
+
 import pytest
 import numpy as np
 import yuzuha
