@@ -83,8 +83,9 @@ for background.
 
 ## Notes
 
-`CGSpec` objects are immutable after construction. The `with_inverted_axes` method
-always returns a **new** object; the original is unchanged.
+`CGSpec` objects are immutable and hashable. They can be used as dictionary keys
+and in sets. The `with_inverted_axes` method always returns a **new** object; the
+original is unchanged.
 
 The `from_edges` constructor raises `ValueError` if the provided edges are inconsistent
 (e.g. fewer than 2 edges) or if no valid internal spin configuration exists (triangle
