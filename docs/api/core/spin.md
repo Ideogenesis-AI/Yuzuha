@@ -48,8 +48,9 @@ j32   = yuzuha.Spin(3)   # j = 3/2
 
 ## Notes
 
-`Spin` values are immutable. Comparison and hashing are supported, so `Spin` objects
-can be used as dictionary keys and in sets.
+`Spin` values are immutable. Equality, hashing, and `<` ordering are all supported:
+`Spin` objects can be used as dictionary keys and in sets, and lists of spins can be
+passed to `sorted()` directly without a key function.
 
 The identity representation is `Spin(0)` (\(j = 0\)), which has dimension 1 and
 contributes a trivial factor in all coupling coefficients.
