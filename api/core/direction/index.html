@@ -2543,9 +2543,10 @@ Arrow reversal from outgoing to incoming uses <span class="arithmatex">\(g^{-1} 
   reversal conventions</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p><code>Direction</code> values are comparable and can be passed directly to <code>Edge.incoming</code> /
-<code>Edge.outgoing</code> constructors. The <code>.flip()</code> method (if available on the Rust type) is
-accessible from Python as <code>Edge.with_flipped_direction()</code>.</p>
+<p><code>Direction</code> values are immutable — attribute assignment raises <code>AttributeError</code>.
+Two <code>Direction</code> values compare equal when they represent the same orientation
+(<code>Incoming == Incoming</code>, <code>Outgoing == Outgoing</code>). They can be passed directly to the
+<code>Edge.incoming</code> / <code>Edge.outgoing</code> constructors.</p>
 
 
 

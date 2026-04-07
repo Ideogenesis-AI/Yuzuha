@@ -2284,8 +2284,9 @@ tensor (spec A) is contracted with edge <span class="arithmatex">\(k\)</span> of
   interface specification</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p><code>Contraction</code> objects are immutable and can be reused across multiple <code>compute_xsymbol</code>
-calls with compatible specs.</p>
+<p><code>Contraction</code> objects are immutable, hashable, and can be reused across multiple
+<code>compute_xsymbol</code> calls with compatible specs. They support <code>==</code> comparison and can
+be used as dictionary keys or in sets.</p>
 <p>The order of pairs in <code>axes_a</code> and <code>axes_b</code> matters: pair <span class="arithmatex">\((i, k)\)</span> at position 0
 is treated as the first contraction, which affects the internal fusion tree ordering of
 the output spec <span class="arithmatex">\(C\)</span>.</p>

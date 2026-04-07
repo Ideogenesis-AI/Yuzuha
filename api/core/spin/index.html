@@ -2433,8 +2433,9 @@ computations.</p>
   specification that <code>Spin</code> implements for SU(2)</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p><code>Spin</code> values are immutable. Comparison and hashing are supported, so <code>Spin</code> objects
-can be used as dictionary keys and in sets.</p>
+<p><code>Spin</code> values are immutable. Equality, hashing, and <code>&lt;</code> ordering are all supported:
+<code>Spin</code> objects can be used as dictionary keys and in sets, and lists of spins can be
+passed to <code>sorted()</code> directly without a key function.</p>
 <p>The identity representation is <code>Spin(0)</code> (<span class="arithmatex">\(j = 0\)</span>), which has dimension 1 and
 contributes a trivial factor in all coupling coefficients.</p>
 

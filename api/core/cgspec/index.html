@@ -2545,8 +2545,9 @@ for background.</p>
 <li><a href="../../../protocol/types/">Yuzuha Protocol — Type System</a>: Abstract <code>Spec</code> specification</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p><code>CGSpec</code> objects are immutable after construction. The <code>with_inverted_axes</code> method
-always returns a <strong>new</strong> object; the original is unchanged.</p>
+<p><code>CGSpec</code> objects are immutable and hashable. They can be used as dictionary keys
+and in sets. The <code>with_inverted_axes</code> method always returns a <strong>new</strong> object; the
+original is unchanged.</p>
 <p>The <code>from_edges</code> constructor raises <code>ValueError</code> if the provided edges are inconsistent
 (e.g. fewer than 2 edges) or if no valid internal spin configuration exists (triangle
 inequality violated for all candidates).</p>

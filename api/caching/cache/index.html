@@ -2489,6 +2489,12 @@ managing cache state.</p>
     <div class="doc doc-contents first">
 
         <p>Set the cache directory path programmatically.</p>
+<p>This function works by setting the <code>YUZUHA_CACHE_PATH</code> environment
+variable, which is the second-highest priority source consulted by
+<code>get_cache_dir</code>. If the calling thread is inside a <code>TestCacheContext</code>
+block, the context's thread-local path takes precedence (priority 1)
+and this call will have no visible effect for the duration of that
+context.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2511,7 +2517,8 @@ managing cache state.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Cache directory path. If None, uses default.</p>
+                <p>Cache directory path. If None, removes the environment-variable
+override and falls back to the default <code>.yuzuha/</code> directory.</p>
               </div>
             </td>
             <td>
