@@ -1,5 +1,85 @@
 # Changelog
 
+## 0.1.5 — April 7, 2026
+
+### What's New
+
+#### Equality, Hashing, and Ordering for All Core Types
+
+All five core PyO3 types now implement proper Python equality and hashing, making
+them usable as dictionary keys and set members without any wrapper. `Spin` additionally
+supports `<` ordering, so lists of spins can be passed to `sorted()` directly. All
+five classes are also declared `frozen` in PyO3, so attribute assignment raises
+`AttributeError` rather than silently doing nothing.
+
+| Type | New dunder methods |
+|------|--------------------|
+| `Spin` | `__eq__`, `__hash__`, `__lt__` |
+| `Direction` | — (frozen; equality already worked via identity) |
+| `Edge` | `__eq__`, `__hash__` |
+| `CGSpec` | `__eq__`, `__hash__` |
+| `Contraction` | `__eq__`, `__hash__` |
+
+#### `canonical_basis` Minimum-Edges Validator Corrected
+
+The Rust guard previously raised `ValueError` for CGSpecs with fewer than **3**
+external edges; it now correctly raises for fewer than **2**. The underlying
+computation already supported \(n \geq 2\) edges since v0.1.1 — only the
+input-validation check was wrong.
+
+#### Return-Type Improvement for `compute_xsymbol` / `compute_rsymbol`
+
+The second element of the return tuple (the output `CGSpec`) was previously typed
+as `object` in the Python type stubs. It is now typed as `CGSpec`, enabling proper
+IDE auto-completion and static type-checking on the result.
+
+#### Cache `stats()` Deadlock Fix
+
+`XSymbolCache.stats()` and `RSymbolCache.stats()` previously called `self.size()`
+while already holding the cache lock, causing a potential deadlock. A new internal
+`_size_unlocked()` helper is used instead.
+
+#### Improved Error Messages
+
+- `CGSpec.from_edges()` error now reads *"an odd number of half-integer spins"*
+  rather than *"odd number of fermions (j=1/2)"*.
+- `DimensionMismatch` now displays the full expected and actual shape tuples instead
+  of bare integer counts.
+
+#### Expanded Test Suite
+
+24 net Python tests added (25 new, 1 removed):
+
+| Suite | v0.1.4 | v0.1.5 | Change |
+|---|---|---|---|
+| `test_basic` | 44 | 62 | +18 |
+| `test_symbol_cache` | 30 | 37 | +7 |
+| `test_canonical_basis` | 57 | 56 | −1 |
+| *(other Python suites unchanged)* | 218 | 218 | — |
+| **Python total** | **349** | **373** | **+24** |
+| Rust (all suites unchanged) | 120 | 120 | — |
+| **Grand total** | **469** | **493** | **+24** |
+
+### Statistics
+
+- **493 tests** (373 Python + 120 Rust)
+- **39 commits** since v0.1.4
+
+### API Changes
+
+No breaking changes. All additions are strictly additive.
+
+| Symbol | Kind | Change |
+|--------|------|--------|
+| `Spin.__eq__` / `__hash__` / `__lt__` | dunder | added |
+| `Edge.__eq__` / `__hash__` | dunder | added |
+| `CGSpec.__eq__` / `__hash__` | dunder | added |
+| `Contraction.__eq__` / `__hash__` | dunder | added |
+| `compute_xsymbol` return type | type stub | `object` → `CGSpec` |
+| `compute_rsymbol` return type | type stub | `object` → `CGSpec` |
+
+---
+
 ## 0.1.4 — March 28, 2026
 
 ### What's New
