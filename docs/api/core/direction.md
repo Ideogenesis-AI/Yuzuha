@@ -46,6 +46,7 @@ Arrow reversal from outgoing to incoming uses \(g^{-1} = (-1)^{2j}\, g\), which 
 
 ## Notes
 
-`Direction` values are comparable and can be passed directly to `Edge.incoming` /
-`Edge.outgoing` constructors. The `.flip()` method (if available on the Rust type) is
-accessible from Python as `Edge.with_flipped_direction()`.
+`Direction` values are immutable — attribute assignment raises `AttributeError`.
+Two `Direction` values compare equal when they represent the same orientation
+(`Incoming == Incoming`, `Outgoing == Outgoing`). They can be passed directly to the
+`Edge.incoming` / `Edge.outgoing` constructors.
