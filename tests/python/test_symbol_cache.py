@@ -21,8 +21,7 @@ Tests for X-symbol and R-symbol caching.
 Tests the caching mechanism to ensure results are correctly stored
 and retrieved, and that cache keys are properly differentiated.
 """
-import time
-import pytest
+
 import numpy as np
 import yuzuha
 
@@ -130,7 +129,6 @@ class TestXSymbolCaching:
         with yuzuha.TestCacheContext():
             j_half = yuzuha.Spin(1)
             j1 = yuzuha.Spin(2)
-            j3_2 = yuzuha.Spin(3)
 
             # Configuration 1
             spec_a1 = yuzuha.CGSpec.from_edges([
@@ -239,8 +237,11 @@ class TestXSymbolCaching:
             size2 = cache2.size()
             assert size2 == 0
 
-    def test_cache_performance(self):
-        """Test that cache provides performance benefit."""
+    def test_cache_avoids_recomputation(self):
+        """Second call must return from cache, not invoke the Rust backend again."""
+        from unittest.mock import patch
+        import yuzuha.symbols as sym
+
         with yuzuha.TestCacheContext():
             j_half = yuzuha.Spin(1)
             j1 = yuzuha.Spin(2)
@@ -259,22 +260,20 @@ class TestXSymbolCaching:
 
             contraction = yuzuha.Contraction([2], [0])
 
-            # First call (cache miss)
-            start = time.time()
-            x1, _ = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)
-            time_miss = time.time() - start
+            original = sym._rust_compute_xsymbol
+            call_count = [0]
 
-            # Second call (cache hit)
-            start = time.time()
-            x2, _ = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)
-            time_hit = time.time() - start
+            def counting_wrapper(*args, **kwargs):
+                call_count[0] += 1
+                return original(*args, **kwargs)
 
-            # Results should match
+            with patch.object(sym, '_rust_compute_xsymbol', counting_wrapper):
+                x1, _ = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)  # miss
+                x2, _ = yuzuha.compute_xsymbol(spec_a, spec_b, contraction)  # hit
+
+            assert call_count[0] == 1, \
+                f"Rust backend called {call_count[0]} times; expected 1 (cache miss only)"
             assert np.allclose(x1, x2)
-
-            # Cache hit should be faster (though this may not always be true for very small problems)
-            # Just verify it completes without error
-            assert time_hit >= 0
 
 
 class TestRSymbolCaching:
@@ -433,8 +432,11 @@ class TestRSymbolCaching:
             size2 = cache2.size()
             assert size2 == 0
 
-    def test_cache_performance(self):
-        """Test that cache provides performance benefit."""
+    def test_cache_avoids_recomputation(self):
+        """Second call must return from cache, not invoke the Rust backend again."""
+        from unittest.mock import patch
+        import yuzuha.symbols as sym
+
         with yuzuha.TestCacheContext():
             j1 = yuzuha.Spin(2)
             spec = yuzuha.CGSpec.from_edges([
@@ -445,21 +447,20 @@ class TestRSymbolCaching:
 
             permutation = [1, 2, 0]
 
-            # First call (cache miss)
-            start = time.time()
-            r1, _ = yuzuha.compute_rsymbol(spec, permutation)
-            time_miss = time.time() - start
+            original = sym._rust_compute_rsymbol
+            call_count = [0]
 
-            # Second call (cache hit)
-            start = time.time()
-            r2, _ = yuzuha.compute_rsymbol(spec, permutation)
-            time_hit = time.time() - start
+            def counting_wrapper(*args, **kwargs):
+                call_count[0] += 1
+                return original(*args, **kwargs)
 
-            # Results should match
+            with patch.object(sym, '_rust_compute_rsymbol', counting_wrapper):
+                r1, _ = yuzuha.compute_rsymbol(spec, permutation)  # miss
+                r2, _ = yuzuha.compute_rsymbol(spec, permutation)  # hit
+
+            assert call_count[0] == 1, \
+                f"Rust backend called {call_count[0]} times; expected 1 (cache miss only)"
             assert np.allclose(r1, r2)
-
-            # Cache hit should complete without error
-            assert time_hit >= 0
 
 
 class TestCacheUtilities:
@@ -584,3 +585,76 @@ class TestCacheUtilities:
             # Check that database was created in test context location
             temp_dir = ctx.temp_dir
             assert (temp_dir / 'xsymbol.db').exists()
+
+
+class TestCacheStats:
+    """Tests for cache stats() and get_cache_stats() / print_cache_stats().
+
+    These exercise the stats() path which previously deadlocked because
+    stats() called size() while already holding self._lock (threading.Lock
+    is non-reentrant).
+    """
+
+    def test_xsymbol_stats_does_not_deadlock(self):
+        """stats() on XSymbolCache must return without deadlocking."""
+        with yuzuha.TestCacheContext():
+            from yuzuha.cache import get_xsymbol_cache
+            cache = get_xsymbol_cache()
+            result = cache.stats()
+            assert isinstance(result, dict)
+            assert 'size' in result
+            assert 'db_path' in result
+            assert 'db_size_bytes' in result
+
+    def test_rsymbol_stats_does_not_deadlock(self):
+        """stats() on RSymbolCache must return without deadlocking."""
+        with yuzuha.TestCacheContext():
+            from yuzuha.cache import get_rsymbol_cache
+            cache = get_rsymbol_cache()
+            result = cache.stats()
+            assert isinstance(result, dict)
+            assert 'size' in result
+            assert 'db_path' in result
+            assert 'db_size_bytes' in result
+
+    def test_get_cache_stats_does_not_deadlock(self):
+        """get_cache_stats() must return without deadlocking."""
+        with yuzuha.TestCacheContext():
+            stats = yuzuha.get_cache_stats()
+            assert 'xsymbol' in stats
+            assert 'rsymbol' in stats
+            assert stats['xsymbol']['size'] == 0
+            assert stats['rsymbol']['size'] == 0
+
+    def test_print_cache_stats_does_not_deadlock(self, capsys):
+        """print_cache_stats() must complete without deadlocking."""
+        with yuzuha.TestCacheContext():
+            yuzuha.print_cache_stats()
+            captured = capsys.readouterr()
+            assert "X-symbol cache" in captured.out
+            assert "R-symbol cache" in captured.out
+
+    def test_stats_size_reflects_entries(self):
+        """stats()['size'] must match the number of cached entries."""
+        with yuzuha.TestCacheContext():
+            j_half = yuzuha.Spin(1)
+            j1 = yuzuha.Spin(2)
+
+            spec_a = yuzuha.CGSpec.from_edges([
+                yuzuha.Edge.incoming(j_half),
+                yuzuha.Edge.incoming(j_half),
+                yuzuha.Edge.outgoing(j1),
+            ])
+            spec_b = yuzuha.CGSpec.from_edges([
+                yuzuha.Edge.incoming(j1),
+                yuzuha.Edge.outgoing(j_half),
+                yuzuha.Edge.outgoing(j_half),
+            ])
+            contraction = yuzuha.Contraction([2], [0])
+
+            from yuzuha.cache import get_xsymbol_cache
+            cache = get_xsymbol_cache()
+
+            assert cache.stats()['size'] == 0
+            yuzuha.compute_xsymbol(spec_a, spec_b, contraction)
+            assert cache.stats()['size'] == 1

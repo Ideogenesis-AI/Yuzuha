@@ -21,7 +21,7 @@ Tests for canonical basis computation.
 Tests the canonical_basis function for various spin configurations,
 edge directions, and validates normalization properties.
 """
-import itertools
+
 import pytest
 import numpy as np
 import yuzuha
@@ -31,16 +31,6 @@ class TestCanonicalBasisErrors:
     """Test error handling for invalid inputs."""
 
     def test_single_edge_error(self):
-        """Test that a single edge raises ValueError."""
-        j1 = yuzuha.Spin(2)
-        spec = yuzuha.CGSpec.from_edges([
-            yuzuha.Edge.incoming(j1),
-        ])
-
-        with pytest.raises(ValueError, match="Cannot build canonical basis with 1 external edges"):
-            yuzuha.canonical_basis(spec)
-
-    def test_one_edge_error(self):
         """Test that a single edge raises ValueError."""
         j1 = yuzuha.Spin(2)
         spec = yuzuha.CGSpec.from_edges([

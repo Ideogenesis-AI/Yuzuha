@@ -38,7 +38,7 @@ pub enum YuzuhaError {
     #[error("Invalid contraction: {0}")]
     InvalidContraction(String),
 
-    /// Edge ID not found in CGT specification
+    /// Edge ID not found in CG specification
     #[error("Edge ID not found: {0}")]
     EdgeNotFound(String),
 
@@ -46,13 +46,13 @@ pub enum YuzuhaError {
     #[error("Incompatible edge spins for contraction: J1={0}, J2={1}")]
     IncompatibleEdges(i32, i32),
 
-    /// Invalid CGT specification
-    #[error("Invalid CGT specification: {0}")]
+    /// Invalid CG specification
+    #[error("Invalid CG specification: {0}")]
     InvalidCGTSpec(String),
 
-    /// Tensor dimension mismatch
-    #[error("Tensor dimension mismatch: expected {expected}, got {actual}")]
-    DimensionMismatch { expected: usize, actual: usize },
+    /// Tensor shape mismatch
+    #[error("Tensor shape mismatch: expected {expected}, got {actual}")]
+    DimensionMismatch { expected: String, actual: String },
 
     /// Edge index out of bounds
     #[error("Edge index {0} out of bounds (number of edges: {1})")]

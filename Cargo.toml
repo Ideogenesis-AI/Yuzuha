@@ -1,6 +1,6 @@
 [package]
 name = "yuzuha"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2024"
 license = "GPL-3.0"
 description = "A library for computing SU(2) X-symbols for arbitrary tensor network contractions"
@@ -30,6 +30,13 @@ rand = "0.8"
 [features]
 default = []
 python = ["pyo3", "numpy"]
+# Exposes TestCacheGuard for integration tests and downstream test code.
+# Enable with: cargo test --features test-utils
+test-utils = []
+
+[[test]]
+name = "rust"
+required-features = ["test-utils"]
 
 [profile.test]
 opt-level = 2

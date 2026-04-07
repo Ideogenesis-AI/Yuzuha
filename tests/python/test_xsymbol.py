@@ -46,12 +46,13 @@ Test Organization
 Spin Configuration Validity
 ----------------------------
 All tests ensure valid spin configurations:
-- Even number of half-integer spins (fermion number conservation)
+- Even number of half-integer spins (so their total is an integer)
 - Triangular inequalities satisfied: |j1 - j2| <= j3 <= j1 + j2
 - Angular momentum conservation in fusion trees
 
 Total: 25 tests covering basic, consistency, stress, and edge cases.
 """
+
 import pytest
 import numpy as np
 import yuzuha

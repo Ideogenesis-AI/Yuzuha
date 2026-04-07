@@ -125,15 +125,19 @@ fn compute_canonical_basis_data(canonical_spec: &CGSpec) -> Result<ArrayD<f64>> 
 
 /// Invert direction for a single edge across ALL OM slices
 ///
-/// Similar to `invert_edge_direction` but operates on the full basis array
-/// including the OM axis at the end. The OM axis is preserved.
+/// Applies axis reversal (m → -m) and the phase factor (-1)^{j-m} to convert
+/// between canonical and non-canonical arrow directions. The OM axis is preserved.
+///
+/// The phase is the same for both in→out and out→in inversions. Naively, inverting
+/// from outgoing to incoming uses the inverse metric (-1)^{2j} · (-1)^{j-m}, but
+/// the canonical convention (first n-1 edges incoming, last outgoing) places those
+/// edges in the domain. The domain/codomain transpose cancels the (-1)^{2j} factor,
+/// leaving the same metric (-1)^{j-m} for both directions.
 ///
 /// # Arguments
 /// * `tensor` - Input tensor with shape [external_dims..., om_dim]
 /// * `axis_idx` - Index of the external axis to invert
 /// * `j` - Spin of the edge being inverted
-/// * `_from_dir` - Direction of the edge (unused; both directions use the same metric)
-/// * `_n_external` - Number of external axes (excluding OM axis)
 ///
 /// # Returns
 /// Tensor with inverted edge direction
@@ -141,8 +145,6 @@ fn invert_edge_direction_full_basis(
     tensor: &ArrayD<f64>,
     axis_idx: usize,
     j: Spin,
-    _from_dir: Direction,
-    _n_external: usize,
 ) -> Result<ArrayD<f64>> {
     let mut result = tensor.clone();
     
@@ -156,6 +158,8 @@ fn invert_edge_direction_full_basis(
         
         // The following convention has been abandoned, after taking the domain/codomain
         // concept into account. See following comments for the reasoning.
+        // (`_from_dir`, the direction of the edge being inverted, was the discriminant
+        // in the code below; it has since been removed from the function signature.)
         // // Calculate phase
         // let phase = if _from_dir == Direction::Incoming {
         //     // Incoming → Outgoing: (-1)^{j-m}
@@ -212,7 +216,7 @@ fn invert_directions_for_spec(
         };
         
         if edge.dir != canonical_dir {
-            result = invert_edge_direction_full_basis(&result, axis_idx, edge.j, canonical_dir, n)?;
+            result = invert_edge_direction_full_basis(&result, axis_idx, edge.j)?;
         }
     }
     
@@ -434,7 +438,7 @@ mod tests {
         let j1 = crate::core::Spin::new(2).unwrap();
         let spec = CGSpec::from_edges(vec![Edge::incoming(j1)]).unwrap();
         
-        // Should error for n=1 (less than minimum of 3)
+        // Should error for n=1 (less than minimum of 2)
         assert!(build_canonical_basis_data(&spec).is_err());
     }
     

@@ -31,9 +31,9 @@ use std::collections::HashMap;
 ///
 /// where each intermediate spin satisfies triangle inequalities.
 ///
-/// **Angular Momentum Conservation**: For symmetric configurations (closed diagrams),
-/// this enforces that the final total angular momentum is j=0:
-/// J₁...ₙ₋₁ ⊗ Jₙ = 0
+/// **Angular Momentum Conservation**: The final total angular momentum is always
+/// constrained to j=0 (J₁...ₙ₋₁ ⊗ Jₙ → 0), consistent with the closed-diagram
+/// convention used throughout this library.
 ///
 /// # Arguments
 /// * `j_list` - External edge spins in fusion order

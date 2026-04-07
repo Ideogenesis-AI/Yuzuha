@@ -27,7 +27,7 @@ Test Organization
 - TestRSymbolBasic: Basic API and dimension tests
 - TestRSymbolUnitarity: Verify unitarity property (R^T R = I)
 - TestRSymbolInversion: Test permutation inversion (R[perm] * R[perm^{-1}] = I)
-- TestRSymbolComposition: Test composition (R[perm1 ∘ perm2] = R[perm2] * R[perm1])
+- TestRSymbolComposition: Test composition (R[σ ∘ τ] = R[σ] @ R[τ])
 - TestRSymbolFSymbolCoincidence: Compare with known F-symbol values
 - TestRSymbolStress: Randomized stress tests
 - TestRSymbolEdgeCases: Boundary conditions and special cases
@@ -37,11 +37,12 @@ Key Properties
 --------------
 1. **Unitarity**: R-symbols are unitary matrices (basis change)
 2. **Inversion**: R[perm] * R[perm^{-1}] = I
-3. **Composition**: R[perm1 ∘ perm2] = R[perm2] * R[perm1]
+3. **Composition**: R[σ ∘ τ] = R[σ] @ R[τ]  (R is a group homomorphism)
 4. **F-symbol relation**: For specific permutations, R-symbols coincide with F-symbols
 
 Total: 30+ tests covering basic, unitarity, inversion, composition, F-symbols, and stress tests.
 """
+
 import pytest
 import numpy as np
 import yuzuha
@@ -424,10 +425,16 @@ class TestRSymbolInversion:
 
 
 class TestRSymbolComposition:
-    """Test composition property: R[perm1 ∘ perm2] = R[perm2] * R[perm1]."""
-    
+    """Test composition property: R[σ ∘ τ] = R[σ] @ R[τ].
+
+    Using standard function-composition notation, σ ∘ τ means "apply τ
+    first, then σ", so R is a group homomorphism from permutations to
+    matrices.  Concretely, if composed = perm2 ∘ perm1 (perm1 applied
+    first), then R[composed] = R[perm2] @ R[perm1].
+    """
+
     def _compose_permutations(self, perm1, perm2):
-        """Compose two permutations: apply perm1 first, then perm2."""
+        """Return perm2 ∘ perm1: apply perm1 first, then perm2."""
         return [perm2[i] for i in perm1]
     
     def test_composition_two_swaps(self):

@@ -53,8 +53,9 @@ Violations raise `ValueError` from `compute_xsymbol`.
 
 ## Notes
 
-`Contraction` objects are immutable and can be reused across multiple `compute_xsymbol`
-calls with compatible specs.
+`Contraction` objects are immutable, hashable, and can be reused across multiple
+`compute_xsymbol` calls with compatible specs. They support `==` comparison and can
+be used as dictionary keys or in sets.
 
 The order of pairs in `axes_a` and `axes_b` matters: pair \((i, k)\) at position 0
 is treated as the first contraction, which affects the internal fusion tree ordering of

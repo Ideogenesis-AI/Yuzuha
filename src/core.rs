@@ -18,7 +18,7 @@
 //! Core data structures for SU(2) representation theory
 //!
 //! This module provides fundamental types for working with SU(2) spins,
-//! coupled gauge trees (CGTs), and tensor network contractions.
+//! Clebsch-Gordan (CG) tensors, and tensor network contractions.
 
 use crate::error::{Result, YuzuhaError};
 use std::fmt;
@@ -274,16 +274,15 @@ impl fmt::Display for Edge {
     }
 }
 
-/// Coupled Gauge (CG) Specification
+/// Clebsch-Gordan (CG) Specification
 ///
-/// Represents the topology and orthonormal multiplicity (OM) structure
+/// Represents the topology and outer multiplicity (OM) structure
 /// for a tensor with multiple external edges.
 ///
-/// Unlike the old CGTSpec which held a single OM configuration,
 /// CGSpec encompasses ALL valid OM configurations (alphas) for the
 /// given external edge structure.
 ///
-/// Uses deterministic Condon-Shortley convention for CG coefficients.
+/// Uses the deterministic Condon-Shortley convention for CG coefficients.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CGSpec {
     /// Ordered external edges
@@ -329,7 +328,7 @@ impl CGSpec {
     ///
     /// Returns an error if the edge spins cannot satisfy SU(2) angular momentum
     /// conservation (i.e., cannot couple to total j=0). This can happen for:
-    /// - Odd number of spin-1/2 particles (fermionic parity violation)
+    /// - An odd number of half-integer spins (their sum cannot be an integer)
     /// - Edge configurations that violate triangle inequalities
     pub fn from_edges(edges: Vec<Edge>) -> Result<Self> {
         let j_list: Vec<Spin> = edges.iter().map(|e| e.j).collect();
@@ -340,8 +339,8 @@ impl CGSpec {
                 format!(
                     "Edge spins {:?} do not satisfy SU(2) angular momentum conservation. \
                      Cannot construct valid fusion tree coupling to j=0. \
-                     Common causes: odd number of fermions (j=1/2) or incompatible spin values.",
-                    j_list.iter().map(|j| format!("j={}/{}", j.twice(), 2)).collect::<Vec<_>>()
+                     Common causes: an odd number of half-integer spins or incompatible spin values.",
+                    j_list.iter().map(|j| format!("j={}", j)).collect::<Vec<_>>()
                 )
             ));
         }
@@ -407,11 +406,11 @@ impl CGSpec {
 
 }
 
-/// Coupled Gauge Tensor
+/// Clebsch-Gordan (CG) Tensor
 ///
 /// A tensor over external indices and OM configurations.
 /// The data array has shape [external_dims..., om_dim] where the last
-/// axis corresponds to the orthonormal multiplicity.
+/// axis corresponds to the outer multiplicity.
 #[derive(Debug, Clone)]
 pub struct CGTensor {
     /// Specification (topology and OM structure)
@@ -438,8 +437,8 @@ impl CGTensor {
         
         if expected_shape.as_slice() != actual_shape {
             return Err(YuzuhaError::DimensionMismatch {
-                expected: expected_shape.len(),
-                actual: actual_shape.len(),
+                expected: format!("{:?}", expected_shape),
+                actual: format!("{:?}", actual_shape),
             });
         }
 

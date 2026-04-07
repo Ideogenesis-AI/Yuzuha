@@ -18,9 +18,11 @@
 """
 Tests demonstrating cache isolation features.
 
-These tests show how to use the fresh_cache fixture to ensure each test
-starts with a completely empty cache database.
+These tests show how to use the isolated_cache fixture to ensure tests
+run against a temporary cache directory rather than the default .yuzuha/
+location.
 """
+
 import os
 import yuzuha
 

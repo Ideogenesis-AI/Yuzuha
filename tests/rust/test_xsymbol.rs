@@ -22,7 +22,7 @@
 
 use yuzuha::core::{CGSpec, Contraction, Edge, Spin};
 use yuzuha::builders::builders::build_canonical_basis_data;
-use yuzuha::builders::xsymbol::{compute_xsymbol, build_output_spec};
+use yuzuha::builders::xsymbol::compute_xsymbol;
 use yuzuha::builders::TestCacheGuard;
 use ndarray::{ArrayD, Axis};
 use rand::Rng;
@@ -99,13 +99,8 @@ fn test_xsymbol_consistency() {
         }
     }
     
-    // Build output CGSpec
-    let spec_c = build_output_spec(&spec_a, &spec_b, &contraction).unwrap();
-    
-    // Build basis_c
-    let basis_c = build_canonical_basis_data(&spec_c).unwrap();
-    
-    // Build CGTensor C' = sum_gamma w_c[gamma] * basis_c[..., gamma]
+    // Build basis_c and CGTensor C'
+    let basis_c = build_canonical_basis_data(&xsymbol.spec_c).unwrap();
     let cg_tensor_c_prime = build_weighted_tensor(&basis_c, &w_c);
     
     // Check that C == C'
@@ -185,8 +180,7 @@ fn test_xsymbol_larger_spins() {
     }
     
     // Build basis_c and CGTensor C'
-    let spec_c = build_output_spec(&spec_a, &spec_b, &contraction).unwrap();
-    let basis_c = build_canonical_basis_data(&spec_c).unwrap();
+    let basis_c = build_canonical_basis_data(&xsymbol.spec_c).unwrap();
     let cg_tensor_c_prime = build_weighted_tensor(&basis_c, &w_c);
     
     // Check equality
@@ -266,8 +260,7 @@ fn test_xsymbol_multiple_contractions() {
     }
     
     // Build basis_c and CGTensor C'
-    let spec_c = build_output_spec(&spec_a, &spec_b, &contraction).unwrap();
-    let basis_c = build_canonical_basis_data(&spec_c).unwrap();
+    let basis_c = build_canonical_basis_data(&xsymbol.spec_c).unwrap();
     let cg_tensor_c_prime = build_weighted_tensor(&basis_c, &w_c);
     
     // Check equality
@@ -620,8 +613,7 @@ fn run_consistency_test(
     }
     
     // Build basis_c and CGTensor C'
-    let spec_c = build_output_spec(&spec_a, &spec_b, &contraction).unwrap();
-    let basis_c = build_canonical_basis_data(&spec_c).unwrap();
+    let basis_c = build_canonical_basis_data(&xsymbol.spec_c).unwrap();
     let cg_tensor_c_prime = build_weighted_tensor(&basis_c, &w_c);
     
     // Check equality

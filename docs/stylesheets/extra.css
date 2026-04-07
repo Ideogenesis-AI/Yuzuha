@@ -55,6 +55,23 @@
     max-width: 30rem;
 }
 
+@media screen and (max-width: 30em) {
+    .mdx-hero__content {
+        left: 1.5rem;
+        right: 1.5rem;
+        bottom: 3rem;
+        max-width: none;
+    }
+}
+
+@media screen and (min-width: 30em) and (max-width: 60em) {
+    .mdx-hero__content {
+        left: 3rem;
+        right: 3rem;
+        max-width: none;
+    }
+}
+
 .mdx-hero__content h1 {
     font-size: clamp(2rem, 5vw, 3.5rem);
     font-weight: 700;

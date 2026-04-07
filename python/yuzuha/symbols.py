@@ -27,12 +27,13 @@ from typing import Tuple
 
 import numpy as np
 
+from .yuzuha import CGSpec
 from .yuzuha import compute_xsymbol as _rust_compute_xsymbol
 from .yuzuha import compute_rsymbol as _rust_compute_rsymbol
 from .cache import get_xsymbol_cache, get_rsymbol_cache
 
 
-def compute_xsymbol(spec_a, spec_b, contraction) -> Tuple[np.ndarray, object]:
+def compute_xsymbol(spec_a, spec_b, contraction) -> Tuple[np.ndarray, CGSpec]:
     """
     Compute X-symbol for contracting two CGTs with caching.
     
@@ -110,7 +111,7 @@ def compute_xsymbol(spec_a, spec_b, contraction) -> Tuple[np.ndarray, object]:
     return x_array, spec_c
 
 
-def compute_rsymbol(spec, permutation) -> Tuple[np.ndarray, object]:
+def compute_rsymbol(spec, permutation) -> Tuple[np.ndarray, CGSpec]:
     """
     Compute R-symbol for tensor edge permutation with caching.
     

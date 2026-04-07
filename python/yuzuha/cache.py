@@ -67,11 +67,19 @@ def get_cache_dir() -> Path:
 def set_cache_path(path: Optional[str]) -> None:
     """
     Set the cache directory path programmatically.
-    
+
+    This function works by setting the `YUZUHA_CACHE_PATH` environment
+    variable, which is the second-highest priority source consulted by
+    `get_cache_dir`. If the calling thread is inside a `TestCacheContext`
+    block, the context's thread-local path takes precedence (priority 1)
+    and this call will have no visible effect for the duration of that
+    context.
+
     Parameters
     ----------
     path : str or None
-        Cache directory path. If None, uses default.
+        Cache directory path. If None, removes the environment-variable
+        override and falls back to the default `.yuzuha/` directory.
     """
     if path is None:
         if 'YUZUHA_CACHE_PATH' in os.environ:
@@ -371,6 +379,12 @@ class XSymbolCache:
             conn.execute("DELETE FROM xsymbol_cache")
             conn.commit()
     
+    def _size_unlocked(self) -> int:
+        """Return the entry count without acquiring the lock (caller must hold it)."""
+        conn = self._get_connection()
+        cursor = conn.execute("SELECT COUNT(*) FROM xsymbol_cache")
+        return cursor.fetchone()[0]
+
     def size(self) -> int:
         """
         Get the number of cached entries.
@@ -381,9 +395,7 @@ class XSymbolCache:
             Number of cached X-symbol entries
         """
         with self._lock:
-            conn = self._get_connection()
-            cursor = conn.execute("SELECT COUNT(*) FROM xsymbol_cache")
-            return cursor.fetchone()[0]
+            return self._size_unlocked()
     
     def stats(self) -> dict:
         """
@@ -399,7 +411,7 @@ class XSymbolCache:
         """
         with self._lock:
             stats = {
-                'size': self.size(),
+                'size': self._size_unlocked(),
                 'db_path': str(self.db_path),
             }
             
@@ -556,6 +568,12 @@ class RSymbolCache:
             conn.execute("DELETE FROM rsymbol_cache")
             conn.commit()
     
+    def _size_unlocked(self) -> int:
+        """Return the entry count without acquiring the lock (caller must hold it)."""
+        conn = self._get_connection()
+        cursor = conn.execute("SELECT COUNT(*) FROM rsymbol_cache")
+        return cursor.fetchone()[0]
+
     def size(self) -> int:
         """
         Get the number of cached entries.
@@ -566,9 +584,7 @@ class RSymbolCache:
             Number of cached R-symbol entries
         """
         with self._lock:
-            conn = self._get_connection()
-            cursor = conn.execute("SELECT COUNT(*) FROM rsymbol_cache")
-            return cursor.fetchone()[0]
+            return self._size_unlocked()
     
     def stats(self) -> dict:
         """
@@ -584,7 +600,7 @@ class RSymbolCache:
         """
         with self._lock:
             stats = {
-                'size': self.size(),
+                'size': self._size_unlocked(),
                 'db_path': str(self.db_path),
             }
             
