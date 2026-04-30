@@ -22,6 +22,8 @@ This package provides efficient computation of SU(2) X-symbols and R-symbols
 for quantum recoupling theory, with persistent caching.
 """
 
+from importlib.metadata import version
+
 from .yuzuha import (
     Direction,
     Spin,
@@ -43,7 +45,7 @@ from .cache import (
     print_cache_stats,
 )
 
-__version__ = "0.1.5"
+__version__ = version("yuzuha")
 
 __all__ = [
     "Direction",
