@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.1.6 — July 15, 2026
+
+### What's New
+
+#### Development Status: Beta → Stable
+
+The PyPI classifier has been updated from `Development Status :: 4 - Beta` to
+`Development Status :: 5 - Production/Stable`, signalling that the public API is
+considered stable for general use.
+
+#### Dynamic Version Retrieval
+
+`yuzuha.__version__` is no longer a hardcoded string literal. It is now resolved
+at import time via `importlib.metadata.version("yuzuha")`, so it always matches
+the installed package metadata with no manual edit step on release.
+
+#### Documentation Build Dependencies
+
+A new `docs` optional-dependency group (`mkdocs-material`, `mkdocstrings[python]`)
+has been added to `pyproject.toml`, installable via `pip install yuzuha[docs]`.
+
+#### Documentation Site Security Hardening
+
+The unmaintained, previously-compromised `polyfill.io` script has been removed
+from `extra_javascript` in `mkdocs.yml`.
+
+#### Packaging Fix
+
+A stray trailing backslash on the PDF LFS filter line in `.gitattributes` has been
+removed.
+
+### Statistics
+
+- **4 commits** since v0.1.5
+
+### API Changes
+
+No breaking changes.
+
+| Symbol | Kind | Change |
+|--------|------|--------|
+| `yuzuha.__version__` | attribute | now resolved via `importlib.metadata` instead of a hardcoded string |
+
+---
+
 ## 0.1.5 — April 7, 2026
 
 ### What's New
