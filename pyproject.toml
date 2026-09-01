@@ -11,7 +11,10 @@ requires-python = ">=3.11"
 license = { text = "GPL-3.0" }
 keywords = ["tensor-network", "su2", "quantum", "clebsch-gordan", "fusion-trees"]
 authors = [
-    { name = "Changkai Zhang", email = "changkai.zhang@lmu.de" }
+    { name = "Changkai Zhang", email = "c.zhang@ideogenesis.ai" }
+]
+maintainers = [
+    { name = "Ideogenesis AI", email = "developer@ideogenesis.ai" }
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
