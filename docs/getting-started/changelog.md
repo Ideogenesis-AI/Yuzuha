@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.2.0 — November 6, 2026
+
+### What's New
+
+#### Python 3.13, 3.14, and 3.15 Support Declared
+
+Classifiers for Python 3.13, 3.14, and 3.15 have been added to `pyproject.toml`.
+`requires-python` remains `>=3.11`; because the extension module is built against
+the stable ABI (abi3, Python ≥ 3.11), the existing wheels already run on these
+interpreters and the classifiers simply make that support discoverable on PyPI.
+
+#### Authorship and Maintainership
+
+The author email has moved to `c.zhang@ideogenesis.ai`, and a new `maintainers`
+field names Ideogenesis AI (`developer@ideogenesis.ai`).
+
+#### Static Python Version Badge
+
+The README Python version badge was previously rendered from PyPI metadata via
+`img.shields.io/pypi/pyversions/yuzuha`, so it enumerated every declared classifier
+individually — five versions once 3.13 through 3.15 were added. It is now a static
+badge reading **Python ≥ 3.11**, which conveys the same support range compactly.
+
+#### Documentation Hero Image
+
+The full-viewport hero image on the documentation landing page has been replaced
+with a new image that is also 0.16 MB smaller.
+
+### Statistics
+
+- **5 commits** since v0.1.6
+- **493 tests** (373 Python + 120 Rust), unchanged from v0.1.6
+
+### API Changes
+
+None. No symbol was added, removed, renamed, or retyped in either the Rust crate
+or the Python package. Code written against v0.1.6 runs unchanged against v0.2.0.
+
+---
+
 ## 0.1.6 — July 15, 2026
 
 ### What's New
