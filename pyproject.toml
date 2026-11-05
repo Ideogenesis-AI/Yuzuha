@@ -4,14 +4,17 @@ build-backend = "maturin"
 
 [project]
 name = "yuzuha"
-version = "0.1.6"
+version = "0.2.0"
 description = "Yuzuha: SU(2) Protocol for Tensor Networks"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "GPL-3.0" }
 keywords = ["tensor-network", "su2", "quantum", "clebsch-gordan", "fusion-trees"]
 authors = [
-    { name = "Changkai Zhang", email = "changkai.zhang@lmu.de" }
+    { name = "Changkai Zhang", email = "c.zhang@ideogenesis.ai" }
+]
+maintainers = [
+    { name = "Ideogenesis AI", email = "developer@ideogenesis.ai" }
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -20,6 +23,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Programming Language :: Rust",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Mathematics",
