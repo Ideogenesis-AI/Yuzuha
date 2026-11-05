@@ -96,6 +96,22 @@ jobs:
           path: dist/*.tar.gz
           if-no-files-found: error
 
+  rust-test:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      # The "rust" integration-test target requires the test-utils feature.
+      - name: Run Rust tests
+        run: cargo test --features test-utils
+
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
     needs: [linux, macos, windows]
