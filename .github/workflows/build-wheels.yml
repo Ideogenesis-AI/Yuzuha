@@ -98,7 +98,7 @@ jobs:
 
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
-    needs: [linux, macos, windows, sdist]
+    needs: [linux, macos, windows]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -119,27 +119,27 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Set up Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Download built wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
 
-      - name: Cache Rust build artifacts
-        uses: Swatinem/rust-cache@v2
+      - name: Install dependencies
+        run: pip install "numpy>=2.0" "pytest>=7.0" "pytest-benchmark>=4.0"
 
-      - name: Install maturin and dev dependencies
-        run: pip install "maturin>=1.0,<2.0" "numpy>=2.0" "pytest>=7.0" "pytest-benchmark>=4.0"
-
-      - name: Build wheel
-        run: maturin build --features python --release --out dist
-
+      # --no-index keeps pip from substituting a published release for the wheel
+      # under test; dependencies are already installed above.
       - name: Install wheel
-        run: pip install --find-links dist yuzuha
+        run: pip install --no-index --no-deps --find-links dist yuzuha
 
       - name: Run tests
         run: pytest tests/python -v --tb=short
 
   test-sdist:
     name: Test sdist build
-    needs: [linux, macos, windows, sdist]
+    needs: [sdist]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -155,11 +155,11 @@ jobs:
       - name: Cache Rust build artifacts
         uses: Swatinem/rust-cache@v2
 
-      - name: Build sdist
-        uses: PyO3/maturin-action@v1
+      - name: Download sdist
+        uses: actions/download-artifact@v8
         with:
-          command: sdist
-          args: --out dist
+          name: sdist
+          path: dist
 
       - name: Install from sdist
         run: |
