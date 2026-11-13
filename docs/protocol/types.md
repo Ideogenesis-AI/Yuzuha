@@ -139,7 +139,7 @@ edges and the internal representations of its left-associative fusion tree.
 ### Generalization Notes
 
 For SU(N), the internal representations would be highest-weight vectors. The
-enumeration of valid paths is governed by the Littlewood-Richardson rule rather than
+enumeration of valid paths is governed by the Littlewood-Richardson rule instead of
 the triangle inequality. The rest of the `Spec` interface is identical.
 
 ---

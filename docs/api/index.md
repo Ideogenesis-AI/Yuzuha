@@ -99,7 +99,7 @@ Yuzuha follows these design principles:
 - **Transparent caching**: Cache lookups and stores are invisible to the caller; the
   same result is returned regardless of whether the cache was hit
 - **Fail loudly**: Invalid inputs (bad permutations, incompatible contractions, triangle
-  violations) raise `ValueError` rather than silently returning wrong results
+  violations) raise `ValueError` to avoid silently returning wrong results
 - **Thread-safe caching**: All database operations are protected by mutexes
 
 ## See Also

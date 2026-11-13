@@ -52,5 +52,5 @@ e_out = yuzuha.Edge.outgoing(j)   # spin-1/2 outgoing edge
 
 Arrow flipping (converting an incoming edge to an outgoing edge of the same spin, or
 vice versa) requires applying the metric tensor — see
-[use_as_incoming / use_as_outgoing](../primitives/metric.md) — rather than simply
+[use_as_incoming / use_as_outgoing](../primitives/metric.md) — do not simply
 swapping the direction field.
