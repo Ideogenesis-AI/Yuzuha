@@ -23,11 +23,81 @@
 // Each integration module uses a different subset of these.
 #![allow(dead_code)]
 
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Mutex, MutexGuard};
+
 use approx::assert_relative_eq;
 use ndarray::{ArrayD, Axis};
 use yuzuha::builders::builders::build_canonical_basis_data;
 use yuzuha::builders::TestCacheGuard;
 use yuzuha::core::{CGSpec, Edge, MagneticNumber, Spin};
+
+/// Serializes the tests that redirect the cache through `YUZUHA_CACHE_PATH`.
+static CACHE_ENV_LOCK: Mutex<()> = Mutex::new(());
+
+/// Point the cache at a private temporary directory for every thread.
+///
+/// `TestCacheGuard` is the right tool for a single-threaded test, but its
+/// override is thread-local, so a test that spawns workers and expects them to
+/// share one database has to set the environment variable instead. That
+/// variable is process-global, and Cargo runs the integration tests as threads
+/// of one process: while it is set, any test that resolves a cache path
+/// without a `TestCacheGuard` is silently redirected too. Holding this guard
+/// serializes such tests against each other, and restores both the previous
+/// value and the temporary directory on drop.
+pub struct CacheEnvGuard {
+    _lock: MutexGuard<'static, ()>,
+    previous: Option<String>,
+    dir: PathBuf,
+}
+
+impl CacheEnvGuard {
+    /// Acquire the lock and redirect the cache into a fresh directory.
+    pub fn new(prefix: &str) -> Self {
+        // A test that panicked while holding the lock poisons it, but it also
+        // restored the variable on unwind, so the state is still usable.
+        let lock = CACHE_ENV_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+
+        // A plain timestamp is not unique enough on a microsecond clock, so a
+        // counter distinguishes directories created in the same instant.
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+
+        let dir = std::env::temp_dir().join(format!(
+            "{prefix}_{}_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+            COUNTER.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(&dir).expect("Failed to create temp dir");
+
+        let previous = std::env::var("YUZUHA_CACHE_PATH").ok();
+        unsafe {
+            std::env::set_var("YUZUHA_CACHE_PATH", &dir);
+        }
+
+        CacheEnvGuard { _lock: lock, previous, dir }
+    }
+
+    /// Directory the cache is redirected to.
+    pub fn dir(&self) -> &Path {
+        &self.dir
+    }
+}
+
+impl Drop for CacheEnvGuard {
+    fn drop(&mut self) {
+        unsafe {
+            match &self.previous {
+                Some(value) => std::env::set_var("YUZUHA_CACHE_PATH", value),
+                None => std::env::remove_var("YUZUHA_CACHE_PATH"),
+            }
+        }
+        let _ = std::fs::remove_dir_all(&self.dir);
+    }
+}
 
 /// Build a spin from its doubled value, panicking on invalid input.
 ///

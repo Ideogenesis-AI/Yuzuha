@@ -186,6 +186,10 @@ fn test_rsymbol_fsymbol_consistency() {
     // The axis swap is equivalent to permutation [0, 2, 1, 3], so the
     // R-symbol for this permutation should match the F-symbol exactly.
     
+    // compute_rsymbol builds a canonical basis, so this test is a cache user
+    // and needs its own database like every other one.
+    let _guard = TestCacheGuard::new();
+
     let j_half = Spin::new(1).unwrap();
     
     // Create spec with 4 spin-1/2 edges (all incoming)
