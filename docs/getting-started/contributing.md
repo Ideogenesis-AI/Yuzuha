@@ -25,6 +25,8 @@ a bug, include:
 
 ### Development Setup
 
+Building from source requires Rust 1.85 or higher. The [installation guide](installation.md) covers the toolchain setup.
+
 ```bash
 git clone https://github.com/Ideogenesis-AI/Yuzuha.git
 cd Yuzuha

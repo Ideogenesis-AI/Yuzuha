@@ -26,7 +26,7 @@ source using [Maturin](https://www.maturin.rs/).
 
 ### Prerequisites
 
-Install Rust (1.70 or higher) and Maturin:
+The crate uses the 2024 edition, so the compiler must be Rust 1.85 or higher. Install Rust and Maturin:
 
 ```bash
 # Install Rust via rustup
@@ -123,10 +123,11 @@ pip install --upgrade numpy
 
 ### Rust Build Errors
 
-If you see linker or compilation errors when building from source, ensure your Rust
-toolchain is up to date:
+Source builds need Rust 1.85 or higher, the first release that supports edition 2024.
+Check the compiler, and install a current stable release if it is behind:
 
 ```bash
+rustc --version
 rustup update stable
 ```
 
