@@ -7,7 +7,7 @@
   <a href="https://github.com/Ideogenesis-AI/Yuzuha/blob/stable/LICENSE"><img src="https://img.shields.io/github/license/Ideogenesis-AI/Yuzuha?color=orange" alt="License"></a>
   <a href="https://ideogenesis-ai.github.io/Yuzuha/"><img src="https://img.shields.io/badge/docs-github.io-c9a400" alt="Documentation"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-%E2%89%A5_3.11-228b22" alt="Python ≥ 3.11"></a>
-  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/rust-1.70+-blue?logo=rust&logoColor=white" alt="Rust"></a>
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/rust-%E2%89%A5_1.85-blue?logo=rust&logoColor=white" alt="Rust ≥ 1.85"></a>
   <a href="#"><img src="https://img.shields.io/badge/coverage-%3E95%25-9400d3" alt="Coverage"></a>
   <a href="https://pypi.org/project/yuzuha/"><img src="https://img.shields.io/pypi/status/yuzuha?color=4b0082" alt="Status"></a>
 </p>
