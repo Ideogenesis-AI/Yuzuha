@@ -41,20 +41,32 @@ thread_local! {
     static TEST_CACHE_PATH: std::cell::RefCell<Option<PathBuf>> = std::cell::RefCell::new(None);
 }
 
-/// Get the database path: thread-local override → env var → default
-fn get_db_path() -> PathBuf {
+/// Apply the path precedence rules: thread-local override → env var → default
+///
+/// Kept separate from `get_db_path` so the precedence can be tested without
+/// mutating the process-global environment, which would race with the other
+/// tests running in parallel.
+fn resolve_db_path(thread_override: Option<PathBuf>, env_dir: Option<String>) -> PathBuf {
     // Thread-local override takes priority (set by TestCacheGuard in both unit and integration tests)
-    if let Some(path) = TEST_CACHE_PATH.with(|p| p.borrow().clone()) {
+    if let Some(path) = thread_override {
         return path;
     }
-    
+
     // YUZUHA_CACHE_PATH should be a directory, we append the filename
-    if let Ok(dir_path) = std::env::var("YUZUHA_CACHE_PATH") {
-        PathBuf::from(dir_path).join("cgbasis.db")
-    } else {
-        PathBuf::from(".yuzuha/cgbasis.db")
+    match env_dir {
+        Some(dir_path) => PathBuf::from(dir_path).join("cgbasis.db"),
+        None => PathBuf::from(".yuzuha/cgbasis.db"),
     }
 }
+
+/// Get the database path: thread-local override → env var → default
+fn get_db_path() -> PathBuf {
+    resolve_db_path(
+        TEST_CACHE_PATH.with(|p| p.borrow().clone()),
+        std::env::var("YUZUHA_CACHE_PATH").ok(),
+    )
+}
+
 
 /// Initialize the database connection and schema
 fn init_db(db_path: PathBuf) -> Result<(PathBuf, Connection)> {
