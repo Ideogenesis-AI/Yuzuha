@@ -227,16 +227,25 @@ pub struct TestCacheGuard {
     temp_dir: std::path::PathBuf,
 }
 
-/// Process- and time-unique token for naming temporary directories.
+/// Token that names a temporary directory no other guard can be using.
+///
+/// The process id and the clock separate concurrent runs, but not tests within
+/// one run: the wall clock advances in microsecond steps on some platforms, so
+/// two guards created in the same instant would otherwise share a directory
+/// and the first to drop would delete the database the other is still writing.
+/// The counter makes the name unique within the process.
 #[cfg(any(test, feature = "test-utils"))]
 fn unique_suffix() -> String {
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
     format!(
-        "{}_{}",
+        "{}_{}_{}",
         std::process::id(),
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_nanos()
+            .as_nanos(),
+        COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     )
 }
 
