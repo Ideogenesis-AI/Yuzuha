@@ -67,7 +67,6 @@ fn get_db_path() -> PathBuf {
     )
 }
 
-
 /// Initialize the database connection and schema
 fn init_db(db_path: PathBuf) -> Result<(PathBuf, Connection)> {
     // Create directory if it doesn't exist
@@ -228,31 +227,41 @@ pub struct TestCacheGuard {
     temp_dir: std::path::PathBuf,
 }
 
+/// Process- and time-unique token for naming temporary directories.
+#[cfg(any(test, feature = "test-utils"))]
+fn unique_suffix() -> String {
+    format!(
+        "{}_{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    )
+}
+
 #[cfg(any(test, feature = "test-utils"))]
 impl TestCacheGuard {
     /// Create a new test cache in a unique temporary directory.
     pub fn new() -> Self {
         use std::fs;
 
-        let temp_dir = std::env::temp_dir().join(format!(
-            "yuzuha_test_cache_{}_{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        
+        let temp_dir = std::env::temp_dir().join(format!("yuzuha_test_cache_{}", unique_suffix()));
+
         fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
 
-        let cache_path = temp_dir.join("cgbasis.db");
         TEST_CACHE_PATH.with(|p| {
-            *p.borrow_mut() = Some(cache_path);
+            *p.borrow_mut() = Some(temp_dir.join("cgbasis.db"));
         });
 
         reset_connection().expect("Failed to reset connection");
         
         TestCacheGuard { temp_dir }
+    }
+
+    /// Path of the database this guard redirects the cache to.
+    pub fn db_path(&self) -> PathBuf {
+        self.temp_dir.join("cgbasis.db")
     }
 }
 
@@ -330,5 +339,130 @@ mod tests {
         // Query non-existent data should return None
         let result = query_canonical_basis(&spins).unwrap();
         assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_resolve_db_path_precedence() {
+        let thread_path = PathBuf::from("/tmp/thread-local/cgbasis.db");
+
+        // The thread-local override wins even when the env var is set.
+        assert_eq!(
+            resolve_db_path(Some(thread_path.clone()), Some("/tmp/from-env".to_string())),
+            thread_path
+        );
+        assert_eq!(resolve_db_path(Some(thread_path.clone()), None), thread_path);
+
+        // The env var names a directory; the file name is appended.
+        assert_eq!(
+            resolve_db_path(None, Some("/tmp/from-env".to_string())),
+            PathBuf::from("/tmp/from-env/cgbasis.db")
+        );
+
+        // With neither override, the cache lives beside the working directory.
+        assert_eq!(resolve_db_path(None, None), PathBuf::from(".yuzuha/cgbasis.db"));
+    }
+
+    #[test]
+    fn test_get_db_path_uses_thread_local_override() {
+        let guard = TestCacheGuard::new();
+        assert_eq!(get_db_path(), guard.db_path());
+    }
+
+    #[test]
+    fn test_init_db_creates_missing_parent_directory() {
+        let root = std::env::temp_dir().join(format!("yuzuha_init_db_{}", unique_suffix()));
+        let db_path = root.join("nested").join("cgbasis.db");
+        assert!(!db_path.parent().unwrap().exists());
+
+        let (stored_path, conn) = init_db(db_path.clone()).unwrap();
+        assert_eq!(stored_path, db_path);
+        assert!(db_path.parent().unwrap().exists());
+
+        // The schema must be usable immediately after initialization.
+        conn.execute("INSERT INTO cgbasis (spins, data) VALUES (x'00', x'01')", [])
+            .unwrap();
+
+        drop(conn);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn test_init_db_reports_unusable_parent_directory() {
+        // A regular file cannot act as a parent directory, so create_dir_all fails.
+        let blocker = std::env::temp_dir().join(format!("yuzuha_blocker_{}", unique_suffix()));
+        std::fs::write(&blocker, b"not a directory").unwrap();
+
+        let err = init_db(blocker.join("cgbasis.db")).unwrap_err();
+        match err {
+            YuzuhaError::CacheError(msg) => {
+                assert!(msg.contains("Failed to create cache directory"), "got: {msg}")
+            }
+            other => panic!("expected CacheError, got {other:?}"),
+        }
+
+        let _ = std::fs::remove_file(&blocker);
+    }
+
+    #[test]
+    fn test_deserialize_array_rejects_malformed_bytes() {
+        let err = deserialize_array(b"this is not a .npy payload").unwrap_err();
+        match err {
+            YuzuhaError::CacheError(msg) => {
+                assert!(msg.contains("Failed to deserialize array"), "got: {msg}")
+            }
+            other => panic!("expected CacheError, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_query_reports_unreadable_row() {
+        let _guard = TestCacheGuard::new();
+
+        let j1 = Spin::new(2).unwrap();
+        let spins = vec![j1, j1];
+        let key = serialize_spins(&spins);
+
+        // SQLite is dynamically typed, so a non-blob slips past the schema and
+        // only fails when the row is read back as bytes.
+        {
+            let mut conn_guard = get_connection().unwrap();
+            let (_, conn) = conn_guard.as_mut().unwrap();
+            conn.execute(
+                "INSERT OR REPLACE INTO cgbasis (spins, data) VALUES (?1, 42)",
+                params![key],
+            )
+            .unwrap();
+        }
+
+        let err = query_canonical_basis(&spins).unwrap_err();
+        match err {
+            YuzuhaError::CacheError(msg) => assert!(msg.contains("Query failed"), "got: {msg}"),
+            other => panic!("expected CacheError, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_connection_reopens_when_path_changes() {
+        let first = TestCacheGuard::new();
+        let j1 = Spin::new(2).unwrap();
+        let spins = vec![j1, j1, j1];
+        let array = arr2(&[[1.0, 2.0], [3.0, 4.0]]).into_dyn();
+        store_canonical_basis(&spins, &array).unwrap();
+
+        {
+            let guard = get_connection().unwrap();
+            assert_eq!(guard.as_ref().unwrap().0, first.db_path());
+        }
+
+        // A second guard repoints the thread-local path. The cached connection
+        // must be discarded, so the entry written above is no longer visible.
+        let second = TestCacheGuard::new();
+        assert_ne!(second.db_path(), first.db_path());
+
+        {
+            let guard = get_connection().unwrap();
+            assert_eq!(guard.as_ref().unwrap().0, second.db_path());
+        }
+        assert!(query_canonical_basis(&spins).unwrap().is_none());
     }
 }

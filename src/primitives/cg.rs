@@ -290,6 +290,42 @@ mod tests {
     }
 
     #[test]
+    fn test_compute_cg_racah_defensive_branches() {
+        // These guards sit behind selection_rules, which clebsch_gordan applies
+        // first, so they are only reachable by calling the Racah routine
+        // directly. They must still return 0 in these scenarios.
+        let j0 = Spin::new(0).unwrap();
+        let j_half = Spin::new(1).unwrap();
+        let j1 = Spin::new(2).unwrap();
+        let m0 = MagneticNumber::new_unchecked(0);
+        let m1 = MagneticNumber::new_unchecked(2);
+
+        // j1 = 0 requires j2 == j3 and m2 == m3.
+        assert_eq!(compute_cg_racah(j0, m0, j1, m1, j1, m1), 1.0);
+        assert_eq!(compute_cg_racah(j0, m0, j1, m1, j_half, m1), 0.0);
+        assert_eq!(compute_cg_racah(j0, m0, j1, m1, j1, m0), 0.0);
+
+        // j2 = 0 requires j1 == j3 and m1 == m3.
+        assert_eq!(compute_cg_racah(j1, m1, j0, m0, j1, m1), 1.0);
+        assert_eq!(compute_cg_racah(j1, m1, j0, m0, j_half, m1), 0.0);
+        assert_eq!(compute_cg_racah(j1, m1, j0, m0, j1, m0), 0.0);
+
+        // A vanishing triangle coefficient short-circuits to 0. Coupling
+        // j=1 with j=1 cannot reach j=3.
+        let j3 = Spin::new(6).unwrap();
+        assert_eq!(delta(1.0, 1.0, 3.0), 0.0);
+        assert_eq!(compute_cg_racah(j1, m1, j1, m1, j3, MagneticNumber::new_unchecked(4)), 0.0);
+    }
+
+    #[test]
+    fn test_factorial_f64_edge_cases() {
+        assert_eq!(factorial_f64(-1), 0.0);
+        assert_eq!(factorial_f64(0), 1.0);
+        assert_eq!(factorial_f64(1), 1.0);
+        assert_eq!(factorial_f64(5), 120.0);
+    }
+
+    #[test]
     fn test_cg_caching() {
         clear_cache();
 

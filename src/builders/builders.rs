@@ -457,6 +457,58 @@ mod tests {
     }
 
     #[test]
+    fn test_build_fusion_tree_recursive_requires_four_edges() {
+        // The n<4 cases are handled by the caller, so reaching the recursive
+        // builder with fewer edges is a programming error.
+        let j1 = crate::core::Spin::new(2).unwrap();
+        let edges = vec![Edge::incoming(j1), Edge::incoming(j1), Edge::outgoing(j1)];
+
+        let err = build_fusion_tree_recursive(&edges, &[j1]).unwrap_err();
+        match err {
+            YuzuhaError::InvalidCGTSpec(msg) => {
+                assert!(msg.contains("requires n >= 4"), "got: {msg}")
+            }
+            other => panic!("expected InvalidCGTSpec, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_contract_last_with_first_rejects_scalars() {
+        let scalar = Array::zeros(IxDyn(&[]));
+        let matrix = Array::zeros(IxDyn(&[2, 2]));
+
+        for (a, b) in [(&scalar, &matrix), (&matrix, &scalar)] {
+            let err = contract_last_with_first(a, b).unwrap_err();
+            match err {
+                YuzuhaError::InvalidContraction(msg) => {
+                    assert!(msg.contains("Cannot contract scalar tensors"), "got: {msg}")
+                }
+                other => panic!("expected InvalidContraction, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_contract_last_with_first_checks_shared_dimension() {
+        // The last axis of a must match the first axis of b.
+        let a = Array::zeros(IxDyn(&[2, 3]));
+        let b = Array::zeros(IxDyn(&[4, 5]));
+
+        let err = contract_last_with_first(&a, &b).unwrap_err();
+        match err {
+            YuzuhaError::InvalidContraction(msg) => {
+                assert!(msg.contains("Incompatible contraction dimensions: 3 vs 4"), "got: {msg}")
+            }
+            other => panic!("expected InvalidContraction, got {other:?}"),
+        }
+
+        // The matching case produces the concatenated outer shape.
+        let b_ok = Array::zeros(IxDyn(&[3, 5]));
+        let result = contract_last_with_first(&a, &b_ok).unwrap();
+        assert_eq!(result.shape(), &[2, 5]);
+    }
+
+    #[test]
     fn test_build_single_om_tensor_three_edges() {
         let _guard = TestCacheGuard::new();
 
