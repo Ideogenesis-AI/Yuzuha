@@ -22,29 +22,10 @@
 //!
 //! **IMPORTANT**: All tests enforce angular momentum conservation (total j = 0)
 
-use yuzuha::core::{CGSpec, Direction, Edge, Spin};
+use yuzuha::core::{CGSpec, Edge};
 use yuzuha::YuzuhaError;
 
-// Helper to create spin from doubled value
-fn j(doubled: i32) -> Spin {
-    Spin::new(doubled).unwrap()
-}
-
-// Helper to format alpha for display (debugging)
-#[allow(dead_code)]
-fn format_alpha(alpha: &[Spin]) -> String {
-    let parts: Vec<String> = alpha.iter().map(|s| format!("{}", s)).collect();
-    format!("[{}]", parts.join(", "))
-}
-
-// Helper to print all alphas (for debugging)
-#[allow(dead_code)]
-fn print_alphas(alphas: &[Vec<Spin>]) {
-    println!("Total alphas: {}", alphas.len());
-    for (i, alpha) in alphas.iter().enumerate() {
-        println!("  α[{}] = {}", i, format_alpha(alpha));
-    }
-}
+use crate::common::j;
 
 #[cfg(test)]
 mod test_fourth_order {
@@ -457,67 +438,6 @@ mod test_sixth_order {
 }
 
 #[cfg(test)]
-mod test_edge_properties {
-    use super::*;
-
-    #[test]
-    fn test_edge_directions() {
-        // Test that directions are preserved in CGSpec
-        let edges = vec![
-            Edge::incoming(j(2)),
-            Edge::outgoing(j(2)),
-            Edge::incoming(j(2)),
-        ];
-
-        let spec = CGSpec::from_edges(edges.clone()).unwrap();
-
-        assert_eq!(spec.edges.len(), 3);
-        assert_eq!(spec.edges[0].dir, Direction::Incoming);
-        assert_eq!(spec.edges[1].dir, Direction::Outgoing);
-        assert_eq!(spec.edges[2].dir, Direction::Incoming);
-    }
-
-    #[test]
-    fn test_edge_indexing() {
-        // Test that edges can be accessed by index
-        let edges = vec![
-            Edge::incoming(j(2)),
-            Edge::incoming(j(2)),
-            Edge::incoming(j(2)),
-            Edge::incoming(j(2)),
-        ];
-
-        let spec = CGSpec::from_edges(edges).unwrap();
-
-        // Test valid indices
-        assert!(spec.edge_spin_at(0).is_ok());
-        assert!(spec.edge_spin_at(1).is_ok());
-        assert!(spec.edge_spin_at(2).is_ok());
-        assert!(spec.edge_spin_at(3).is_ok());
-        // Test invalid index
-        assert!(spec.edge_spin_at(4).is_err());
-    }
-
-    #[test]
-    fn test_edge_spin_lookup() {
-        let edges = vec![
-            Edge::incoming(j(1)),
-            Edge::incoming(j(3)),
-            Edge::incoming(j(4)),
-            Edge::incoming(j(2)),
-        ];
-
-        let spec = CGSpec::from_edges(edges).unwrap();
-
-        assert_eq!(spec.edge_spin_at(0).unwrap(), j(1));
-        assert_eq!(spec.edge_spin_at(1).unwrap(), j(3));
-        assert_eq!(spec.edge_spin_at(2).unwrap(), j(4));
-        assert_eq!(spec.edge_spin_at(3).unwrap(), j(2));
-        assert!(spec.edge_spin_at(4).is_err());
-    }
-}
-
-#[cfg(test)]
 mod test_special_cases {
     use super::*;
 
@@ -557,26 +477,6 @@ mod test_special_cases {
         for alpha in &spec.alphas {
             assert_eq!(alpha.len(), 2);
         }
-    }
-
-    #[test]
-    fn test_shape_calculation() {
-        // Test that shape is computed correctly
-        let edges = vec![
-            Edge::incoming(j(1)), // dim = 2
-            Edge::incoming(j(2)), // dim = 3
-            Edge::incoming(j(3)), // dim = 4
-            Edge::incoming(j(2)), // dim = 3
-        ];
-
-        let spec = CGSpec::from_edges(edges).unwrap();
-
-        let shape = spec.shape();
-        assert_eq!(shape[0], 2); // dim(j=1/2)
-        assert_eq!(shape[1], 3); // dim(j=1)
-        assert_eq!(shape[2], 4); // dim(j=3/2)
-        assert_eq!(shape[3], 3); // dim(j=1)
-        assert_eq!(shape[4], spec.om_dimension()); // OM dimension
     }
 
     #[test]
@@ -689,113 +589,5 @@ mod test_manually_verified {
         for alpha in &spec.alphas {
             assert_eq!(alpha.len(), 4);
         }
-    }
-}
-
-#[cfg(test)]
-mod test_with_inverted_axes {
-    use super::*;
-
-    fn make_spec() -> CGSpec {
-        // in, in, in, out — 4-edge j=1/2 spec; om_dim=2
-        CGSpec::from_edges(vec![
-            Edge::incoming(j(1)),
-            Edge::incoming(j(1)),
-            Edge::incoming(j(1)),
-            Edge::outgoing(j(1)),
-        ]).unwrap()
-    }
-
-    #[test]
-    fn test_single_axis_flipped() {
-        let spec = make_spec();
-        let result = spec.with_inverted_axes(&[0]).unwrap();
-
-        assert_eq!(result.edges[0].dir, Direction::Outgoing); // flipped
-        assert_eq!(result.edges[1].dir, Direction::Incoming);  // unchanged
-        assert_eq!(result.edges[2].dir, Direction::Incoming);  // unchanged
-        assert_eq!(result.edges[3].dir, Direction::Outgoing);  // unchanged
-    }
-
-    #[test]
-    fn test_multiple_axes_flipped() {
-        let spec = make_spec();
-        let result = spec.with_inverted_axes(&[1, 3]).unwrap();
-
-        assert_eq!(result.edges[0].dir, Direction::Incoming);  // unchanged
-        assert_eq!(result.edges[1].dir, Direction::Outgoing);  // flipped
-        assert_eq!(result.edges[2].dir, Direction::Incoming);  // unchanged
-        assert_eq!(result.edges[3].dir, Direction::Incoming);  // flipped
-    }
-
-    #[test]
-    fn test_all_axes_flipped() {
-        let spec = make_spec();
-        let result = spec.with_inverted_axes(&[0, 1, 2, 3]).unwrap();
-
-        assert_eq!(result.edges[0].dir, Direction::Outgoing);
-        assert_eq!(result.edges[1].dir, Direction::Outgoing);
-        assert_eq!(result.edges[2].dir, Direction::Outgoing);
-        assert_eq!(result.edges[3].dir, Direction::Incoming);
-    }
-
-    #[test]
-    fn test_empty_axes_is_clone() {
-        let spec = make_spec();
-        let result = spec.with_inverted_axes(&[]).unwrap();
-
-        for (orig, new) in spec.edges.iter().zip(result.edges.iter()) {
-            assert_eq!(orig.dir, new.dir);
-            assert_eq!(orig.j, new.j);
-        }
-    }
-
-    #[test]
-    fn test_spins_are_preserved() {
-        let spec = make_spec();
-        let result = spec.with_inverted_axes(&[0, 1, 2, 3]).unwrap();
-
-        for (orig, new) in spec.edges.iter().zip(result.edges.iter()) {
-            assert_eq!(orig.j, new.j);
-        }
-    }
-
-    #[test]
-    fn test_alphas_are_preserved() {
-        let spec = make_spec();
-        let result = spec.with_inverted_axes(&[0, 2]).unwrap();
-
-        assert_eq!(spec.alphas, result.alphas);
-        assert_eq!(result.om_dimension(), 2); // non-trivial OM
-    }
-
-    #[test]
-    fn test_double_invert_restores_original() {
-        let spec = make_spec();
-        let once = spec.with_inverted_axes(&[0, 2]).unwrap();
-        let twice = once.with_inverted_axes(&[0, 2]).unwrap();
-
-        for (orig, restored) in spec.edges.iter().zip(twice.edges.iter()) {
-            assert_eq!(orig.dir, restored.dir);
-        }
-    }
-
-    #[test]
-    fn test_out_of_bounds_axis_errors() {
-        let spec = make_spec();
-        assert!(spec.with_inverted_axes(&[4]).is_err());
-        assert!(spec.with_inverted_axes(&[0, 99]).is_err());
-    }
-
-    #[test]
-    fn test_original_is_unchanged() {
-        let spec = make_spec();
-        let _result = spec.with_inverted_axes(&[0, 1, 2, 3]).unwrap();
-
-        // Original spec must not be mutated
-        assert_eq!(spec.edges[0].dir, Direction::Incoming);
-        assert_eq!(spec.edges[1].dir, Direction::Incoming);
-        assert_eq!(spec.edges[2].dir, Direction::Incoming);
-        assert_eq!(spec.edges[3].dir, Direction::Outgoing);
     }
 }

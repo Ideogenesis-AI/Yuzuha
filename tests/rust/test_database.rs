@@ -22,9 +22,10 @@
 //! compute and cache basis data simultaneously.
 
 use yuzuha::builders::build_canonical_basis_data;
-use yuzuha::core::{CGSpec, Edge, Spin};
 use std::sync::Arc;
 use std::thread;
+
+use crate::common::{create_spec, CacheEnvGuard};
 
 /// Test concurrent writes to the same cache database
 ///
@@ -33,20 +34,10 @@ use std::thread;
 /// corruption or race conditions.
 #[test]
 fn test_concurrent_cache_writes() {
-    // Create a shared temporary database for this test
-    let temp_dir = std::env::temp_dir().join(format!(
-        "yuzuha_concurrent_test_{}",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    std::fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
-    
-    // Set the cache directory for all threads (the cache will append cgbasis.db)
-    unsafe {
-        std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
-    }
+    // Every thread must reach the same database, so the cache is redirected
+    // through the environment rather than the thread-local test guard. The
+    // guard holds a lock for as long as that redirection is in place.
+    let _cache = CacheEnvGuard::new("yuzuha_concurrent_test");
     
     // Define different specs to compute in parallel
     // Note: Must satisfy angular momentum conservation (couple to j=0)
@@ -137,11 +128,6 @@ fn test_concurrent_cache_writes() {
         assert!(sum > 1e-10, "Result should not be all zeros");
     }
     
-    // Clean up
-    unsafe {
-        std::env::remove_var("YUZUHA_CACHE_PATH");
-    }
-    let _ = std::fs::remove_dir_all(&temp_dir);
 }
 
 /// Test concurrent reads from cache
@@ -150,20 +136,10 @@ fn test_concurrent_cache_writes() {
 /// read the same cached data. Verifies that all threads get consistent results.
 #[test]
 fn test_concurrent_cache_reads() {
-    // Create a shared temporary database for this test
-    let temp_dir = std::env::temp_dir().join(format!(
-        "yuzuha_concurrent_read_test_{}",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    std::fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
-    
-    // Set the cache directory (the cache will append cgbasis.db)
-    unsafe {
-        std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
-    }
+    // Every thread must reach the same database, so the cache is redirected
+    // through the environment rather than the thread-local test guard. The
+    // guard holds a lock for as long as that redirection is in place.
+    let _cache = CacheEnvGuard::new("yuzuha_concurrent_read_test");
     
     // Pre-populate cache with some data
     let spec = create_spec(vec![2, 2, 2]); // Three j=1 spins
@@ -203,11 +179,6 @@ fn test_concurrent_cache_reads() {
         }
     }
     
-    // Clean up
-    unsafe {
-        std::env::remove_var("YUZUHA_CACHE_PATH");
-    }
-    let _ = std::fs::remove_dir_all(&temp_dir);
 }
 
 /// Test mixed concurrent reads and writes
@@ -215,20 +186,10 @@ fn test_concurrent_cache_reads() {
 /// Some threads write new data while others read existing data.
 #[test]
 fn test_concurrent_mixed_operations() {
-    // Create a shared temporary database for this test
-    let temp_dir = std::env::temp_dir().join(format!(
-        "yuzuha_concurrent_mixed_test_{}",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    std::fs::create_dir_all(&temp_dir).expect("Failed to create temp dir");
-    
-    // Set the cache directory (the cache will append cgbasis.db)
-    unsafe {
-        std::env::set_var("YUZUHA_CACHE_PATH", &temp_dir);
-    }
+    // Every thread must reach the same database, so the cache is redirected
+    // through the environment rather than the thread-local test guard. The
+    // guard holds a lock for as long as that redirection is in place.
+    let _cache = CacheEnvGuard::new("yuzuha_concurrent_mixed_test");
     
     // Pre-populate with one spec
     let read_spec = Arc::new(create_spec(vec![2, 2, 2]));
@@ -312,26 +273,5 @@ fn test_concurrent_mixed_operations() {
         }
     }
     
-    // Clean up
-    unsafe {
-        std::env::remove_var("YUZUHA_CACHE_PATH");
-    }
-    let _ = std::fs::remove_dir_all(&temp_dir);
 }
 
-/// Helper to create a CGSpec from spin twice values
-fn create_spec(twice_values: Vec<i32>) -> CGSpec {
-    let edges: Vec<Edge> = twice_values.iter()
-        .enumerate()
-        .map(|(i, &twice)| {
-            let spin = Spin::new(twice).expect("Invalid spin");
-            if i == twice_values.len() - 1 {
-                Edge::outgoing(spin)
-            } else {
-                Edge::incoming(spin)
-            }
-        })
-        .collect();
-    
-    CGSpec::from_edges(edges).expect("Failed to create CGSpec")
-}

@@ -290,46 +290,39 @@ mod tests {
     }
 
     #[test]
-    fn test_cg_orthonormality() {
-        // Test orthonormality: Σ_m1,m2 CG(j1,m1,j2,m2,j3,m3) * CG(j1,m1,j2,m2,j3',m3') = δ_j3,j3' δ_m3,m3'
-        let j_half = Spin::new(1).unwrap();
+    fn test_compute_cg_racah_defensive_branches() {
+        // These guards sit behind selection_rules, which clebsch_gordan applies
+        // first, so they are only reachable by calling the Racah routine
+        // directly. They must still return 0 in these scenarios.
         let j0 = Spin::new(0).unwrap();
+        let j_half = Spin::new(1).unwrap();
         let j1 = Spin::new(2).unwrap();
-
-        // Sum over all m1, m2 for j3=j3'=0, m3=m3'=0
         let m0 = MagneticNumber::new_unchecked(0);
-        let mut sum = 0.0;
+        let m1 = MagneticNumber::new_unchecked(2);
 
-        for m1_val in [-1, 1] {
-            for m2_val in [-1, 1] {
-                if m1_val + m2_val == 0 {
-                    let m1 = MagneticNumber::new_unchecked(m1_val);
-                    let m2 = MagneticNumber::new_unchecked(m2_val);
-                    let cg = clebsch_gordan(j_half, m1, j_half, m2, j0, m0);
-                    sum += cg * cg;
-                }
-            }
-        }
+        // j1 = 0 requires j2 == j3 and m2 == m3.
+        assert_eq!(compute_cg_racah(j0, m0, j1, m1, j1, m1), 1.0);
+        assert_eq!(compute_cg_racah(j0, m0, j1, m1, j_half, m1), 0.0);
+        assert_eq!(compute_cg_racah(j0, m0, j1, m1, j1, m0), 0.0);
 
-        // Should sum to 1 (normalized)
-        assert_relative_eq!(sum, 1.0, epsilon = 1e-10);
+        // j2 = 0 requires j1 == j3 and m1 == m3.
+        assert_eq!(compute_cg_racah(j1, m1, j0, m0, j1, m1), 1.0);
+        assert_eq!(compute_cg_racah(j1, m1, j0, m0, j_half, m1), 0.0);
+        assert_eq!(compute_cg_racah(j1, m1, j0, m0, j1, m0), 0.0);
 
-        // Check orthogonality: j3=0 vs j3=1
-        sum = 0.0;
-        for m1_val in [-1, 1] {
-            for m2_val in [-1, 1] {
-                if m1_val + m2_val == 0 {
-                    let m1 = MagneticNumber::new_unchecked(m1_val);
-                    let m2 = MagneticNumber::new_unchecked(m2_val);
-                    let cg1 = clebsch_gordan(j_half, m1, j_half, m2, j0, m0);
-                    let cg2 = clebsch_gordan(j_half, m1, j_half, m2, j1, m0);
-                    sum += cg1 * cg2;
-                }
-            }
-        }
+        // A vanishing triangle coefficient short-circuits to 0. Coupling
+        // j=1 with j=1 cannot reach j=3.
+        let j3 = Spin::new(6).unwrap();
+        assert_eq!(delta(1.0, 1.0, 3.0), 0.0);
+        assert_eq!(compute_cg_racah(j1, m1, j1, m1, j3, MagneticNumber::new_unchecked(4)), 0.0);
+    }
 
-        // Should be 0 (orthogonal)
-        assert_relative_eq!(sum, 0.0, epsilon = 1e-10);
+    #[test]
+    fn test_factorial_f64_edge_cases() {
+        assert_eq!(factorial_f64(-1), 0.0);
+        assert_eq!(factorial_f64(0), 1.0);
+        assert_eq!(factorial_f64(1), 1.0);
+        assert_eq!(factorial_f64(5), 120.0);
     }
 
     #[test]

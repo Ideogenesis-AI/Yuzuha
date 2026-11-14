@@ -24,8 +24,10 @@ use yuzuha::core::{CGSpec, Contraction, Edge, Spin};
 use yuzuha::builders::builders::build_canonical_basis_data;
 use yuzuha::builders::xsymbol::compute_xsymbol;
 use yuzuha::builders::TestCacheGuard;
-use ndarray::{ArrayD, Axis};
+use ndarray::Axis;
 use rand::Rng;
+
+use crate::common::build_weighted_tensor;
 
 /// Test X-symbol by comparing two ways of computing the same contracted tensor:
 /// 1. Direct contraction: Contract CGTensor_A with CGTensor_B
@@ -633,23 +635,3 @@ fn run_consistency_test(
     }
 }
 
-/// Helper function to build a weighted tensor from basis and weights
-/// tensor[..., i] = sum_alpha w[alpha] * basis[..., i, alpha]
-fn build_weighted_tensor(basis: &ArrayD<f64>, weights: &[f64]) -> ArrayD<f64> {
-    let ndim = basis.ndim();
-    let om_axis = ndim - 1;
-    
-    // Get shape without OM axis
-    let mut result_shape = basis.shape().to_vec();
-    result_shape.pop(); // Remove last dimension (OM axis)
-    
-    let mut result = ArrayD::zeros(result_shape);
-    
-    // Sum over OM configurations: result[...] = sum_alpha w[alpha] * basis[..., alpha]
-    for (alpha, &weight) in weights.iter().enumerate() {
-        let basis_slice = basis.index_axis(Axis(om_axis), alpha);
-        result = result + &(basis_slice.to_owned() * weight);
-    }
-    
-    result
-}

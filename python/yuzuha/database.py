@@ -23,14 +23,20 @@ CG bases to improve runtime performance.
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Sequence
 
 from .yuzuha import Spin, Edge, CGSpec, canonical_basis
+
+# Spin(n) represents j = n/2, so Spin(1) is j=1/2 and Spin(6) is j=3.
+DEFAULT_SPECIAL_SPINS = (1, 2)
+DEFAULT_GENERAL_SPINS = (1, 2, 3, 4, 5, 6)
 
 
 def startup_database(
     logger: Optional[logging.Logger] = None,
-    log_level: int = logging.INFO
+    log_level: int = logging.INFO,
+    special_spins: Optional[Sequence[int]] = None,
+    general_spins: Optional[Sequence[int]] = None,
 ) -> None:
     """
     Pre-compute and cache CG bases for commonly used spin configurations.
@@ -48,6 +54,12 @@ def startup_database(
         Logger instance to use. If None, creates a default stream logger.
     log_level : int, optional
         Logging level to use for the default logger. Default is logging.INFO.
+    special_spins : sequence of int, optional
+        Doubled spin values for the distinguished edge of the 3rd order
+        configurations. Defaults to ``(1, 2)``, i.e. j=1/2 and j=1.
+    general_spins : sequence of int, optional
+        Doubled spin values for the remaining edges. Defaults to
+        ``(1, 2, 3, 4, 5, 6)``, i.e. j=1/2 through j=3.
     
     Examples
     --------
@@ -58,6 +70,9 @@ def startup_database(
     >>> import logging
     >>> logger = logging.getLogger('my_app')
     >>> yuzuha.startup_database(logger=logger)
+    
+    >>> # Narrow the sweep to j=1/2 and j=1 only
+    >>> yuzuha.startup_database(special_spins=[1], general_spins=[1, 2])
     """
     # Setup logger
     if logger is None:
@@ -76,12 +91,15 @@ def startup_database(
     
     logger.info("Starting CG basis database pre-computation")
     
-    # Define spin ranges
-    # Spin(n) represents j = n/2, so:
-    # Spin(1) = j=1/2, Spin(2) = j=1, ..., Spin(6) = j=3
-    spin_half_or_one = [Spin(1), Spin(2)]  # j=1/2 and j=1
-    spin_half = [Spin(1)]  # j=1/2
-    spins_up_to_three = [Spin(i) for i in range(1, 7)]  # j=1/2, 1, 3/2, 2, 5/2, 3
+    # Resolve the spin ranges
+    if special_spins is None:
+        special_spins = DEFAULT_SPECIAL_SPINS
+    if general_spins is None:
+        general_spins = DEFAULT_GENERAL_SPINS
+    spin_half_or_one = [Spin(n) for n in special_spins]
+    spins_up_to_three = [Spin(n) for n in general_spins]
+    special_range = ", ".join(str(s) for s in spin_half_or_one)
+    general_range = ", ".join(str(s) for s in spins_up_to_three)
     
     total_count = 0
     success_count = 0
@@ -90,7 +108,7 @@ def startup_database(
     # 3rd order bases: one spin is 1/2 or 1, other two spins up to spin-3
     # ========================================================================
     logger.info("Computing 3rd order bases...")
-    logger.info("  Configuration: one spin ∈ {1/2, 1}, two spins ∈ {1/2, ..., 3}")
+    logger.info(f"  Configuration: one spin ∈ {{{special_range}}}, two spins ∈ {{{general_range}}}")
     
     third_order_configs = set()
     
@@ -148,7 +166,7 @@ def startup_database(
     # 4th order bases: two spins are 1/2, other two spins up to spin-3
     # ========================================================================
     logger.info("\nComputing 4th order bases...")
-    logger.info("  Configuration: two spins = 1/2, two spins ∈ {1/2, ..., 3}")
+    logger.info(f"  Configuration: two spins = 1/2, two spins ∈ {{{general_range}}}")
     
     fourth_order_configs = set()
     

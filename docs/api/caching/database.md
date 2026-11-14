@@ -36,7 +36,15 @@ yuzuha.startup_database(logger=logger)
 
 # Suppress output
 yuzuha.startup_database(log_level=logging.WARNING)
+
+# Narrow the sweep — doubled spin values, so 1 is j=1/2 and 2 is j=1
+yuzuha.startup_database(special_spins=[1], general_spins=[1, 2])
 ```
+
+The `special_spins` and `general_spins` arguments control the grid that is swept.
+Omitting them uses the default ranges described above; narrowing them is useful
+when an application only ever needs a few spin values, or in tests where the full
+sweep would be too slow.
 
 ### Progress Logging
 

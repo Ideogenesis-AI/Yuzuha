@@ -190,6 +190,36 @@ mod tests {
     use crate::core::{Edge, Spin};
 
     #[test]
+    fn test_is_real_and_get_out_of_range() {
+        let _guard = crate::builders::TestCacheGuard::new();
+
+        let j_half = Spin::new(1).unwrap();
+        let spec_a = CGSpec::from_edges(vec![
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::outgoing(Spin::new(2).unwrap()),
+        ])
+        .unwrap();
+        let spec_b = CGSpec::from_edges(vec![
+            Edge::incoming(Spin::new(2).unwrap()),
+            Edge::incoming(j_half),
+            Edge::outgoing(j_half),
+        ])
+        .unwrap();
+
+        let x = compute_xsymbol(&spec_a, &spec_b, &Contraction::new(&[2], &[0])).unwrap();
+        let (dim_a, dim_b, dim_c) = x.dimensions();
+
+        // Every SU(2) X-symbol is real by construction.
+        assert!(x.is_real(1e-10));
+
+        assert!(x.get(0, 0, 0).is_some());
+        assert!(x.get(dim_a, 0, 0).is_none());
+        assert!(x.get(0, dim_b, 0).is_none());
+        assert!(x.get(0, 0, dim_c).is_none());
+    }
+
+    #[test]
     fn test_xsymbol_basic() {
         let j_half = Spin::new(1).unwrap(); // j=1/2
         let j1 = Spin::new(2).unwrap();     // j=1
