@@ -79,6 +79,45 @@ Shared fixtures for the integration suite belong in `tests/rust/common.rs`. New
 integration files must be registered in `tests/rust.rs`, which is the single entry point
 Cargo compiles.
 
+### Test Coverage
+
+The project holds *production line coverage* above 95% for the Rust library, the Python
+bindings, and the Python package independently. Production coverage excludes lines inside
+inline `#[cfg(test)]` modules, so a file cannot raise its score by testing its own test
+code.
+
+```bash
+# One-off tooling setup; Coverage.py comes with the dev extras
+cargo install cargo-llvm-cov
+rustup component add llvm-tools-preview
+
+# Rust library
+cargo llvm-cov --features test-utils --summary-only
+
+# Python package
+coverage run --source yuzuha -m pytest && coverage report -m
+```
+
+Install `llvm-tools-preview` rather than relying on a system LLVM: the coverage format is
+versioned with the compiler, and an `llvm-cov` from Xcode or Homebrew will refuse to read
+profiles produced by `rustc`.
+
+Two caveats when reading those numbers. `cargo llvm-cov` counts inline test modules, which
+are themselves almost fully covered, so its figure is optimistic relative to the metric
+above; use `--lcov` output and discard the lines at or after each file's first
+`#[cfg(test)]` to reproduce the production figure. And `src/bindings.rs` is absent from
+the report entirely, because it only compiles under the `python` feature — measuring it
+means building an extension with `RUSTFLAGS="-C instrument-coverage"`, running pytest
+against that build with `LLVM_PROFILE_FILE` set, and reporting the resulting profiles with
+`llvm-cov`. Remember to reinstall a clean release build afterwards, since an instrumented
+extension is slow and writes profile data on every run.
+
+When adding code, check the uncovered lines rather than the percentage. A few lines are
+genuinely unreachable and are expected to stay uncovered: the `?` arms on the infallible
+`build_cg3` in `src/builders/builders.rs`, and the `InvalidMagneticNumber`,
+`TriangleViolation` and `InvalidContraction` conversion arms in `src/bindings.rs`, which
+nothing in the crate ever constructs on a path reachable from Python.
+
 ## Code Style
 
 - **Rust**: Follow `rustfmt` formatting (`cargo fmt`)
