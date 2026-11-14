@@ -290,49 +290,6 @@ mod tests {
     }
 
     #[test]
-    fn test_cg_orthonormality() {
-        // Test orthonormality: Σ_m1,m2 CG(j1,m1,j2,m2,j3,m3) * CG(j1,m1,j2,m2,j3',m3') = δ_j3,j3' δ_m3,m3'
-        let j_half = Spin::new(1).unwrap();
-        let j0 = Spin::new(0).unwrap();
-        let j1 = Spin::new(2).unwrap();
-
-        // Sum over all m1, m2 for j3=j3'=0, m3=m3'=0
-        let m0 = MagneticNumber::new_unchecked(0);
-        let mut sum = 0.0;
-
-        for m1_val in [-1, 1] {
-            for m2_val in [-1, 1] {
-                if m1_val + m2_val == 0 {
-                    let m1 = MagneticNumber::new_unchecked(m1_val);
-                    let m2 = MagneticNumber::new_unchecked(m2_val);
-                    let cg = clebsch_gordan(j_half, m1, j_half, m2, j0, m0);
-                    sum += cg * cg;
-                }
-            }
-        }
-
-        // Should sum to 1 (normalized)
-        assert_relative_eq!(sum, 1.0, epsilon = 1e-10);
-
-        // Check orthogonality: j3=0 vs j3=1
-        sum = 0.0;
-        for m1_val in [-1, 1] {
-            for m2_val in [-1, 1] {
-                if m1_val + m2_val == 0 {
-                    let m1 = MagneticNumber::new_unchecked(m1_val);
-                    let m2 = MagneticNumber::new_unchecked(m2_val);
-                    let cg1 = clebsch_gordan(j_half, m1, j_half, m2, j0, m0);
-                    let cg2 = clebsch_gordan(j_half, m1, j_half, m2, j1, m0);
-                    sum += cg1 * cg2;
-                }
-            }
-        }
-
-        // Should be 0 (orthogonal)
-        assert_relative_eq!(sum, 0.0, epsilon = 1e-10);
-    }
-
-    #[test]
     fn test_cg_caching() {
         clear_cache();
 

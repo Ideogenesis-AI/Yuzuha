@@ -713,3 +713,30 @@ fn test_selection_rules_systematic() {
     let cg = clebsch_gordan(j1, m1, j2, m2, j_invalid, m_invalid);
     assert_eq!(cg, 0.0);
 }
+
+#[test]
+fn test_spin_half_pair_orthonormality() {
+    // The two-spin-1/2 system worked out by hand, as a readable anchor for the
+    // systematic sweeps above: the m1+m2=0 column of the CG matrix is a unit
+    // vector for j3=0, and is orthogonal to the same column for j3=1.
+    let j_half = Spin::new(1).unwrap();
+    let j0 = Spin::new(0).unwrap();
+    let j1 = Spin::new(2).unwrap();
+    let m0 = MagneticNumber::new_unchecked(0);
+
+    let mut norm = 0.0;
+    let mut overlap = 0.0;
+    for m1_val in [-1, 1] {
+        let m1 = MagneticNumber::new_unchecked(m1_val);
+        let m2 = MagneticNumber::new_unchecked(-m1_val);
+
+        let cg_singlet = clebsch_gordan(j_half, m1, j_half, m2, j0, m0);
+        let cg_triplet = clebsch_gordan(j_half, m1, j_half, m2, j1, m0);
+
+        norm += cg_singlet * cg_singlet;
+        overlap += cg_singlet * cg_triplet;
+    }
+
+    assert_relative_eq!(norm, 1.0, epsilon = 1e-10);
+    assert_relative_eq!(overlap, 0.0, epsilon = 1e-10);
+}

@@ -49,12 +49,35 @@ Yuzuha has two test suites:
 # Python tests (pytest)
 pytest
 
-# Rust tests (cargo)
-cargo test
+# Rust tests (cargo). The integration suite needs the test-utils feature,
+# which exposes TestCacheGuard for cache isolation.
+cargo test --features test-utils
 ```
 
 The Python suite covers the full API including integration tests. The Rust suite covers
 internal algorithms like CG coefficient computation and CGSpec logic.
+
+### Where to Place a Rust Test
+
+Rust tests live in two places, and which one you pick is determined by what the test
+asserts, not by what it happens to call.
+
+**Inline `#[cfg(test)] mod tests`, at the bottom of the source file**, holds unit tests of
+a single function: constructors, accessors, `Display` and operator impls, and error
+branches. Anything that touches a private item *must* go here, because `tests/rust/` can
+only reach the public API. `get_db_path`, `init_db`, `serialize_spins` and
+`reset_connection` in `src/builders/cache.rs`, and `build_permuted_spec` in
+`src/builders/rsymbol.rs`, are only testable from inline modules.
+
+**`tests/rust/`** holds tests of mathematical properties that span several functions:
+orthonormality of the canonical basis, unitarity of R-symbols, F-symbol and X-symbol
+consistency between equivalent contraction paths, Clebsch-Gordan values checked against
+published tables, and concurrency behaviour. These tests exercise the crate the way a
+downstream user would, through `yuzuha::` imports only.
+
+Shared fixtures for the integration suite belong in `tests/rust/common.rs`. New
+integration files must be registered in `tests/rust.rs`, which is the single entry point
+Cargo compiles.
 
 ## Code Style
 

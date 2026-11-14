@@ -22,9 +22,10 @@
 //! compute and cache basis data simultaneously.
 
 use yuzuha::builders::build_canonical_basis_data;
-use yuzuha::core::{CGSpec, Edge, Spin};
 use std::sync::Arc;
 use std::thread;
+
+use crate::common::create_spec;
 
 /// Test concurrent writes to the same cache database
 ///
@@ -319,19 +320,3 @@ fn test_concurrent_mixed_operations() {
     let _ = std::fs::remove_dir_all(&temp_dir);
 }
 
-/// Helper to create a CGSpec from spin twice values
-fn create_spec(twice_values: Vec<i32>) -> CGSpec {
-    let edges: Vec<Edge> = twice_values.iter()
-        .enumerate()
-        .map(|(i, &twice)| {
-            let spin = Spin::new(twice).expect("Invalid spin");
-            if i == twice_values.len() - 1 {
-                Edge::outgoing(spin)
-            } else {
-                Edge::incoming(spin)
-            }
-        })
-        .collect();
-    
-    CGSpec::from_edges(edges).expect("Failed to create CGSpec")
-}

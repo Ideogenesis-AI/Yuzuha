@@ -120,38 +120,6 @@ mod tests {
     }
 
     #[test]
-    fn test_g_product_diagonal() {
-        // The metric g is NOT equal to its own inverse: g * g ≠ I in general.
-        // The correct identity is g^T g = I (g is unitary, i.e. g^{-1} = g^T).
-        //
-        // Since g_{m,m'} = (-1)^{(J-M)/2} δ_{m',-m} is sparse, we can verify the
-        // diagonal elements of g^T g explicitly:
-        //   (g^T g)_{m,m''} = Σ_m' g_{m',m} g_{m',m''} = g_{-m,m} g_{-m,m''} = g_{-m,m} δ_{m,m''}
-        //
-        // In particular, g_{-m,m} * g_{-m,m} = g_{-m,m}^2.
-        // For j=1/2 and m=+1/2 (doubled: m_val=1):
-        //   g(-1/2, +1/2) = (-1)^{(1-(-1))/2} = (-1)^1 = -1
-        // For j=1/2 and m=-1/2 (doubled: m_val=-1):
-        //   g(+1/2, -1/2) = (-1)^{(1-1)/2}   = (-1)^0 = +1
-        // The product g_{m,-m} * g_{-m,m} gives the phase pair for each m.
-        let j_half = Spin::new(1).unwrap(); // j=1/2
-
-        for m_val in [-1, 1] {
-            let m = MagneticNumber::new_unchecked(m_val);
-            let m_neg = m.negate();
-
-            let g1 = g(j_half, m, m_neg);
-            let g2 = g(j_half, m_neg, m);
-
-            // g_{m,-m} * g_{-m,m} = (-1)^{(J-M)/2} * (-1)^{(J+M)/2} = (-1)^J.
-            // For j=1/2 (J=1, odd): expected product is -1.
-            let exponent_sum = ((j_half.twice() - m_val) / 2) + ((j_half.twice() + m_val) / 2);
-            let expected = if exponent_sum % 2 == 0 { 1.0 } else { -1.0 };
-            assert_eq!(g1 * g2, expected);
-        }
-    }
-
-    #[test]
     fn test_use_as_incoming() {
         let j1 = Spin::new(2).unwrap();
         let m1 = MagneticNumber::new_unchecked(2);
@@ -185,26 +153,5 @@ mod tests {
         let (m_out, phase) = use_as_outgoing(&edge_in, m1);
         assert_eq!(m_out.twice(), -2);
         assert_eq!(phase, g(j1, m1, m_out));
-    }
-
-    #[test]
-    fn test_g_product_for_integer_spin() {
-        // For integer spin J (J even in doubled units), the product
-        // g_{m,-m} * g_{-m,m} = (-1)^J = +1.
-        // This is a special case; for half-integer spins the product is -1 (see test_g_product_diagonal).
-        //
-        // Concretely for j=1 (J=2), m=+1 (M=2):
-        //   g(1, +1, -1) = (-1)^{(2-2)/2} = (-1)^0 = +1
-        //   g(1, -1, +1) = (-1)^{(2+2)/2} = (-1)^2 = +1
-        //   product = +1
-        let j1 = Spin::new(2).unwrap();
-        let m1 = MagneticNumber::new_unchecked(2);
-
-        // Apply g twice: g(j, m, -m) * g(j, -m, m)
-        let m_flipped = m1.negate();
-        let g1 = g(j1, m1, m_flipped);
-        let g2 = g(j1, m_flipped, m1);
-
-        assert_eq!(g1 * g2, 1.0); // Combined phase should be 1
     }
 }

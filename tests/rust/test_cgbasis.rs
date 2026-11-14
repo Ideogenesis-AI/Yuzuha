@@ -15,42 +15,107 @@
 // You should have received a copy of the GNU General Public License
 // along with Yuzuha. If not, see <https://www.gnu.org/licenses/>.
 
-//! Tests for canonical basis construction and orthonormality
+//! Orthonormality of the canonical basis.
 //!
-//! Tests the build_single_om_tensor function for proper orthonormality properties.
+//! For every supported edge count and direction pattern, `build_canonical_basis_data`
+//! must return OM slices of unit Frobenius norm that are mutually orthogonal when
+//! contracted over all but the terminal edge, leaving `delta_{alpha,beta}/(2j+1) * I`.
+//! `assert_canonical_basis_orthonormal` in `common` checks both properties; the tests
+//! here enumerate the configurations it is checked on.
+//!
+//! The enumeration varies three things independently, because the basis builder
+//! treats them through different code paths:
+//!
+//! - **Edge count** (2 through 6): two edges is a special-cased identity, three is
+//!   the recursion base case, and four and above exercise the fusion-tree recursion
+//!   with a growing number of internal spins.
+//! - **Spin content**: uniform spins keep the outer multiplicity small, while mixed
+//!   spins (especially with a large middle spin) push the OM dimension above one, so
+//!   the off-diagonal `alpha != beta` orthogonality is actually non-trivial.
+//! - **Edge directions**: non-canonical patterns route through the metric tensor to
+//!   raise or lower indices, which must not disturb orthonormality.
+//!
+//! Every configuration must contain an even number of half-integer spins; otherwise
+//! the edges cannot couple to j=0 and `CGSpec::from_edges` rejects the spec before a
+//! basis is ever built. Comments below flag the cases where that parity constraint
+//! dictates the chosen spins.
 
 use approx::assert_relative_eq;
-use ndarray::Axis;
 use yuzuha::builders::builders::build_canonical_basis_data;
 use yuzuha::builders::TestCacheGuard;
 use yuzuha::core::{CGSpec, Direction, Edge, Spin};
 
+use crate::common::{assert_canonical_basis_orthonormal, j};
+
+// ----------------------------------------------------------------------------
+// Edge-list constructors
+//
+// Spins are given as doubled integers throughout, so 1 is j=1/2 and 2 is j=1.
+// ----------------------------------------------------------------------------
+
+/// Edges with the canonical direction pattern: all incoming but the last.
+///
+/// This is the fusion-tree convention — several edges fuse into one outgoing
+/// result — and is the pattern the builder is optimized for.
+fn canonical(doubled: &[i32]) -> Vec<Edge> {
+    let last = doubled.len() - 1;
+    doubled
+        .iter()
+        .enumerate()
+        .map(|(i, &d)| if i == last { Edge::outgoing(j(d)) } else { Edge::incoming(j(d)) })
+        .collect()
+}
+
+/// Edges that all share one direction.
+///
+/// All-incoming and all-outgoing are the extreme non-canonical cases: every
+/// index relative to the canonical form has to be raised, or every one lowered.
+fn uniform(doubled: &[i32], dir: Direction) -> Vec<Edge> {
+    doubled.iter().map(|&d| Edge::new(j(d), dir)).collect()
+}
+
+/// Edges from explicit (doubled spin, direction) pairs.
+fn mixed(spec: &[(i32, Direction)]) -> Vec<Edge> {
+    spec.iter().map(|&(d, dir)| Edge::new(j(d), dir)).collect()
+}
+
 // ============================================================================
 // Two-edge identity tests
+//
+// A two-edge spec is the degenerate case: the only way two spins couple to j=0
+// is if they are equal, the outer multiplicity is always 1, and the basis is
+// the identity matrix scaled to unit Frobenius norm. The generic helper does
+// not apply (there is nothing to contract over before the terminal edge), so
+// the structure is checked directly.
 // ============================================================================
 
-/// Helper: verify that `build_canonical_basis_data` for a two-edge spec with
-/// equal spins returns a [dim, dim, 1] array whose single OM slice has
-/// Frobenius norm 1 (normalized like n>=3 bases).
-fn test_two_edges_helper(j: Spin, dir0: Direction, dir1: Direction) {
+/// Verify that the two-edge basis for `spin` is a normalized identity.
+///
+/// Checks the shape is `[dim, dim, 1]` (the trailing 1 being the single OM
+/// index), that the one slice has unit Frobenius norm, and that it squares to
+/// `(1/dim) * I` — the residue of the `sqrt(2j+1)` normalization, matching how
+/// bases with three or more edges are normalized.
+fn test_two_edges_helper(spin: Spin, dir0: Direction, dir1: Direction) {
+    // Redirect the basis cache to a private database so concurrent tests
+    // neither see nor overwrite each other's entries.
     let _guard = TestCacheGuard::new();
 
-    let edges = vec![Edge::new(j, dir0), Edge::new(j, dir1)];
+    let edges = vec![Edge::new(spin, dir0), Edge::new(spin, dir1)];
     let spec = CGSpec::from_edges(edges).unwrap();
 
     let data = build_canonical_basis_data(&spec).unwrap();
-    let dim = j.dimension();
+    let dim = spin.dimension();
 
     // Shape: [dim, dim, 1]
     assert_eq!(data.shape(), &[dim, dim, 1]);
 
     let slice = data.slice(ndarray::s![.., .., 0]);
 
-    // Frobenius norm of the slice must be 1
+    // Frobenius norm of the slice must be 1.
     let frob_sq: f64 = slice.iter().map(|x| x * x).sum();
     assert_relative_eq!(frob_sq, 1.0, epsilon = 1e-10);
 
-    // slice * slice^T == (1/dim) I for normalized identity-like basis
+    // slice * slice^T == (1/dim) I for a normalized identity-like basis.
     let expected_diag = 1.0 / (dim as f64);
     for i in 0..dim {
         for k in 0..dim {
@@ -66,612 +131,271 @@ fn test_two_edges_helper(j: Spin, dir0: Direction, dir1: Direction) {
 
 #[test]
 fn test_two_edges_canonical_j_half() {
-    // Canonical (in, out) — plain identity
-    let j_half = Spin::new(1).unwrap();
-    test_two_edges_helper(j_half, Direction::Incoming, Direction::Outgoing);
+    // Canonical (in, out) — plain identity, no metric involved.
+    test_two_edges_helper(j(1), Direction::Incoming, Direction::Outgoing);
 }
 
 #[test]
 fn test_two_edges_canonical_j1() {
-    let j1 = Spin::new(2).unwrap();
-    test_two_edges_helper(j1, Direction::Incoming, Direction::Outgoing);
+    // Same as above at integer spin, where the Frobenius-Schur phase is +1.
+    test_two_edges_helper(j(2), Direction::Incoming, Direction::Outgoing);
 }
 
 #[test]
 fn test_two_edges_canonical_j2() {
-    let j2 = Spin::new(4).unwrap();
-    test_two_edges_helper(j2, Direction::Incoming, Direction::Outgoing);
+    // A larger spin, so the identity being checked is 5x5.
+    test_two_edges_helper(j(4), Direction::Incoming, Direction::Outgoing);
 }
 
 #[test]
 fn test_two_edges_both_incoming_j_half() {
-    let j_half = Spin::new(1).unwrap();
-    test_two_edges_helper(j_half, Direction::Incoming, Direction::Incoming);
+    // (in, in) at half-integer spin: the second index is lowered through the
+    // metric, which is antisymmetric here, yet normalization must survive.
+    test_two_edges_helper(j(1), Direction::Incoming, Direction::Incoming);
 }
 
 #[test]
 fn test_two_edges_both_incoming_j1() {
-    let j1 = Spin::new(2).unwrap();
-    test_two_edges_helper(j1, Direction::Incoming, Direction::Incoming);
+    // (in, in) at integer spin, where the metric is symmetric instead.
+    test_two_edges_helper(j(2), Direction::Incoming, Direction::Incoming);
 }
 
 #[test]
 fn test_two_edges_both_outgoing_j1() {
-    let j1 = Spin::new(2).unwrap();
-    test_two_edges_helper(j1, Direction::Outgoing, Direction::Outgoing);
+    // (out, out) — the first index is raised instead, the mirror image of the
+    // all-incoming case.
+    test_two_edges_helper(j(2), Direction::Outgoing, Direction::Outgoing);
 }
 
 #[test]
 fn test_two_edges_reversed_j1() {
-    // (out, in) — reversed canonical
-    let j1 = Spin::new(2).unwrap();
-    test_two_edges_helper(j1, Direction::Outgoing, Direction::Incoming);
+    // (out, in) — reversed canonical.
+    test_two_edges_helper(j(2), Direction::Outgoing, Direction::Incoming);
 }
 
 // ============================================================================
 // Three-edge orthonormality tests
+//
+// Three edges is the base case of the fusion-tree recursion: the basis is a
+// single Clebsch-Gordan coefficient array, and the outer multiplicity is 1 for
+// every admissible spin triple. These tests therefore mainly pin down the
+// normalization convention across a range of spins.
 // ============================================================================
 
 #[test]
 fn test_orthonormality_three_j1() {
-    // Three j=1 spins
-    let j1 = Spin::new(2).unwrap();
-    test_orthonormality_three_edges_helper(j1, j1, j1);
+    // Three j=1 spins — the smallest all-integer triple.
+    assert_canonical_basis_orthonormal(canonical(&[2, 2, 2]));
 }
 
 #[test]
 fn test_orthonormality_three_j_half() {
-    // Three spins: j=1/2, j=1/2, j=1 (valid configuration)
-    let j_half = Spin::new(1).unwrap();
-    let j1 = Spin::new(2).unwrap();
-    test_orthonormality_three_edges_helper(j_half, j_half, j1);
+    // j=1/2, j=1/2, j=1: two half-integers, so the parity constraint is met.
+    assert_canonical_basis_orthonormal(canonical(&[1, 1, 2]));
 }
 
 #[test]
 fn test_orthonormality_three_j2() {
-    // Three j=2 spins
-    let j2 = Spin::new(4).unwrap();
-    test_orthonormality_three_edges_helper(j2, j2, j2);
+    // Three j=2 spins — larger dimensions, same structure.
+    assert_canonical_basis_orthonormal(canonical(&[4, 4, 4]));
 }
 
 #[test]
 fn test_orthonormality_three_mixed_1() {
-    // j=1/2, j=1, j=1/2
-    let j_half = Spin::new(1).unwrap();
-    let j1 = Spin::new(2).unwrap();
-    test_orthonormality_three_edges_helper(j_half, j1, j_half);
+    // j=1/2, j=1, j=1/2 — unequal spins, with the half-integers split apart.
+    assert_canonical_basis_orthonormal(canonical(&[1, 2, 1]));
 }
 
 #[test]
 fn test_orthonormality_three_mixed_2() {
-    // j=1, j=2, j=1
-    let j1 = Spin::new(2).unwrap();
-    let j2 = Spin::new(4).unwrap();
-    test_orthonormality_three_edges_helper(j1, j2, j1);
+    // j=1, j=2, j=1 — the triangle inequality is saturated here (1 + 1 = 2).
+    assert_canonical_basis_orthonormal(canonical(&[2, 4, 2]));
 }
 
 #[test]
 fn test_orthonormality_three_mixed_3() {
-    // j=1/2, j=2, j=3/2
-    let j_half = Spin::new(1).unwrap();
-    let j2 = Spin::new(4).unwrap();
-    let j_3half = Spin::new(3).unwrap();
-    test_orthonormality_three_edges_helper(j_half, j2, j_3half);
-}
-
-/// Helper function for three-edge orthonormality tests
-fn test_orthonormality_three_edges_helper(j0: Spin, j1: Spin, j2: Spin) {
-    let _guard = TestCacheGuard::new();
-    
-    let edges = vec![
-        Edge::new(j0, Direction::Incoming),
-        Edge::new(j1, Direction::Incoming),
-        Edge::new(j2, Direction::Outgoing),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-    let dim_out = j2.dimension();
-
-    // Verify each basis element has unit Frobenius norm
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    // Contract over first 2 axes using tensordot
-    for alpha_idx in 0..om_dim {
-        for beta_idx in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., alpha_idx]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., beta_idx]);
-            
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1)],
-                &[Axis(0), Axis(1)],
-            );
-            
-            // With sqrt(2j+1) normalization, diagonal is 1/(2j+1)
-            let expected_diag = 1.0 / (dim_out as f64);
-            for i in 0..dim_out {
-                for j in 0..dim_out {
-                    let expected = if alpha_idx == beta_idx && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // j=1/2, j=2, j=3/2 — three distinct spins mixing both parities.
+    assert_canonical_basis_orthonormal(canonical(&[1, 4, 3]));
 }
 
 // ============================================================================
 // Four-edge orthonormality tests
+//
+// Four edges introduces one internal spin, so the outer multiplicity can
+// exceed 1 and the `alpha != beta` half of the orthogonality check starts
+// carrying weight.
 // ============================================================================
 
 #[test]
 fn test_orthonormality_four_j_half() {
-    // Four j=1/2 spins
-    let j_half = Spin::new(1).unwrap();
-    test_orthonormality_four_edges_helper(j_half, j_half, j_half, j_half);
+    // Four j=1/2 spins — the canonical two-dimensional OM example: the four
+    // spin-halves couple to j=0 through either internal spin 0 or 1.
+    assert_canonical_basis_orthonormal(canonical(&[1, 1, 1, 1]));
 }
 
 #[test]
 fn test_orthonormality_four_j1() {
-    // Four j=1 spins
-    let j1 = Spin::new(2).unwrap();
-    test_orthonormality_four_edges_helper(j1, j1, j1, j1);
+    // Four j=1 spins — a larger OM space (internal spin 0, 1 or 2).
+    assert_canonical_basis_orthonormal(canonical(&[2, 2, 2, 2]));
 }
 
 #[test]
 fn test_orthonormality_four_j2() {
-    // Four j=2 spins
-    let j2 = Spin::new(4).unwrap();
-    test_orthonormality_four_edges_helper(j2, j2, j2, j2);
+    // Four j=2 spins — the largest uniform four-edge case still cheap to build.
+    assert_canonical_basis_orthonormal(canonical(&[4, 4, 4, 4]));
 }
 
 #[test]
 fn test_orthonormality_four_mixed_1() {
     // j=1/2, j=1, j=1/2, j=1
-    let j_half = Spin::new(1).unwrap();
-    let j1 = Spin::new(2).unwrap();
-    test_orthonormality_four_edges_helper(j_half, j1, j_half, j1);
+    assert_canonical_basis_orthonormal(canonical(&[1, 2, 1, 2]));
 }
 
 #[test]
 fn test_orthonormality_four_mixed_2() {
     // j=1, j=2, j=1, j=2
-    let j1 = Spin::new(2).unwrap();
-    let j2 = Spin::new(4).unwrap();
-    test_orthonormality_four_edges_helper(j1, j2, j1, j2);
+    assert_canonical_basis_orthonormal(canonical(&[2, 4, 2, 4]));
 }
 
 #[test]
 fn test_orthonormality_four_mixed_3() {
-    // j=1/2, j=1, j=2, j=3/2
-    let j_half = Spin::new(1).unwrap();
-    let j1 = Spin::new(2).unwrap();
-    let j2 = Spin::new(4).unwrap();
-    let j_3half = Spin::new(3).unwrap();
-    test_orthonormality_four_edges_helper(j_half, j1, j2, j_3half);
-}
-
-/// Helper function for four-edge orthonormality tests
-fn test_orthonormality_four_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin) {
-    let _guard = TestCacheGuard::new();
-    
-    let edges = vec![
-        Edge::new(j0, Direction::Incoming),
-        Edge::new(j1, Direction::Incoming),
-        Edge::new(j2, Direction::Incoming),
-        Edge::new(j3, Direction::Outgoing),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-    let dim_out = j3.dimension();
-
-    // Verify each basis element has unit Frobenius norm
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    // Contract over first 3 axes using tensordot
-    for alpha_idx in 0..om_dim {
-        for beta_idx in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., .., beta_idx]);
-            
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1), Axis(2)],
-                &[Axis(0), Axis(1), Axis(2)],
-            );
-            
-            // With sqrt(2j+1) normalization, diagonal is 1/(2j+1)
-            let expected_diag = 1.0 / (dim_out as f64);
-            for i in 0..dim_out {
-                for j in 0..dim_out {
-                    let expected = if alpha_idx == beta_idx && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // j=1/2, j=1, j=2, j=3/2 — four distinct spins, no symmetry to fall back on.
+    assert_canonical_basis_orthonormal(canonical(&[1, 2, 4, 3]));
 }
 
 // ============================================================================
 // Five-edge orthonormality tests
+//
+// Two internal spins, so the recursion nests twice and the OM index enumerates
+// pairs of internal spins.
 // ============================================================================
 
 #[test]
 fn test_orthonormality_five_j_half() {
-    // Five spins with even number of fermions: j=1/2, j=1/2, j=1/2, j=1/2, j=1
-    let j_half = Spin::new(1).unwrap();
-    let j1 = Spin::new(2).unwrap();
-    test_orthonormality_five_edges_helper(j_half, j_half, j_half, j_half, j1);
+    // Five spins cannot all be half-integer and still couple to j=0, so the
+    // terminal edge is raised to j=1: j=1/2 x4, j=1.
+    assert_canonical_basis_orthonormal(canonical(&[1, 1, 1, 1, 2]));
 }
 
 #[test]
 fn test_orthonormality_five_j1() {
-    // Five j=1 spins
-    let j1 = Spin::new(2).unwrap();
-    test_orthonormality_five_edges_helper(j1, j1, j1, j1, j1);
+    // Five j=1 spins — all integer, so parity is satisfied automatically.
+    assert_canonical_basis_orthonormal(canonical(&[2, 2, 2, 2, 2]));
 }
 
 #[test]
 fn test_orthonormality_five_j2() {
-    // Five j=2 spins
-    let j2 = Spin::new(4).unwrap();
-    test_orthonormality_five_edges_helper(j2, j2, j2, j2, j2);
+    // Five j=2 spins — the widest OM space exercised at this edge count.
+    assert_canonical_basis_orthonormal(canonical(&[4, 4, 4, 4, 4]));
 }
 
 #[test]
 fn test_orthonormality_five_mixed_1() {
-    // j=1/2, j=1, j=1/2, j=1, j=1 (even number of fermions)
-    let j_half = Spin::new(1).unwrap();
-    let j1 = Spin::new(2).unwrap();
-    test_orthonormality_five_edges_helper(j_half, j1, j_half, j1, j1);
+    // j=1/2, j=1, j=1/2, j=1, j=1 — two half-integers, as parity requires.
+    assert_canonical_basis_orthonormal(canonical(&[1, 2, 1, 2, 2]));
 }
 
 #[test]
 fn test_orthonormality_five_mixed_2() {
     // j=1, j=2, j=1, j=2, j=1
-    let j1 = Spin::new(2).unwrap();
-    let j2 = Spin::new(4).unwrap();
-    test_orthonormality_five_edges_helper(j1, j2, j1, j2, j1);
+    assert_canonical_basis_orthonormal(canonical(&[2, 4, 2, 4, 2]));
 }
 
 #[test]
 fn test_orthonormality_five_mixed_3() {
-    // j=1/2, j=1, j=3/2, j=2, j=1
-    let j_half = Spin::new(1).unwrap();
-    let j1 = Spin::new(2).unwrap();
-    let j_3half = Spin::new(3).unwrap();
-    let j2 = Spin::new(4).unwrap();
-    test_orthonormality_five_edges_helper(j_half, j1, j_3half, j2, j1);
-}
-
-/// Helper function for five-edge orthonormality tests
-fn test_orthonormality_five_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin, j4: Spin) {
-    let _guard = TestCacheGuard::new();
-    
-    let edges = vec![
-        Edge::new(j0, Direction::Incoming),
-        Edge::new(j1, Direction::Incoming),
-        Edge::new(j2, Direction::Incoming),
-        Edge::new(j3, Direction::Incoming),
-        Edge::new(j4, Direction::Outgoing),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-    let dim_out = j4.dimension();
-
-    // Verify each basis element has unit Frobenius norm
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    // Contract over first 4 axes using tensordot
-    for alpha in 0..om_dim {
-        for beta in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., .., .., alpha]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., .., .., beta]);
-            
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1), Axis(2), Axis(3)],
-                &[Axis(0), Axis(1), Axis(2), Axis(3)],
-            );
-            
-            // With sqrt(2j+1) normalization, diagonal is 1/(2j+1)
-            let expected_diag = 1.0 / (dim_out as f64);
-            for i in 0..dim_out {
-                for j in 0..dim_out {
-                    let expected = if alpha == beta && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // j=1/2, j=1, j=3/2, j=2, j=1 — half-integers at non-adjacent positions,
+    // so they are fused at different depths of the tree.
+    assert_canonical_basis_orthonormal(canonical(&[1, 2, 3, 4, 2]));
 }
 
 // ============================================================================
 // Six-edge orthonormality tests
+//
+// The deepest recursion covered here, with three internal spins. These are the
+// most expensive cases, so the spin values are kept small.
 // ============================================================================
 
 #[test]
 fn test_orthonormality_six_j_half() {
-    // Six j=1/2 spins
-    let j_half = Spin::new(1).unwrap();
-    test_orthonormality_six_edges_helper(j_half, j_half, j_half, j_half, j_half, j_half);
+    // Six j=1/2 spins — an even count, so they couple to j=0 directly.
+    assert_canonical_basis_orthonormal(canonical(&[1, 1, 1, 1, 1, 1]));
 }
 
 #[test]
 fn test_orthonormality_six_j1() {
-    // Six j=1 spins
-    let j1 = Spin::new(2).unwrap();
-    test_orthonormality_six_edges_helper(j1, j1, j1, j1, j1, j1);
+    // Six j=1 spins.
+    assert_canonical_basis_orthonormal(canonical(&[2, 2, 2, 2, 2, 2]));
 }
 
 #[test]
 fn test_orthonormality_six_j2() {
-    // Six j=2 spins
-    let j2 = Spin::new(4).unwrap();
-    test_orthonormality_six_edges_helper(j2, j2, j2, j2, j2, j2);
+    // Six j=2 spins.
+    assert_canonical_basis_orthonormal(canonical(&[4, 4, 4, 4, 4, 4]));
 }
 
 #[test]
 fn test_orthonormality_six_mixed_1() {
-    // j=1/2, j=1, j=1/2, j=1, j=1/2, j=1/2 (even number of fermions)
-    let j_half = Spin::new(1).unwrap();
-    let j1 = Spin::new(2).unwrap();
-    test_orthonormality_six_edges_helper(j_half, j1, j_half, j1, j_half, j_half);
+    // j=1/2, j=1, j=1/2, j=1, j=1/2, j=1/2 — four half-integers, so even.
+    assert_canonical_basis_orthonormal(canonical(&[1, 2, 1, 2, 1, 1]));
 }
 
 #[test]
 fn test_orthonormality_six_mixed_2() {
     // j=1, j=2, j=1, j=2, j=1, j=2
-    let j1 = Spin::new(2).unwrap();
-    let j2 = Spin::new(4).unwrap();
-    test_orthonormality_six_edges_helper(j1, j2, j1, j2, j1, j2);
+    assert_canonical_basis_orthonormal(canonical(&[2, 4, 2, 4, 2, 4]));
 }
 
 #[test]
 fn test_orthonormality_six_mixed_3() {
-    // j=1, j=1, j=3/2, j=2, j=3/2, j=1 (even number of half-integers: 2)
-    let j1 = Spin::new(2).unwrap();
-    let j_3half = Spin::new(3).unwrap();
-    let j2 = Spin::new(4).unwrap();
-    test_orthonormality_six_edges_helper(j1, j1, j_3half, j2, j_3half, j1);
-}
-
-/// Helper function for six-edge orthonormality tests
-fn test_orthonormality_six_edges_helper(j0: Spin, j1: Spin, j2: Spin, j3: Spin, j4: Spin, j5: Spin) {
-    let _guard = TestCacheGuard::new();
-    
-    let edges = vec![
-        Edge::new(j0, Direction::Incoming),
-        Edge::new(j1, Direction::Incoming),
-        Edge::new(j2, Direction::Incoming),
-        Edge::new(j3, Direction::Incoming),
-        Edge::new(j4, Direction::Incoming),
-        Edge::new(j5, Direction::Outgoing),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-    let dim_out = j5.dimension();
-
-    // Verify each basis element has unit Frobenius norm
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., .., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    // Contract over first 5 axes using tensordot
-    for alpha in 0..om_dim {
-        for beta in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., .., .., .., alpha]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., .., .., .., beta]);
-            
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
-                &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
-            );
-            
-            // With sqrt(2j+1) normalization, diagonal is 1/(2j+1)
-            let expected_diag = 1.0 / (dim_out as f64);
-            for i in 0..dim_out {
-                for j in 0..dim_out {
-                    let expected = if alpha == beta && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // j=1, j=1, j=3/2, j=2, j=3/2, j=1 — exactly two half-integers, placed in
+    // the middle of the chain.
+    assert_canonical_basis_orthonormal(canonical(&[2, 2, 3, 4, 3, 2]));
 }
 
 // ============================================================================
 // Non-canonical direction tests - Three edges
+//
+// From here on the spins repeat configurations already covered above, and the
+// variable under test is the direction pattern: each edge whose direction
+// departs from the canonical "all incoming but the last" form has its index
+// raised or lowered through the metric tensor. Orthonormality must be
+// invariant under that, because the metric is itself an isometry.
 // ============================================================================
 
 #[test]
 fn test_orthonormality_three_edges_all_outgoing() {
-    let _guard = TestCacheGuard::new();
-    
-    // Three j=1 spins, all outgoing
-    let j1 = Spin::new(2).unwrap();
-    let edges = vec![
-        Edge::outgoing(j1),
-        Edge::outgoing(j1),
-        Edge::outgoing(j1),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j1.dimension() as f64);
-
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    for alpha_idx in 0..om_dim {
-        for beta_idx in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., alpha_idx]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., beta_idx]);
-
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1)],
-                &[Axis(0), Axis(1)],
-            );
-
-            for i in 0..3 {
-                for j in 0..3 {
-                    let expected = if alpha_idx == beta_idx && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // Three j=1 spins, all outgoing: every index is raised.
+    assert_canonical_basis_orthonormal(uniform(&[2, 2, 2], Direction::Outgoing));
 }
 
 #[test]
 fn test_orthonormality_three_edges_all_incoming() {
-    let _guard = TestCacheGuard::new();
-    
-    // Three edges all incoming: j=1/2, j=1/2, j=1 (valid configuration)
-    let j_half = Spin::new(1).unwrap();
-    let j1 = Spin::new(2).unwrap();
-    let edges = vec![
-        Edge::incoming(j_half),
-        Edge::incoming(j_half),
-        Edge::incoming(j1),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j1.dimension() as f64);
-
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    for alpha_idx in 0..om_dim {
-        for beta_idx in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., alpha_idx]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., beta_idx]);
-
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1)],
-                &[Axis(0), Axis(1)],
-            );
-
-            for i in 0..3 {
-                for j in 0..3 {
-                    let expected = if alpha_idx == beta_idx && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // Three edges all incoming: j=1/2, j=1/2, j=1. Only the terminal edge
+    // differs from canonical, so this isolates a single index lowering.
+    assert_canonical_basis_orthonormal(uniform(&[1, 1, 2], Direction::Incoming));
 }
 
 #[test]
 fn test_orthonormality_three_edges_out_in_out() {
-    let _guard = TestCacheGuard::new();
-    
-    // Three j=2 spins: out, in, out
-    let j2 = Spin::new(4).unwrap();
-    let edges = vec![
-        Edge::outgoing(j2),
-        Edge::incoming(j2),
-        Edge::outgoing(j2),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j2.dimension() as f64);
+    // Three j=2 spins: out, in, out — directions alternate at a large spin,
+    // where the metric is a 5x5 anti-diagonal.
+    assert_canonical_basis_orthonormal(mixed(&[
+        (4, Direction::Outgoing),
+        (4, Direction::Incoming),
+        (4, Direction::Outgoing),
+    ]));
+}
 
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    for alpha_idx in 0..om_dim {
-        for beta_idx in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., alpha_idx]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., beta_idx]);
-
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1)],
-                &[Axis(0), Axis(1)],
-            );
-
-            for i in 0..5 {
-                for j in 0..5 {
-                    let expected = if alpha_idx == beta_idx && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+#[test]
+fn test_orthonormality_three_edges_mixed_spins_out_in_out() {
+    // Mixed spins and mixed directions together: j=1/2, j=1/2, j=1 as
+    // out, in, out. The half-integer metrics are antisymmetric, so this is
+    // the case where a lost sign would be easiest to miss.
+    assert_canonical_basis_orthonormal(mixed(&[
+        (1, Direction::Outgoing),
+        (1, Direction::Incoming),
+        (2, Direction::Outgoing),
+    ]));
 }
 
 // ============================================================================
@@ -680,102 +404,26 @@ fn test_orthonormality_three_edges_out_in_out() {
 
 #[test]
 fn test_orthonormality_four_edges_all_outgoing() {
-    let _guard = TestCacheGuard::new();
-    
-    // Four j=1/2 spins, all outgoing
-    let j_half = Spin::new(1).unwrap();
-    let edges = vec![
-        Edge::outgoing(j_half),
-        Edge::outgoing(j_half),
-        Edge::outgoing(j_half),
-        Edge::outgoing(j_half),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j_half.dimension() as f64);
+    // Four j=1/2 spins, all outgoing — the OM space is two-dimensional, so the
+    // metric must preserve orthogonality between OM slices, not just norms.
+    assert_canonical_basis_orthonormal(uniform(&[1, 1, 1, 1], Direction::Outgoing));
+}
 
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    for alpha_idx in 0..om_dim {
-        for beta_idx in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., .., beta_idx]);
-
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1), Axis(2)],
-                &[Axis(0), Axis(1), Axis(2)],
-            );
-
-            for i in 0..2 {
-                for j in 0..2 {
-                    let expected = if alpha_idx == beta_idx && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+#[test]
+fn test_orthonormality_four_edges_all_incoming() {
+    // Four j=1/2 spins, all incoming — the opposite extreme of the same spec.
+    assert_canonical_basis_orthonormal(uniform(&[1, 1, 1, 1], Direction::Incoming));
 }
 
 #[test]
 fn test_orthonormality_four_edges_alternating() {
-    let _guard = TestCacheGuard::new();
-    
-    // Four j=1 spins: out, in, out, in
-    let j1 = Spin::new(2).unwrap();
-    let edges = vec![
-        Edge::outgoing(j1),
-        Edge::incoming(j1),
-        Edge::outgoing(j1),
-        Edge::incoming(j1),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j1.dimension() as f64);
-
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    for alpha_idx in 0..om_dim {
-        for beta_idx in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., .., alpha_idx]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., .., beta_idx]);
-
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1), Axis(2)],
-                &[Axis(0), Axis(1), Axis(2)],
-            );
-
-            for i in 0..3 {
-                for j in 0..3 {
-                    let expected = if alpha_idx == beta_idx && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // Four j=1 spins: out, in, out, in.
+    assert_canonical_basis_orthonormal(mixed(&[
+        (2, Direction::Outgoing),
+        (2, Direction::Incoming),
+        (2, Direction::Outgoing),
+        (2, Direction::Incoming),
+    ]));
 }
 
 // ============================================================================
@@ -784,105 +432,21 @@ fn test_orthonormality_four_edges_alternating() {
 
 #[test]
 fn test_orthonormality_five_edges_all_incoming() {
-    let _guard = TestCacheGuard::new();
-    
-    // Five edges all incoming: j=1/2, j=1/2, j=1/2, j=1/2, j=1 (even fermions)
-    let j_half = Spin::new(1).unwrap();
-    let j1 = Spin::new(2).unwrap();
-    let edges = vec![
-        Edge::incoming(j_half),
-        Edge::incoming(j_half),
-        Edge::incoming(j_half),
-        Edge::incoming(j_half),
-        Edge::incoming(j1),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j1.dimension() as f64);
-
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-
-    for alpha in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., .., .., alpha]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    for alpha in 0..om_dim {
-        for beta in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., .., .., alpha]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., .., .., beta]);
-
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1), Axis(2), Axis(3)],
-                &[Axis(0), Axis(1), Axis(2), Axis(3)],
-            );
-
-            for i in 0..3 {
-                for j in 0..3 {
-                    let expected = if alpha == beta && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // j=1/2 x4, j=1 all incoming — an even number of half-integer spins, as
+    // parity requires, now with every index lowered.
+    assert_canonical_basis_orthonormal(uniform(&[1, 1, 1, 1, 2], Direction::Incoming));
 }
 
 #[test]
 fn test_orthonormality_five_edges_mixed_complex() {
-    let _guard = TestCacheGuard::new();
-    
-    // Five j=1 spins: in, out, in, out, in
-    let j1 = Spin::new(2).unwrap();
-    let edges = vec![
-        Edge::incoming(j1),
-        Edge::outgoing(j1),
-        Edge::incoming(j1),
-        Edge::outgoing(j1),
-        Edge::incoming(j1),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j1.dimension() as f64);
-
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    for alpha in 0..om_dim {
-        for beta in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., .., .., alpha]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., .., .., beta]);
-
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1), Axis(2), Axis(3)],
-                &[Axis(0), Axis(1), Axis(2), Axis(3)],
-            );
-
-            for i in 0..3 {
-                for j in 0..3 {
-                    let expected = if alpha == beta && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // Five j=1 spins: in, out, in, out, in.
+    assert_canonical_basis_orthonormal(mixed(&[
+        (2, Direction::Incoming),
+        (2, Direction::Outgoing),
+        (2, Direction::Incoming),
+        (2, Direction::Outgoing),
+        (2, Direction::Incoming),
+    ]));
 }
 
 // ============================================================================
@@ -891,105 +455,21 @@ fn test_orthonormality_five_edges_mixed_complex() {
 
 #[test]
 fn test_orthonormality_six_edges_all_outgoing() {
-    let _guard = TestCacheGuard::new();
-    
-    // Six j=1/2 spins, all outgoing
-    let j_half = Spin::new(1).unwrap();
-    let edges = vec![
-        Edge::outgoing(j_half),
-        Edge::outgoing(j_half),
-        Edge::outgoing(j_half),
-        Edge::outgoing(j_half),
-        Edge::outgoing(j_half),
-        Edge::outgoing(j_half),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j_half.dimension() as f64);
-
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., .., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    for alpha in 0..om_dim {
-        for beta in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., .., .., .., alpha]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., .., .., .., beta]);
-
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
-                &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
-            );
-
-            for i in 0..2 {
-                for j in 0..2 {
-                    let expected = if alpha == beta && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // Six j=1/2 spins, all outgoing.
+    assert_canonical_basis_orthonormal(uniform(&[1, 1, 1, 1, 1, 1], Direction::Outgoing));
 }
 
 #[test]
 fn test_orthonormality_six_edges_alternating_pattern() {
-    let _guard = TestCacheGuard::new();
-    
-    // Six j=1 spins: out, out, in, in, out, out
-    let j1 = Spin::new(2).unwrap();
-    let edges = vec![
-        Edge::outgoing(j1),
-        Edge::outgoing(j1),
-        Edge::incoming(j1),
-        Edge::incoming(j1),
-        Edge::outgoing(j1),
-        Edge::outgoing(j1),
-    ];
-    let spec = CGSpec::from_edges(edges).unwrap();
-    let expected_diag = 1.0 / (j1.dimension() as f64);
-
-    let data = build_canonical_basis_data(&spec).unwrap();
-    let om_dim = spec.om_dimension();
-
-    for alpha_idx in 0..om_dim {
-        let slice = data.slice(ndarray::s![.., .., .., .., .., .., alpha_idx]);
-        let frob_norm_sq: f64 = slice.mapv(|x| x * x).sum();
-        assert_relative_eq!(frob_norm_sq.sqrt(), 1.0, epsilon = 1e-10);
-    }
-
-    for alpha in 0..om_dim {
-        for beta in 0..om_dim {
-            let slice_alpha = data.slice(ndarray::s![.., .., .., .., .., .., alpha]);
-            let slice_beta = data.slice(ndarray::s![.., .., .., .., .., .., beta]);
-
-            let result = ndarray_einsum::tensordot(
-                &slice_alpha,
-                &slice_beta,
-                &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
-                &[Axis(0), Axis(1), Axis(2), Axis(3), Axis(4)],
-            );
-
-            for i in 0..3 {
-                for j in 0..3 {
-                    let expected = if alpha == beta && i == j {
-                        expected_diag
-                    } else {
-                        0.0
-                    };
-                    assert_relative_eq!(result[[i, j]], expected, epsilon = 1e-10);
-                }
-            }
-        }
-    }
+    // Six j=1 spins: out, out, in, in, out, out — directions change in blocks,
+    // so the reversals do not line up with the pairs that the fusion tree
+    // groups together.
+    assert_canonical_basis_orthonormal(mixed(&[
+        (2, Direction::Outgoing),
+        (2, Direction::Outgoing),
+        (2, Direction::Incoming),
+        (2, Direction::Incoming),
+        (2, Direction::Outgoing),
+        (2, Direction::Outgoing),
+    ]));
 }
-

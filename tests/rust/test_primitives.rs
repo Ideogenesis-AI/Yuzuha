@@ -457,3 +457,29 @@ fn test_metric_values() {
     // g^(1)_{-1,1} = (-1)^2 = 1
     assert_eq!(g(j1, m_neg1, m1), 1.0);
 }
+
+#[test]
+fn test_metric_reversal_phase_is_minus_one_to_the_twice_j() {
+    // Reversing an edge twice through the metric returns a phase, not the
+    // identity: g_{m,-m} * g_{-m,m} = (-1)^{(J-M)/2} * (-1)^{(J+M)/2} = (-1)^J.
+    // Half-integer spins therefore pick up -1 and integer spins +1, which is
+    // what makes the Frobenius-Schur bookkeeping in dualize necessary.
+    for twice_j in [1, 2, 3, 4] {
+        let j = Spin::new(twice_j).unwrap();
+        let expected = if twice_j % 2 == 0 { 1.0 } else { -1.0 };
+
+        for m_idx in 0..j.dimension() {
+            let m = MagneticNumber::from_index(m_idx, j);
+            let m_neg = m.negate();
+
+            let product = g(j, m, m_neg) * g(j, m_neg, m);
+            assert_eq!(
+                product, expected,
+                "g product for J={}, M={} should be {}",
+                twice_j,
+                m.twice(),
+                expected
+            );
+        }
+    }
+}
