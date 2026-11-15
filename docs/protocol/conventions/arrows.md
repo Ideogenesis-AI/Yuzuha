@@ -39,7 +39,8 @@ $$\tilde{T}_{\ldots m'} = g^{(j)}_{m'm}\, T^{\ldots m}$$
 To convert an **outgoing** (lower) edge to an **incoming** (upper) edge, raise the
 corresponding index with \(g^{ab}\):
 
-$$\tilde{T}^{m'}_{\ldots} = g^{(j)m'm}\, T_{\ldots m} = T_{\ldots m} {[g^{(j)\top}]}^{mm;}$$
+$$\tilde{T}^{m'}_{\ldots} = g^{(j)\,m'm}\, T_{\ldots m}
+\qquad\text{with}\qquad g^{(j)\,m'm} = \bigl[(g^{(j)})^{-1}\bigr]_{m'm} = (-1)^{2j}\, g^{(j)}_{m'm}$$
 
 The two operations are exact inverses: \(g_{m'k}\, g^{km} = \delta_{m'}^{m}\).
 
