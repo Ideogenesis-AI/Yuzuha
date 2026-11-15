@@ -9,11 +9,13 @@ Yuzuha maintains three persistent SQLite databases:
 
 | Database | File | Content |
 |----------|------|---------|
-| CG basis cache | `.yuzuha/cgbasis.db` | `(edges, alphas) → canonical basis array` |
+| CG basis cache | `.yuzuha/cgbasis.db` | `external spins → canonical basis array` |
 | X-symbol cache | `.yuzuha/xsymbol.db` | `(spec_a, spec_b, contraction) → (x_array, spec_c)` |
 | R-symbol cache | `.yuzuha/rsymbol.db` | `(spec, permutation) → (r_array, spec_permuted)` |
 
 All three databases are created automatically on first use and are thread-safe.
+The CG basis cache is managed by the Rust layer; the two symbol caches are managed
+by the Python layer, so the cache-clearing utilities below reach the latter two only.
 
 ## Cache Path
 
@@ -106,7 +108,7 @@ print(stats['rsymbol']['db_path'])     # path to R-symbol database
 ### Clearing Caches
 
 ```python
-# Clear all symbol caches (keeps database files, removes entries)
+# Clear the symbol caches (keeps database files, removes entries)
 yuzuha.clear_all_caches()
 ```
 
@@ -135,4 +137,5 @@ with TestCacheContext():
 `reset_caches()` closes and destroys the in-memory cache objects so that the next
 call to `compute_xsymbol` or `compute_rsymbol` opens a fresh connection. It does
 **not** delete the database files. Use `clear_all_caches()` to remove cached entries
-while preserving the file and schema.
+while preserving the file and schema. Neither clears `cgbasis.db`; to discard cached
+canonical bases, delete that file.
