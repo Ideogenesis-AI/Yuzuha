@@ -66,7 +66,8 @@ $$B_0(m_1, m_2, m_3) = \frac{1}{\sqrt{2j_3 + 1}}\, C^{j_3 m_3}_{j_1 m_1,\, j_2 m
 ### Caching
 
 Canonical bases are cached by the Rust layer in `.yuzuha/cgbasis.db`, keyed on the
-external edges and the internal spin sequence. The cache is populated on first use and
+external spins alone — arrow directions are stripped, since a deviating spec is derived
+from the stored tensor by applying the metric. The cache is populated on first use and
 persists across Python sessions; `startup_database()` pre-computes it for the spin
 configurations most commonly needed, trading startup time for predictable latency later.
 
