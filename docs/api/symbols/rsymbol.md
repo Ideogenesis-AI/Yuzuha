@@ -84,9 +84,9 @@ The first call for a given `(spec, permutation)` pair stores the result in
 
 ## Notes
 
-The permutation is specified as a list of **destination** indices: `permutation[i]` is
+The permutation is specified as a list of **source** indices: `permutation[i]` is
 the index in the **original** spec that moves to position `i` in the permuted spec.
-That is, `spec_permuted.edge_at(i) == spec.edge_at(permutation[i])`.
+That is, `spec_permuted.edges[i] == spec.edges[permutation[i]]`.
 
 An invalid permutation (wrong length, out-of-range indices, or repeated indices) raises
 `ValueError`.

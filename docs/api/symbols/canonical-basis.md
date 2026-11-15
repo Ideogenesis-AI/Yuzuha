@@ -38,25 +38,29 @@ basis = yuzuha.canonical_basis(spec)
 print(basis.shape)    # (2, 2, 3, 1) — (d_j1, d_j2, d_j3, om_dim)
 print(basis.dtype)    # float64
 
-# Normalization: each OM slice is normalized to 1 (in the CG sense)
-# The squared norm over magnetic indices equals 1/om_dim for each slice
+# Every OM slice is a unit vector over the magnetic indices
+print(np.linalg.norm(basis[..., 0]))   # 1.0
 ```
 
 ### Normalization Convention
 
-The canonical basis is normalized with respect to the OM space. For a 3rd-order CG
-tensor with a single OM configuration (\(\mathrm{om\_dim} = 1\)), each basis element
-acquires a scaling factor relative to the standard Clebsch-Gordan coefficient:
+The slices form an **orthonormal** set with respect to the inner product that sums
+over all magnetic quantum number indices:
 
-$$\langle B_\mu | B_\nu \rangle = \delta_{\mu\nu}$$
+$$\langle B_\mu | B_\nu \rangle = \sum_{m_0, \ldots, m_{n-1}}
+B_\mu(m_0, \ldots, m_{n-1})\, B_\nu(m_0, \ldots, m_{n-1}) = \delta_{\mu\nu}$$
 
-where the inner product sums over all magnetic quantum number indices weighted by the
-appropriate fusion metric.
+For a 3rd-order tensor, where the OM dimension is always 1, the single basis element
+carries a factor of \(1/\sqrt{2j_3 + 1}\) relative to the bare Clebsch-Gordan
+coefficient:
+
+$$B_0(m_1, m_2, m_3) = \frac{1}{\sqrt{2j_3 + 1}}\, C^{j_3 m_3}_{j_1 m_1,\, j_2 m_2}$$
 
 ### Caching
 
-Canonical bases are cached in a Rust-managed SQLite database inside the Yuzuha
-installation. The cache is populated on first use and persists across Python sessions.
+Canonical bases are cached by the Rust layer in `.yuzuha/cgbasis.db`, keyed on the
+external edges and the internal spin sequence. The cache is populated on first use
+and persists across Python sessions.
 Use `startup_database()` to pre-populate the cache for common spin configurations.
 
 ### Auxiliary Functions
@@ -64,7 +68,7 @@ Use `startup_database()` to pre-populate the cache for common spin configuration
 | Function | Description |
 |----------|-------------|
 | `fs_phase_for_spin(spin)` | Frobenius-Schur indicator \((-1)^{2j}\) for a spin |
-| `compute_conjugate(spec)` | Canonical basis for the conjugated spec (arrow-reversed) |
+| `compute_conjugate(spec)` | Conjugate phase and arrow-reversed spec for a given spec |
 
 ## See Also
 
