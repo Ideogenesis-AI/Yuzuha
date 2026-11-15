@@ -1,7 +1,10 @@
 # Symbol Interface
 
 This page specifies the required function signatures, mathematical properties, and
-error conditions for the three core symbol functions of the Yuzuha Protocol.
+error conditions for the three core symbol functions of the Yuzuha Protocol. The three
+are not independent: `canonical_basis` fixes a basis for each multiplicity space, and
+both `compute_x_symbol` and `compute_r_symbol` are defined as overlaps against it, so an
+implementation that gets the basis right has largely determined the other two.
 
 ---
 
@@ -17,6 +20,14 @@ Where:
 - `spec.shape` = `(dim_0, dim_1, ..., dim_{n-1})` — one factor per external edge
 - `spec.om_dimension()` = `om_dim` — the OM dimension
 - The return type is a real-valued \(n+1\)-dimensional array of `float64`
+
+### Semantics
+
+`canonical_basis` writes out the CG tensor that a spec denotes, in the magnetic-number
+basis of its external representations. The slice `basis[..., mu]` is the tensor for OM
+index \(\mu\), obtained by coupling the external representations along the implementation's
+fusion tree through the internal representations recorded in the spec. It is the primitive
+the other two symbol functions are defined in terms of, so fixing it fixes them.
 
 ### Required Properties
 

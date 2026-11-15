@@ -76,7 +76,9 @@ key = (
 calls from different threads with the same or different keys must not produce data
 races, corruption, or incorrect results.
 
-Acceptable strategies include:
+Note that this is a requirement on the cache, not on the computation: two threads that
+miss on the same key may both compute the value, since determinism guarantees they agree.
+What must not happen is a torn read or a corrupted store. Acceptable strategies include:
 
 - Per-cache mutex protecting all database operations
 - Connection pool with per-connection serialization
@@ -87,7 +89,7 @@ Acceptable strategies include:
 ## 4. Persistence
 
 **Recommendation**: Caches should be **persistent** across Python sessions (i.e. stored
-on disk rather than in memory only). This is a recommendation, not a hard requirement.
+on disk, not in memory only). This is a recommendation, not a hard requirement.
 
 If a persistent cache is implemented:
 
