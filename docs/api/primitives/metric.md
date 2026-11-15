@@ -26,10 +26,10 @@ half-integer spins it is antisymmetric (\(g^\top = -g\)), or equivalently \(g^\t
 
 The following functions are available in the Yuzuha Python namespace:
 
-| Function | Description |
-|----------|-------------|
-| `fs_phase_for_spin(spin)` | Frobenius-Schur indicator \((-1)^{2j}\) |
-| `compute_conjugate(spec)` | Canonical basis tensor with all arrows reversed |
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `fs_phase_for_spin(spin)` | `float` | Frobenius-Schur indicator \((-1)^{2j}\) |
+| `compute_conjugate(spec)` | `(float, CGSpec)` | Conjugate phase and the arrow-reversed spec |
 
 ```python
 import yuzuha
@@ -38,16 +38,16 @@ jhalf = yuzuha.Spin(1)   # j = 1/2
 j1    = yuzuha.Spin(2)   # j = 1
 
 # Frobenius-Schur phase
-phase_half = yuzuha.fs_phase_for_spin(jhalf)   # -1  (half-integer)
-phase_int  = yuzuha.fs_phase_for_spin(j1)      # +1  (integer)
+phase_half = yuzuha.fs_phase_for_spin(jhalf)   # -1.0  (half-integer)
+phase_int  = yuzuha.fs_phase_for_spin(j1)      # +1.0  (integer)
 
-# Conjugated basis
+# Conjugation returns the accumulated phase alongside the reversed spec
 spec = yuzuha.CGSpec.from_edges([
     yuzuha.Edge.incoming(jhalf),
     yuzuha.Edge.incoming(jhalf),
     yuzuha.Edge.outgoing(j1),
 ])
-basis_conj = yuzuha.compute_conjugate(spec)
+conj_phase, conj_spec = yuzuha.compute_conjugate(spec)
 ```
 
 ### Arrow Reversal

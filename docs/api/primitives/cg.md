@@ -31,7 +31,7 @@ $$\sum_{m_1, m_2} \langle j_1 m_1, j_2 m_2 \mid j_3 m_3 \rangle^2 = 1$$
 
 CG coefficients are not directly exposed as a Python function but are used internally
 by `canonical_basis`. The Rust layer provides `clebsch_gordan(j1, m1, j2, m2, j3, m3)`
-and caches results in a thread-local in-memory store.
+and caches results in a process-wide in-memory store shared across threads.
 
 ### Caching
 
