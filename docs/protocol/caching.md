@@ -152,5 +152,14 @@ If a persistent cache is implemented, the following utility functions are **reco
 | X-symbol | SQLite (Python) | `xsymbol.db` | (spec_a, spec_b, contraction) | `(ndarray, spec_c)` |
 | R-symbol | SQLite (Python) | `rsymbol.db` | (spec, permutation) | `(ndarray, spec_permuted)` |
 
-See [Database](../api/caching/database.md) and [Cache Management](../api/caching/cache.md)
-for the full Python API.
+All three caches share a single directory, and the reference implementation provides every
+management function recommended in the previous section.
+
+The canonical basis key is narrower than the sufficient key given above, and legitimately
+so. Arrow directions are absent because a spec deviating from the canonical arrow pattern
+is served from the same stored tensor with the metric applied on retrieval, and the
+internal representation sequence is absent because it is enumerated from the external
+spins. One row therefore holds every OM slice for a given
+spin tuple. A key may always be narrowed this way when the omitted components are
+functions of the ones retained; what the protocol forbids is a key so narrow that two
+distinct results could collide in it.
