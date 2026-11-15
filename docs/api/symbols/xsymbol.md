@@ -1,6 +1,10 @@
 # X-Symbol
 
-Recoupling coefficients for contracting two CG tensors.
+The X-symbol is the recoupling coefficient for contracting two CG tensors: it says how
+the outer-multiplicity indices of the two inputs combine into the outer-multiplicity
+index of the result. It is the symbol a tensor network contraction actually needs, since
+contracting the symmetry-constrained parts of two tensors reduces to a dense contraction
+of their reduced blocks followed by multiplication with this coefficient.
 
 ::: yuzuha.compute_xsymbol
     options:
@@ -9,14 +13,17 @@ Recoupling coefficients for contracting two CG tensors.
 
 ## Description
 
-The X-symbol \(X^{\gamma}_{\alpha\beta}\) is a 3-index real tensor that encodes how
-the outer-multiplicity (OM) indices of two CG tensors A and B combine when their shared
-edges are contracted to produce an output CG tensor C:
+The X-symbol \(X^{\gamma}_{\alpha\beta}\) is a 3-index real tensor giving the expansion of
+the contracted product of the input bases in terms of the output basis:
 
-$$X^{\gamma}_{\alpha\beta} = \sum_{\text{contracted edges}} \langle C_\gamma | A_\alpha \otimes B_\beta \rangle$$
+$$A_\alpha \otimes_{\text{contracted}} B_\beta = \sum_\gamma X^\gamma_{\alpha\beta}\, C_\gamma,
+\qquad X^{\gamma}_{\alpha\beta} = \langle C_\gamma \mid A_\alpha \otimes_{\text{contracted}} B_\beta \rangle$$
 
-The indices \(\alpha, \beta, \gamma\) run over the OM spaces of specs A, B, and C
-respectively, so the shape of the returned array is `(om_a, om_b, om_c)`.
+The indices \(\alpha, \beta, \gamma\) run over the OM spaces of specs A, B, and C, so the
+returned array has shape `(om_a, om_b, om_c)`. In general
+\(\mathrm{om}_A \cdot \mathrm{om}_B \neq \mathrm{om}_C\), which means \(\mathbf{X}\) is a
+rectangular tensor with no unitarity or orthonormality property to rely on — unlike the
+[R-symbol](rsymbol.md).
 
 ### Usage
 
@@ -49,24 +56,29 @@ print(spec_c.num_external()) # 4 — uncontracted edges from A and B
 ### Output Spec
 
 The returned `spec_c` describes the output CG tensor. Its edges are the **uncontracted**
-edges of spec A followed by the **uncontracted** edges of spec B, in the order they
-appear in the original specs (contracted edges removed).
+edges of spec A followed by the **uncontracted** edges of spec B, each group keeping the
+relative order it had in its original spec. Its internal fusion tree then follows from
+the left-associative convention applied to that concatenated edge list, so the
+order of the pairs in the `Contraction` is significant.
+
+### Computation Procedure
+
+The projection onto spec C distinguishes the X-symbol from a plain tensor
+contraction, and it requires a third basis to be built:
+
+1. Compute the canonical bases for specs A and B, of shapes `(*dims_a, om_a)` and
+   `(*dims_b, om_b)`
+2. Contract the two basis tensors over the magnetic-quantum-number axes named by the
+   contraction, keeping the OM axes separate
+3. Build the canonical basis for the output spec C, of shape `(*dims_c, om_c)`
+4. Project the contracted result onto that basis to extract
+   \(X^{\gamma}_{\alpha\beta}\)
 
 ### Caching
 
 The first call for a given `(spec_a, spec_b, contraction)` triple computes the result
 from scratch via Rust and stores it in `.yuzuha/xsymbol.db`. Subsequent calls with the
 same arguments return the cached result immediately.
-
-### Computation Procedure
-
-Internally, `compute_xsymbol` proceeds as follows:
-
-1. Compute the canonical basis for spec A: shape `(*dims_a, om_a)`
-2. Compute the canonical basis for spec B: shape `(*dims_b, om_b)`
-3. Contract the two basis tensors over the specified magnetic-quantum-number axes
-4. Build the canonical basis for output spec C: shape `(*dims_c, om_c)`
-5. Project the contracted result onto spec C to extract \(X^{\gamma}_{\alpha\beta}\)
 
 ## See Also
 
@@ -79,14 +91,10 @@ Internally, `compute_xsymbol` proceeds as follows:
 
 ## Notes
 
-The X-symbol is a real-valued tensor of shape \((\mathrm{om}_A, \mathrm{om}_B, \mathrm{om}_C)\).
-It encodes the projection of the contracted basis product \(A_\alpha \otimes_{\text{contracted}} B_\beta\)
-in terms of the output basis \(C_\gamma\):
+Both the direction of the contracted edges and the Frobenius-Schur phase \((-1)^{2j}\)
+for arrow-reversed pairs are handled automatically through the invariant metric. Flipping
+the arrows of a contracted pair of spin \(j\) therefore scales the X-symbol by
+\((-1)^{2j}\).
 
-$$A_\alpha \otimes_{\text{contracted}} B_\beta = \sum_\gamma X^\gamma_{\alpha\beta}\, C_\gamma$$
-
-In general \(\mathrm{om}_A \cdot \mathrm{om}_B \neq \mathrm{om}_C\), so \(\mathbf{X}\) is a
-rectangular tensor and there is no general unitarity or orthonormality guarantee.
-
-Both the direction of contracted edges and the Frobenius-Schur phase \((-1)^{2j}\) for
-arrow-reversed pairs are handled automatically via the metric tensor.
+An invalid contraction raises `ValueError`: index out of range, mismatched spins on a
+pair, or two edges of the same direction paired together.
