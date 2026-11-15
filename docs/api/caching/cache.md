@@ -1,11 +1,14 @@
 # Cache Management
 
-Utilities for controlling the symbol cache path, inspecting statistics, and
-managing cache state.
+Caching in Yuzuha is transparent — nothing on this page is needed to get correct results.
+These utilities exist for the cases where the cache's location or contents matter to you:
+pointing it at a writable directory in a deployment, inspecting how much has accumulated,
+and isolating it so that a test run neither reads nor pollutes real data.
 
-## Overview
+## Description
 
-Yuzuha maintains three persistent SQLite databases:
+Yuzuha maintains three persistent SQLite databases, each keyed on the inputs of the
+function whose results it holds:
 
 | Database | File | Content |
 |----------|------|---------|
@@ -13,19 +16,20 @@ Yuzuha maintains three persistent SQLite databases:
 | X-symbol cache | `.yuzuha/xsymbol.db` | `(spec_a, spec_b, contraction) → (x_array, spec_c)` |
 | R-symbol cache | `.yuzuha/rsymbol.db` | `(spec, permutation) → (r_array, spec_permuted)` |
 
-All three databases are created automatically on first use and are thread-safe.
-The CG basis cache is managed by the Rust layer; the two symbol caches are managed
-by the Python layer, so the cache-clearing utilities below reach the latter two only.
+All three are created on first use and are thread-safe. The CG basis cache is managed by
+the Rust layer; the two symbol caches are managed by the Python layer, so the
+cache-clearing utilities below reach the latter two only.
 
-## Cache Path
+### Cache Path
 
-The cache directory is resolved in the following priority order:
+All three databases live in one directory, resolved in this priority order:
 
-1. **Thread-local override** (set by `TestCacheContext`) — highest priority
-2. **Environment variable**: `YUZUHA_CACHE_PATH`
+1. **Thread-local override**, set by `TestCacheContext` — highest priority
+2. **Environment variable** `YUZUHA_CACHE_PATH`
 3. **Default**: `.yuzuha/` in the current working directory
 
-### Setting the Cache Path
+`set_cache_path` works by setting the environment variable, so it takes effect for the
+whole process but is still overridden inside a `TestCacheContext` block:
 
 ```python
 import yuzuha
@@ -85,6 +89,10 @@ yuzuha.set_cache_path('/path/to/cache')
 
 ### Inspecting Cache State
 
+`print_cache_stats` is the quick human-readable view; `get_cache_stats` returns the same
+information as a dict of `size`, `db_path`, and `db_size_bytes` per cache, for logging or
+assertions:
+
 ```python
 import yuzuha
 
@@ -134,8 +142,8 @@ with TestCacheContext():
 
 ## Notes
 
-`reset_caches()` closes and destroys the in-memory cache objects so that the next
-call to `compute_xsymbol` or `compute_rsymbol` opens a fresh connection. It does
-**not** delete the database files. Use `clear_all_caches()` to remove cached entries
-while preserving the file and schema. Neither clears `cgbasis.db`; to discard cached
-canonical bases, delete that file.
+`reset_caches()` and `clear_all_caches()` do different things. The first closes and
+discards the in-memory cache objects so that the next symbol computation opens a fresh
+connection, leaving the stored data untouched. The second deletes the entries from the
+X- and R-symbol databases while preserving the files and their schema. Neither clears
+`cgbasis.db`; to discard cached canonical bases, delete that file.
