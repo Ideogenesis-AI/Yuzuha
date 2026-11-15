@@ -30,12 +30,12 @@ e_out = yuzuha.Edge.outgoing(j)   # spin-1/2 outgoing edge
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `spin` | `Spin` | Representation label |
-| `direction` | `Direction` | Incoming or outgoing |
+| `j` | `Spin` | Representation label |
+| `dir` | `Direction` | Incoming or outgoing |
 
 ### Derived Quantities
 
-- **Dimension**: `spin.dimension()` — the number of magnetic quantum number states
+- **Dimension**: `j.dimension()` — the number of magnetic quantum number states
   (\(2j + 1\))
 
 ## See Also
@@ -47,10 +47,10 @@ e_out = yuzuha.Edge.outgoing(j)   # spin-1/2 outgoing edge
 
 ## Notes
 
-`Edge` objects are immutable and hashable. They can be created from `Direction` and
-`Spin` separately or via the convenience constructors shown above.
+`Edge` objects are immutable and hashable. They are created with the `incoming` and
+`outgoing` constructors shown above, which take a `Spin`.
 
 Arrow flipping (converting an incoming edge to an outgoing edge of the same spin, or
 vice versa) requires applying the metric tensor — see
-[use_as_incoming / use_as_outgoing](../primitives/metric.md) — do not simply
+[Metric Tensor](../primitives/metric.md) — do not simply
 swapping the direction field.

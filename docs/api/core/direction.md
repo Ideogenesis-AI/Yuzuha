@@ -16,8 +16,8 @@ how charges fuse and how the invariant metric is applied when reversing an arrow
 ```python
 from yuzuha import Direction
 
-d_in  = Direction.Incoming   # primal / ket-type index
-d_out = Direction.Outgoing   # dual / bra-type index
+d_in  = Direction.incoming()   # primal / ket-type index
+d_out = Direction.outgoing()   # dual / bra-type index
 ```
 
 In the sign convention used throughout Yuzuha:
@@ -38,7 +38,7 @@ Arrow reversal from outgoing to incoming uses \(g^{-1} = (-1)^{2j}\, g\), which 
 ## See Also
 
 - [Edge](edge.md): Pairs `Direction` with a `Spin`
-- [Metric Tensor](../primitives/metric.md): `use_as_incoming`, `use_as_outgoing`
+- [Metric Tensor](../primitives/metric.md): The transformation that reverses an arrow
 - [Yuzuha Protocol — Type System](../../protocol/types.md): Abstract `Direction` enum
   specification
 - [Yuzuha Protocol — Arrow Conventions](../../protocol/conventions/arrows.md): Arrow
@@ -48,5 +48,5 @@ Arrow reversal from outgoing to incoming uses \(g^{-1} = (-1)^{2j}\, g\), which 
 
 `Direction` values are immutable — attribute assignment raises `AttributeError`.
 Two `Direction` values compare equal when they represent the same orientation
-(`Incoming == Incoming`, `Outgoing == Outgoing`). They can be passed directly to the
-`Edge.incoming` / `Edge.outgoing` constructors.
+(`Incoming == Incoming`, `Outgoing == Outgoing`). A direction is reachable from an
+existing edge through its `dir` field.

@@ -9,8 +9,8 @@ Full specification of a CG tensor: its external edges and internal fusion tree.
       members:
         - from_edges
         - num_external
+        - edges
         - om_dimension
-        - shape
         - with_inverted_axes
 
 ## Description
@@ -24,7 +24,8 @@ records everything needed to identify a CG tensor uniquely:
 
 For an \(n\)th-order tensor there are \(n - 2\) internal spins. `from_edges` automatically
 enumerates all valid internal spin configurations using the triangle inequality and
-stores them in the `alphas` field.
+retains them internally; they are not exposed as a Python attribute, and what a
+caller sees of them is their count, through `om_dimension()`.
 
 ### Constructor
 
@@ -42,23 +43,25 @@ spec = yuzuha.CGSpec.from_edges([
 ])
 print(spec.num_external())   # 3
 print(spec.om_dimension())   # 1
-print(spec.shape)            # (2, 2, 3)
+
+# The external shape is derived from the edges
+print(tuple(e.j.dimension() for e in spec.edges))   # (2, 2, 3)
 ```
 
 ### Key Properties
 
 | Method / Attribute | Description |
 |--------------------|-------------|
+| `edges` | List of the external `Edge` values, in order |
 | `num_external()` | Number of external edges |
 | `om_dimension()` | Outer-multiplicity (OM) dimension — number of valid internal spin paths |
-| `shape` | Tuple of `(2j+1)` for each external edge |
 | `with_inverted_axes(axes)` | Returns a copy with selected edge directions flipped |
 
 ### Axis Inversion
 
 `with_inverted_axes(axes)` creates a new `CGSpec` with the edge directions at the
 specified axis indices flipped (`Incoming ↔ Outgoing`). The internal spin configurations
-(`alphas`) are preserved because they depend only on spin values:
+are preserved because they depend only on spin values:
 
 ```python
 # Flip the direction of edge 0

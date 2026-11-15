@@ -42,7 +42,9 @@ A `Contraction` is **valid** if:
 5. For every pair \((i, k)\): the direction of edge \(i\) in spec A is opposite to the
    direction of edge \(k\) in spec B (one incoming, one outgoing)
 
-Violations raise `ValueError` from `compute_xsymbol`.
+Condition 1 is enforced by the constructor, since it needs nothing but the two
+lists. The remaining conditions depend on the specs being contracted and are
+therefore checked by `compute_xsymbol`, which raises `ValueError` on a violation.
 
 ## See Also
 
