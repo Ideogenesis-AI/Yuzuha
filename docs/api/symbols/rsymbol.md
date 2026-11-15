@@ -1,6 +1,10 @@
 # R-Symbol
 
-Permutation transformation on the outer-multiplicity space of a CG tensor.
+The R-symbol is the transformation a CG tensor's outer-multiplicity index undergoes when
+its external edges are permuted. Permuting the axes of a symmetry-constrained tensor is
+not a pure reindexing — the fusion tree is rebuilt in a different order — and the
+R-symbol is the matrix that carries the reduced blocks from the old OM basis to the new
+one.
 
 ::: yuzuha.compute_rsymbol
     options:
@@ -9,22 +13,28 @@ Permutation transformation on the outer-multiplicity space of a CG tensor.
 
 ## Description
 
-The R-symbol \(R^{\mu'}_{\mu}\) is a real unitary matrix that encodes how the
-outer-multiplicity (OM) index transforms when the external edges of a CG tensor are
-permuted:
+The R-symbol \(R^{\mu'}_{\mu}\) is the overlap between the permuted and the original
+canonical basis:
 
 $$R^{\mu'}_{\mu} = \langle \text{permuted},{\mu'} | \text{original},\mu \rangle$$
 
-The shape of the returned array is `(om_original, om_permuted)`.
+The returned array has shape `(om_original, om_permuted)`. For OM dimension 1 it degenerates
+to a \(1 \times 1\) matrix holding the permutation phase \(\pm 1\); for higher OM
+dimensions it is a genuine orthogonal rotation of the multiplicity space.
 
-For OM dimension 1, the R-symbol is a \(1 \times 1\) matrix whose single entry is
-\(\pm 1\) (the permutation phase). For higher OM dimensions it is a proper unitary
-matrix.
+### Permutation Convention
+
+The permutation is given as a list of **source** indices: `permutation[i]` is the position
+in the **original** spec whose edge moves to position `i` of the permuted spec, so that
+`spec_permuted.edges[i] == spec.edges[permutation[i]]`. This is the same convention
+NumPy's `transpose` uses, which makes the two safe to apply in tandem to a tensor and its
+reduced blocks.
 
 ### Usage
 
 ```python
 import yuzuha
+import numpy as np
 
 jhalf = yuzuha.Spin(1)   # j = 1/2
 
@@ -36,38 +46,35 @@ spec = yuzuha.CGSpec.from_edges([
 ])
 
 # Swap the first two edges
-permutation = [1, 0, 2, 3]
-r_array, spec_permuted = yuzuha.compute_rsymbol(spec, permutation)
+r_array, spec_permuted = yuzuha.compute_rsymbol(spec, [1, 0, 2, 3])
 
 print(r_array.shape)   # (om_original, om_permuted)
 print(r_array.dtype)   # float64
 
-# Identity permutation gives the identity matrix
-identity_perm = [0, 1, 2, 3]
-r_id, _ = yuzuha.compute_rsymbol(spec, identity_perm)
-import numpy as np
+# The identity permutation gives the identity matrix
+r_id, _ = yuzuha.compute_rsymbol(spec, [0, 1, 2, 3])
 assert np.allclose(r_id, np.eye(spec.om_dimension()))
 ```
 
-### Unitarity
+### Algebraic Properties
 
-The R-symbol is always **unitary**:
+The R-symbol is always **unitary**, and since it is real this amounts to orthogonality:
 
 $$R^\top R = R R^\top = I$$
 
-This can be verified for any spec and permutation:
+R-symbols also compose under composition of permutations, and the inverse permutation
+gives the transpose:
+
+$$R(\sigma \circ \pi) = R(\sigma)\, R(\pi), \qquad R(\pi^{-1}) = R(\pi)^\top$$
+
+Together these make a sequence of axis permutations collapsible into a single matrix,
+which is the practical reason for caching R-symbols to avoid recomputing them per
+permutation step:
 
 ```python
-import numpy as np
 r, _ = yuzuha.compute_rsymbol(spec, [1, 0, 2, 3])
 assert np.allclose(r.T @ r, np.eye(r.shape[1]))
 ```
-
-### Composition
-
-R-symbols compose correctly under permutation composition:
-
-$$R(\sigma \circ \pi) = R(\sigma)\, R(\pi)$$
 
 ### Caching
 
@@ -84,9 +91,9 @@ The first call for a given `(spec, permutation)` pair stores the result in
 
 ## Notes
 
-The permutation is specified as a list of **destination** indices: `permutation[i]` is
-the index in the **original** spec that moves to position `i` in the permuted spec.
-That is, `spec_permuted.edge_at(i) == spec.edge_at(permutation[i])`.
+The permuted spec is returned alongside the matrix for convenience, because its internal
+fusion tree is re-derived from the permuted edge order and will not in general match the
+internal spins of the original.
 
-An invalid permutation (wrong length, out-of-range indices, or repeated indices) raises
-`ValueError`.
+An invalid permutation raises `ValueError`: wrong length, an out-of-range index, or a
+repeated index.

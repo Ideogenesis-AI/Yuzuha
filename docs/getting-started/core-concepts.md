@@ -36,8 +36,8 @@ transformations via the invariant metric.
 ```python
 from yuzuha import Direction
 
-d_in  = Direction.Incoming   # primal representation
-d_out = Direction.Outgoing   # dual representation
+d_in  = Direction.incoming()   # primal representation
+d_out = Direction.outgoing()   # dual representation
 ```
 
 Arrow directions can be flipped using the invariant metric \(g\):
@@ -49,7 +49,9 @@ this transformation.
 
 ## Edges
 
-An **Edge** pairs a spin with a direction, representing one external edge of a tensor:
+An **Edge** pairs a spin with a direction, representing one external edge of a tensor.
+The two constructors below are the usual way to build one, and the pair is readable
+afterwards through the `j` and `dir` fields:
 
 ```python
 import yuzuha
@@ -58,6 +60,8 @@ j = yuzuha.Spin(1)  # j = 1/2
 
 e_in  = yuzuha.Edge.incoming(j)   # spin-1/2 incoming edge
 e_out = yuzuha.Edge.outgoing(j)   # spin-1/2 outgoing edge
+
+print(e_in.j, e_in.is_incoming())   # 1/2 True
 ```
 
 ## CG Specifications
@@ -86,11 +90,14 @@ spec = yuzuha.CGSpec.from_edges([
 
 print(spec.num_external())  # 3
 print(spec.om_dimension())  # 1  (only one valid internal coupling)
-print(spec.shape)           # (2, 2, 3)  — product of (2j+1) per edge
+
+# The external shape is read off the edges
+print(tuple(e.j.dimension() for e in spec.edges))   # (2, 2, 3)
 ```
 
 The `from_edges` constructor automatically enumerates all valid internal spin
-configurations and stores them as the `alphas` field.
+configurations. They are kept internally rather than exposed as an attribute; what you
+observe of them is their count, through `om_dimension()`.
 
 ## Left-Associative Fusion Trees
 
@@ -126,15 +133,21 @@ spec = yuzuha.CGSpec.from_edges([
     yuzuha.Edge.incoming(j1),
     yuzuha.Edge.outgoing(j1),
 ])
-print(spec.om_dimension())  # > 1 for certain spin combinations
+print(spec.om_dimension())  # 3 — three internal spins couple j=1 x j=1 down to j=1
 ```
+
+Four edges is the smallest order at which this can happen, and even then only if the
+spins permit more than one path. A 3rd-order spec always has OM dimension 1, because its
+single coupling is already fixed by the outgoing edge.
 
 ## Canonical CG Bases
 
 The **canonical basis** for a CGSpec is a real-valued tensor of shape
 \((2j_1+1, \ldots, 2j_n+1, \mathrm{om\_dim})\) that expresses the CG tensor in the
-magnetic-quantum-number basis. It is computed from the CG coefficients using the
-left-associative fusion tree and normalized with respect to the OM space.
+magnetic-quantum-number basis. It is computed from the CG coefficients along the
+left-associative fusion tree, then normalized so that the OM slices are orthonormal —
+each slice is a unit vector over the magnetic indices, which is not the normalization of
+the bare CG coefficients themselves.
 
 ```python
 basis = yuzuha.canonical_basis(spec)

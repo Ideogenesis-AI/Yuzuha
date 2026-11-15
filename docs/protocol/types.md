@@ -100,8 +100,11 @@ of a tensor.
 
 ### Generalization Notes
 
-For SU(N), the dimension of representation \(\lambda\) is given by the Weyl dimension
-formula. The `Edge` structure is otherwise identical.
+The `Edge` structure carries over to SU(N) unchanged, since it is just a labeled
+direction. Only the dimension changes: for SU(N) the dimension of representation
+\(\lambda\) is given by the Weyl dimension formula. Since the
+dimension is derived from the label and not stored on the edge, a conforming SU(N)
+implementation needs no change to the edge type itself.
 
 ---
 
@@ -172,8 +175,10 @@ A **Contraction** specifies which external edges of two specs to contract togeth
 
 ### Generalization Notes
 
-For SU(N), the representation matching condition uses the SU(N) `RepLabel` equality.
-The direction condition remains identical.
+`Contraction` is the most group-agnostic of the five types: it holds only integer indices.
+The pair-validity conditions generalize without restatement, since representation matching
+is defined by `RepLabel` equality and the direction condition involves no group data at
+all. An SU(N) implementation reuses the type verbatim.
 
 ---
 

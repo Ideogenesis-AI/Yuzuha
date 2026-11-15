@@ -1,7 +1,9 @@
 # API Reference
 
-Welcome to the Yuzuha API Reference. This section documents all types, functions, and
-modules available in the `yuzuha` Python package, organized by functionality.
+Welcome to the Yuzuha API Reference. This section documents the types, functions, and
+modules of the `yuzuha` Python package, organized by role. The dependency runs in one
+direction — spins build edges, edges build specs, specs produce bases, and bases
+produce symbols.
 
 ## Core Types
 
@@ -10,7 +12,7 @@ The fundamental building blocks for specifying CG tensors:
 | Type | Description |
 |------|-------------|
 | [Spin](core/spin.md) | SU(2) irreducible representation label (half-integer \(j\)) |
-| [Direction](core/direction.md) | Arrow direction: `Incoming` or `Outgoing` |
+| [Direction](core/direction.md) | Arrow direction: incoming or outgoing |
 | [Edge](core/edge.md) | Directed representation — one external edge of a CG tensor |
 | [CGSpec](core/cgspec.md) | Full CG tensor specification: edges + internal fusion tree |
 | [Contraction](core/contraction.md) | Edge-pair specification for X-symbol computation |
@@ -25,16 +27,18 @@ The primary outputs of Yuzuha — recoupling coefficients as NumPy arrays:
 | [compute_rsymbol](symbols/rsymbol.md) | `(ndarray, CGSpec)` | Permutation transformation on the OM space; shape `(om_in, om_out)` |
 | [canonical_basis](symbols/canonical-basis.md) | `ndarray` | Canonical CG basis tensor; shape `(*external_dims, om_dim)` |
 
-### Auxiliary Symbol Functions
+Two further functions handle duality, and are documented alongside the
+[Metric Tensor](primitives/metric.md):
 
-| Function | Description |
-|----------|-------------|
-| `fs_phase_for_spin(spin)` | Frobenius-Schur indicator \((-1)^{2j}\) |
-| `compute_conjugate(spec)` | Canonical basis with all arrows reversed |
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `fs_phase_for_spin(spin)` | `float` | Frobenius-Schur indicator \((-1)^{2j}\) |
+| `compute_conjugate(spec)` | `(float, CGSpec)` | Conjugate phase and arrow-reversed spec |
 
 ## Primitives
 
-Internal mathematical utilities (Rust layer, not directly Python-callable):
+The mathematical layer the symbols are built on. These live in Rust and are not callable
+from Python, but their conventions determine every value the library returns:
 
 | Topic | Description |
 |-------|-------------|
@@ -44,11 +48,12 @@ Internal mathematical utilities (Rust layer, not directly Python-callable):
 
 ## Caching
 
-Utilities for managing persistent symbol caches:
+Caching is transparent, so these utilities are only needed when the cache's location or
+contents matter — in deployments, tests, or when inspecting what has accumulated:
 
 | Topic | Description |
 |-------|-------------|
-| [Database](caching/database.md) | `startup_database()` — pre-populate canonical basis cache |
+| [Database](caching/database.md) | `startup_database()` — pre-populate the canonical basis cache |
 | [Cache Management](caching/cache.md) | Path control, statistics, test isolation |
 
 ### Caching Functions
@@ -58,7 +63,7 @@ Utilities for managing persistent symbol caches:
 | `startup_database()` | Pre-compute common 3rd- and 4th-order CG bases |
 | `set_cache_path(path)` | Override the cache directory |
 | `reset_caches()` | Close and reset in-memory cache connections |
-| `clear_all_caches()` | Delete all entries from X- and R-symbol databases |
+| `clear_all_caches()` | Delete all entries from the X- and R-symbol databases |
 | `get_cache_stats()` | Return cache statistics dict |
 | `print_cache_stats()` | Print a formatted cache summary |
 | `TestCacheContext` | Context manager for isolated test caching |
@@ -90,7 +95,7 @@ Utilities for managing persistent symbol caches:
 
 ## API Design Principles
 
-Yuzuha follows these design principles:
+Five commitments hold across the whole surface:
 
 - **All outputs are NumPy arrays**: Symbols are returned as `float64` `ndarray` objects,
   compatible with standard scientific Python tools

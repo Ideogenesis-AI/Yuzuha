@@ -28,8 +28,7 @@ This is well-defined for any group whose irreducible representations are **self-
 \(g^{(r)}\) is an invertible scalar-multiple of the identity when squared. The value
 \(\text{FS}(r) \in \{+1, -1\}\) distinguishes **real** representations
 (\(\text{FS} = +1\), metric symmetric) from **pseudo-real** ones
-(\(\text{FS} = -1\), metric antisymmetric). The SU(2)-specific formula is given in
-[Arrow Conventions — Frobenius-Schur Indicator](conventions/arrows.md#frobenius-schur-indicator).
+(\(\text{FS} = -1\), metric antisymmetric).
 
 ### Required Properties
 
@@ -81,9 +80,7 @@ The phase encodes the discrepancy between the actual arrow configuration of \(S\
 the implementation's chosen **canonical conjugate pattern** — a fixed reference
 direction assignment used to define the normalised dual tensor. Different implementations
 may adopt different canonical patterns; some may always return \(\phi = +1\) by
-absorbing the sign into the basis convention. The SU(2)-specific canonical pattern and
-phase formula are documented in
-[Arrow Conventions — Canonical Conjugate Pattern](conventions/arrows.md#canonical-conjugate-pattern).
+absorbing the sign into the basis convention.
 
 ### Required Properties
 

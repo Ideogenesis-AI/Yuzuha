@@ -1,6 +1,9 @@
 # Contraction
 
-Specification of which edges to contract between two CG tensors.
+A `Contraction` names the pairs of external edges to be joined when two CG tensors are
+contracted. It is the third argument of [compute_xsymbol](../symbols/xsymbol.md), and it
+is validated against both input specs: the paired edges must carry the same spin and
+opposite arrow directions, which makes the contraction a legal SU(2) pairing.
 
 ::: yuzuha.Contraction
     options:
@@ -9,9 +12,9 @@ Specification of which edges to contract between two CG tensors.
 
 ## Description
 
-`Contraction` records the pairs of edge indices to be contracted when calling
-`compute_xsymbol`. Each pair \((i, k)\) indicates that edge \(i\) of the first
-tensor (spec A) is contracted with edge \(k\) of the second tensor (spec B).
+Each pair \((i, k)\) indicates that edge \(i\) of the first tensor (spec A) is contracted
+with edge \(k\) of the second tensor (spec B). The two index lists are given separately
+and matched up position by position:
 
 ```python
 import yuzuha
@@ -20,7 +23,7 @@ import yuzuha
 contraction = yuzuha.Contraction([2], [0])
 
 # Contract multiple pairs
-contraction2 = yuzuha.Contraction([2, 3], [0, 1])
+contractions = yuzuha.Contraction([2, 3], [0, 1])
 ```
 
 ### Fields
@@ -42,7 +45,9 @@ A `Contraction` is **valid** if:
 5. For every pair \((i, k)\): the direction of edge \(i\) in spec A is opposite to the
    direction of edge \(k\) in spec B (one incoming, one outgoing)
 
-Violations raise `ValueError` from `compute_xsymbol`.
+Condition 1 is enforced by the constructor, since it needs nothing but the two lists.
+The remaining conditions depend on the specs being contracted and are therefore checked
+by `compute_xsymbol`, which raises `ValueError` on a violation.
 
 ## See Also
 
@@ -53,10 +58,9 @@ Violations raise `ValueError` from `compute_xsymbol`.
 
 ## Notes
 
-`Contraction` objects are immutable, hashable, and can be reused across multiple
-`compute_xsymbol` calls with compatible specs. They support `==` comparison and can
-be used as dictionary keys or in sets.
+`Contraction` objects are immutable and hashable, support `==` comparison, and can be
+reused across any number of `compute_xsymbol` calls with compatible specs.
 
-The order of pairs in `axes_a` and `axes_b` matters: pair \((i, k)\) at position 0
-is treated as the first contraction, which affects the internal fusion tree ordering of
+The order of the pairs matters. The pair at position 0 is treated as the first
+contraction, which feeds through to the edge order and hence the internal fusion tree of
 the output spec \(C\).

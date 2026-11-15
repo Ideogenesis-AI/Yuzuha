@@ -22,6 +22,12 @@
     margin-top: -0.8rem;
 }
 
+/* Keep the link column of a hub table on one line. Scoped to cells whose only
+   content is the link, so tables with prose in the first column still wrap. */
+.md-typeset table:not([class]) td:first-child>a:only-child {
+    white-space: nowrap;
+}
+
 /* ── Hero section ─────────────────────────────────────────────────────────── */
 .mdx-hero {
     position: relative;
