@@ -7,7 +7,7 @@ non-caching one from the caller's perspective.
 
 ---
 
-## 1. Correctness (Determinism)
+## Correctness (Determinism)
 
 **Requirement**: A cached result must be bitwise-equal to the value that would be
 returned by a fresh computation with no cache present.
@@ -18,7 +18,7 @@ caches.
 
 ---
 
-## 2. Key Spaces
+## Key Spaces
 
 Each cached function must use the following minimum key spaces. Additional
 implementation-specific key components (e.g. a format version number) are permitted
@@ -70,7 +70,7 @@ key = (
 
 ---
 
-## 3. Thread Safety
+## Thread Safety
 
 **Requirement**: All cache read and write operations must be **thread-safe**. Concurrent
 calls from different threads with the same or different keys must not produce data
@@ -86,7 +86,7 @@ What must not happen is a torn read or a corrupted store. Acceptable strategies 
 
 ---
 
-## 4. Persistence
+## Persistence
 
 **Recommendation**: Caches should be **persistent** across Python sessions (i.e. stored
 on disk, not in memory only). This is a recommendation, not a hard requirement.
@@ -100,7 +100,7 @@ If a persistent cache is implemented:
 
 ---
 
-## 5. Cache Invalidation
+## Cache Invalidation
 
 The Yuzuha Protocol does **not** specify when a cache must be invalidated. In practice,
 the cache is valid as long as the implementation of `canonical_basis`,
@@ -114,7 +114,7 @@ If an implementation update changes outputs, it must either:
 
 ---
 
-## 6. Isolation for Testing
+## Isolation for Testing
 
 **Requirement**: If a caching layer is implemented, the implementation must provide a
 mechanism for test code to use an isolated, temporary cache so that tests do not
@@ -131,7 +131,7 @@ with yuzuha.TestCacheContext():
 
 ---
 
-## 7. Cache Management API
+## Cache Management API
 
 If a persistent cache is implemented, the following utility functions are **recommended**
 (present in the SU(2) reference implementation):
@@ -146,7 +146,7 @@ If a persistent cache is implemented, the following utility functions are **reco
 
 ---
 
-## 8. SU(2) Reference Implementation Summary
+## SU(2) Reference Implementation Summary
 
 | Cache | Storage | File | Key | Value |
 |-------|---------|------|-----|-------|
