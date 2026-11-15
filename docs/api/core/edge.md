@@ -16,7 +16,7 @@ spec and the fusion order of its internal tree.
 ## Description
 
 The two class-method constructors are the primary way to create edges, and take a `Spin`
-rather than a doubled integer:
+object from a doubled integer:
 
 ```python
 import yuzuha

@@ -111,7 +111,7 @@ cargo llvm-cov --features test-utils --summary-only
 coverage run --source yuzuha -m pytest && coverage report -m
 ```
 
-Install `llvm-tools-preview` rather than relying on a system LLVM: the coverage format is
+Install `llvm-tools-preview` without relying on a system LLVM: the coverage format is
 versioned with the compiler, and an `llvm-cov` from Xcode or Homebrew will refuse to read
 profiles produced by `rustc`.
 
@@ -125,7 +125,7 @@ against that build with `LLVM_PROFILE_FILE` set, and reporting the resulting pro
 `llvm-cov`. Remember to reinstall a clean release build afterwards, since an instrumented
 extension is slow and writes profile data on every run.
 
-When adding code, check the uncovered lines rather than the percentage. A few lines are
+When adding code, check the uncovered lines instead of the percentage. A few lines are
 genuinely unreachable and are expected to stay uncovered: the `?` arms on the infallible
 `build_cg3` in `src/builders/builders.rs`, and the `InvalidMagneticNumber`,
 `TriangleViolation` and `InvalidContraction` conversion arms in `src/bindings.rs`, which
@@ -134,7 +134,7 @@ nothing in the crate ever constructs on a path reachable from Python.
 ## Code Style
 
 Formatting is not checked automatically, so run the formatter yourself before opening a
-pull request rather than relying on review to catch it:
+pull request without relying on review to catch it:
 
 - **Rust**: `rustfmt` defaults, applied with `cargo fmt`
 - **Python**: PEP 8, with the surrounding file's existing conventions taking precedence
