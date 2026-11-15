@@ -1,6 +1,9 @@
 # CGSpec
 
-Full specification of a CG tensor: its external edges and internal fusion tree.
+`CGSpec` is the central data structure in Yuzuha: it identifies a CG tensor uniquely by
+recording its external edges together with the internal spins of its fusion tree. Every
+symbol function takes or returns one, and a spec doubles as the cache key under which the
+corresponding basis and symbol arrays are stored.
 
 ::: yuzuha.CGSpec
     options:
@@ -8,24 +11,24 @@ Full specification of a CG tensor: its external edges and internal fusion tree.
       heading_level: 2
       members:
         - from_edges
-        - num_external
         - edges
+        - num_external
         - om_dimension
         - with_inverted_axes
 
 ## Description
 
-`CGSpec` (Clebsch-Gordan specification) is the central data structure in Yuzuha. It
-records everything needed to identify a CG tensor uniquely:
+A spec has two parts:
 
-- The **external edges** — a list of `Edge` values, one per external edge
-- The **internal spins** (\(\alpha\) values) — one per intermediate fusion step in
-  the left-associative fusion tree
+- The **external edges** — a list of [Edge](edge.md) values, one per external edge
+- The **internal spins** (\(\alpha\) values) — one per intermediate fusion step in the
+  left-associative fusion tree
 
-For an \(n\)th-order tensor there are \(n - 2\) internal spins. `from_edges` automatically
-enumerates all valid internal spin configurations using the triangle inequality and
-retains them internally; they are not exposed as a Python attribute, and what a
-caller sees of them is their count, through `om_dimension()`.
+For an \(n\)th-order tensor there are \(n - 2\) internal spins. You never supply them by
+hand, and they are not exposed as a Python attribute: `from_edges` enumerates every
+internal spin configuration admitted by the triangle inequality and retains them
+internally, which makes the spec's outer multiplicity well defined. What you see
+of them is their count, through `om_dimension()`.
 
 ### Constructor
 
@@ -59,9 +62,9 @@ print(tuple(e.j.dimension() for e in spec.edges))   # (2, 2, 3)
 
 ### Axis Inversion
 
-`with_inverted_axes(axes)` creates a new `CGSpec` with the edge directions at the
-specified axis indices flipped (`Incoming ↔ Outgoing`). The internal spin configurations
-are preserved because they depend only on spin values:
+`with_inverted_axes(axes)` creates a new `CGSpec` with the edge directions at the given
+axis indices flipped (`Incoming ↔ Outgoing`). The internal spin configurations are
+preserved, because they depend only on the spin values and not on the arrows:
 
 ```python
 # Flip the direction of edge 0
@@ -71,9 +74,10 @@ spec_inv = spec.with_inverted_axes([0])
 spec_inv2 = spec.with_inverted_axes([0, 2])
 ```
 
-This is used in tensor network algorithms to account for Frobenius-Schur phases when
-reversing contracted pairs; see the [0.1.3 changelog](../../getting-started/changelog.md)
-for background.
+Tensor network algorithms use this when a contracted pair has to be re-expressed with its
+arrows reversed. The method supplies the flipped spec; the caller is responsible for the
+accompanying Frobenius-Schur phase \((-1)^{2j}\) per inverted bond, described under
+[Metric Tensor](../primitives/metric.md).
 
 ## See Also
 
@@ -86,10 +90,9 @@ for background.
 
 ## Notes
 
-`CGSpec` objects are immutable and hashable. They can be used as dictionary keys
-and in sets. The `with_inverted_axes` method always returns a **new** object; the
-original is unchanged.
+`CGSpec` objects are immutable and hashable, so they can be used as dictionary keys and
+in sets. `with_inverted_axes` always returns a **new** object; the original is unchanged.
 
-The `from_edges` constructor raises `ValueError` if the provided edges are inconsistent
-(e.g. fewer than 2 edges) or if no valid internal spin configuration exists (triangle
-inequality violated for all candidates).
+`from_edges` raises `ValueError` if the edge list is too short (fewer than 2 edges) or if
+no valid internal spin configuration exists, which happens when the triangle inequality
+fails for every candidate path.
