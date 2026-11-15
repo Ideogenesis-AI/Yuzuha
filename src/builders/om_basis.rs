@@ -150,8 +150,8 @@ mod tests {
     fn test_enumerate_alpha_is_lexicographically_sorted() {
         // OM indices are positional, so the enumeration order is part of the
         // on-disk cache format and must stay deterministic. Five edges give
-        // multi-element alphas that share prefixes, which is what exercises
-        // the tie-breaking in the comparator.
+        // multi-element alphas that share prefixes, which exercises the
+        // tie-breaking in the comparator.
         let j_half = Spin::new(1).unwrap();
         let j1 = Spin::new(2).unwrap();
         let alphas = enumerate_alpha(&[j_half, j_half, j_half, j_half, j1]);
