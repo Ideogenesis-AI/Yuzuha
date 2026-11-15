@@ -10,7 +10,7 @@ The fundamental building blocks for specifying CG tensors:
 | Type | Description |
 |------|-------------|
 | [Spin](core/spin.md) | SU(2) irreducible representation label (half-integer \(j\)) |
-| [Direction](core/direction.md) | Arrow direction: `Incoming` or `Outgoing` |
+| [Direction](core/direction.md) | Arrow direction: incoming or outgoing |
 | [Edge](core/edge.md) | Directed representation — one external edge of a CG tensor |
 | [CGSpec](core/cgspec.md) | Full CG tensor specification: edges + internal fusion tree |
 | [Contraction](core/contraction.md) | Edge-pair specification for X-symbol computation |
@@ -27,10 +27,10 @@ The primary outputs of Yuzuha — recoupling coefficients as NumPy arrays:
 
 ### Auxiliary Symbol Functions
 
-| Function | Description |
-|----------|-------------|
-| `fs_phase_for_spin(spin)` | Frobenius-Schur indicator \((-1)^{2j}\) |
-| `compute_conjugate(spec)` | Canonical basis with all arrows reversed |
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `fs_phase_for_spin(spin)` | `float` | Frobenius-Schur indicator \((-1)^{2j}\) |
+| `compute_conjugate(spec)` | `(float, CGSpec)` | Conjugate phase and arrow-reversed spec |
 
 ## Primitives
 
