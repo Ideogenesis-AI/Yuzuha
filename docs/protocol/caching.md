@@ -138,7 +138,7 @@ If a persistent cache is implemented, the following utility functions are **reco
 |----------|-------------|
 | `set_cache_path(path)` | Override the cache directory location |
 | `reset_caches()` | Close in-memory cache connections and reset state |
-| `clear_all_caches()` | Delete all cached entries (keep schema) |
+| `clear_all_caches()` | Delete cached symbol entries (keep files and schema) |
 | `get_cache_stats() → dict` | Return entry counts and file sizes per cache |
 | `print_cache_stats()` | Print a human-readable cache summary |
 
@@ -148,7 +148,7 @@ If a persistent cache is implemented, the following utility functions are **reco
 
 | Cache | Storage | File | Key | Value |
 |-------|---------|------|-----|-------|
-| Canonical basis | SQLite (Rust) | `cgbasis.db` | (external edges, internal spins) | `ndarray` in `.npy` format |
+| Canonical basis | SQLite (Rust) | `cgbasis.db` | (external spins) | `ndarray` in `.npy` format |
 | X-symbol | SQLite (Python) | `xsymbol.db` | (spec_a, spec_b, contraction) | `(ndarray, spec_c)` |
 | R-symbol | SQLite (Python) | `rsymbol.db` | (spec, permutation) | `(ndarray, spec_permuted)` |
 
