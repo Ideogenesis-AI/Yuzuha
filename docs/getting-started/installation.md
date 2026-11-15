@@ -19,6 +19,9 @@ dependency is NumPy 2.0 or higher.
 - **Python**: 3.11 or higher
 - **NumPy**: 2.0 or higher
 
+The NumPy floor is not arbitrary: the extension is built against the NumPy 2.x
+ABI-stable interface, so a 1.x installation will fail at import.
+
 ## Installing from Source
 
 If you need the latest development version or want to contribute to Yuzuha, build from
@@ -56,9 +59,15 @@ development (at the cost of runtime performance).
 
 ### Running Tests
 
+The Python suite runs against whatever build is currently installed in the environment,
+so run `maturin develop` first if you have touched the Rust sources:
+
 ```bash
 pytest
 ```
+
+The crate also has a Rust-side suite, which needs a feature flag to build; see
+[Contributing](contributing.md) for that and for the coverage tooling.
 
 ## Verifying Installation
 

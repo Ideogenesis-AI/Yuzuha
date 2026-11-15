@@ -136,6 +136,10 @@ spec = yuzuha.CGSpec.from_edges([
 print(spec.om_dimension())  # 3 — three internal spins couple j=1 x j=1 down to j=1
 ```
 
+Four edges is the smallest order at which this can happen, and even then only if the
+spins permit more than one path. A 3rd-order spec always has OM dimension 1, because its
+single coupling is already fixed by the outgoing edge.
+
 ## Canonical CG Bases
 
 The **canonical basis** for a CGSpec is a real-valued tensor of shape

@@ -8,14 +8,18 @@ improving algorithms, or enhancing documentation, your help is appreciated.
 ### Reporting Issues
 
 If you find a bug or have a feature request, please
-[open an issue](https://github.com/Ideogenesis-AI/Yuzuha/issues) on GitHub. When reporting
-a bug, include:
+[open an issue](https://github.com/Ideogenesis-AI/Yuzuha/issues) on GitHub. Recoupling
+coefficients are easy to disagree about for convention reasons, so a report is far more
+useful with the following, which separates a convention mismatch from a genuine bug:
 
 - Your Python and NumPy versions
-- A minimal reproducible example
-- The expected and actual output
+- A minimal reproducible example, including how the `CGSpec` was constructed
+- The expected and actual output, and where the expectation comes from if it is a
+  published table or another library
 
 ### Submitting Pull Requests
+
+The usual GitHub flow applies:
 
 1. Fork the repository on GitHub
 2. Create a branch for your change
@@ -23,9 +27,18 @@ a bug, include:
 4. Run the test suite and ensure it passes
 5. Open a pull request with a clear description of your changes
 
+Changes that alter computed values deserve particular care, because cached results from
+an earlier version remain on disk and will be returned in preference to the new
+computation. If a change is intended to alter outputs, say so in the pull request
+description so that the cache-invalidation question gets addressed.
+
 ### Development Setup
 
-Building from source requires Rust 1.85 or higher. The [installation guide](installation.md) covers the toolchain setup.
+Building from source requires Rust 1.85 or higher; the
+[installation guide](installation.md) covers the toolchain setup. Note that `maturin
+develop` compiles the extension into the active environment, so the build step has to
+be repeated after every change to the Rust sources — editable installs only cover
+the Python layer.
 
 ```bash
 git clone https://github.com/Ideogenesis-AI/Yuzuha.git
@@ -120,10 +133,17 @@ nothing in the crate ever constructs on a path reachable from Python.
 
 ## Code Style
 
-- **Rust**: Follow `rustfmt` formatting (`cargo fmt`)
-- **Python**: Follow PEP 8
+Formatting is not checked automatically, so run the formatter yourself before opening a
+pull request rather than relying on review to catch it:
+
+- **Rust**: `rustfmt` defaults, applied with `cargo fmt`
+- **Python**: PEP 8, with the surrounding file's existing conventions taking precedence
+  where they differ
 
 ## Areas for Contribution
+
+Contributions are welcome anywhere, but these are the areas where help would make the
+most difference right now:
 
 - **Performance**: Algorithmic improvements to CG basis construction or OM enumeration
 - **Testing**: Additional edge cases or stress tests
