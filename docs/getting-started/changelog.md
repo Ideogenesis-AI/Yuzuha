@@ -1,5 +1,88 @@
 # Changelog
 
+## 0.2.1 — November 16, 2026
+
+### What's New
+
+#### Test Suite Coverage
+
+The suites have grown from 493 tests to 630. New inline tests cover the core spin, edge,
+spec and tensor types, taking `src/core.rs` from 61.8% to complete line coverage, and the
+previously untested error branches of the cache, the fusion-tree builder and the symbol
+accessors are now exercised. New Python tests cover the error conversions at the binding
+boundary, cache path resolution, and cache lifecycle. Line coverage now stands at 98.9%
+for the Rust crate and 100% for the Python package; the standard and the commands that
+measure it are recorded in the contributing guide.
+
+#### Test Placement
+
+Where a Rust test belongs is now a stated rule: an inline `mod tests` holds unit tests of
+a single function and anything touching a private item, while `tests/rust/` holds the
+mathematical properties exercised through the public API alone. The conjugation,
+orthonormality, metric and Clebsch-Gordan identities have moved into the integration suite
+accordingly, and the fixtures those modules share are collected in `tests/rust/common.rs`.
+
+#### Test Isolation
+
+Test cache directories were named from the clock alone, which advances in microsecond
+steps and so occasionally handed two tests the same directory, letting the first to finish
+delete the database the second was still writing. Guard names now carry a counter as well
+as a timestamp, the tests that redirect the cache through the process-global environment
+variable are serialized, and the suite no longer writes to the shared `.yuzuha` cache.
+
+#### Configurable Spin Ranges for `startup_database`
+
+`startup_database()` now accepts the spin grids it sweeps, as doubled integers:
+
+```python
+yuzuha.startup_database(special_spins=[1], general_spins=[1, 2])
+```
+
+Both parameters are optional and omitting them reproduces the previous default sweep
+exactly. Narrowing them helps when an application needs only a few spin values, or in
+tests where the full sweep would dominate the runtime.
+
+#### Minimum Supported Rust Version
+
+`Cargo.toml` now declares `rust-version = "1.85"`. The requirement itself is unchanged —
+the crate uses the 2024 edition, which has required 1.85 all along — but `cargo` now
+reports a clear error on an older toolchain instead of failing part-way through a build.
+
+#### Documentation
+
+Every page in the API, protocol and getting-started sections has been reworked to an even
+prose density, opening with a short statement of what the thing is for, carrying the same
+section structure as its neighbours, and stating each identity once instead of restating
+it across the page.
+
+The pass also corrected what the documentation claimed about the Python API. Pages had
+named `Direction.Incoming` and `Direction.Outgoing` constants, the attributes `Edge.spin`
+and `Edge.direction`, the members `CGSpec.shape` and `CGSpec.alphas` and an accessor
+`spec.edge_at`, none of which exist; `compute_conjugate` was described as returning a
+basis tensor with its arrows reversed, where it returns a phase and the dualised spec; the
+canonical basis normalization was stated incorrectly; and the basis cache was documented
+as keyed on edges and internal spins, where it is keyed on the external spins alone. Every
+Python example in the documentation now executes. The protocol pages no longer cite pages
+outside the protocol section, so each reads as a specification on its own.
+
+### Statistics
+
+- **38 commits** since v0.2.0
+- **630 tests** (415 Python + 215 Rust), up from 493 (373 Python + 120 Rust)
+- **Line coverage** 98.9% Rust crate, 100% Python package
+
+### API Changes
+
+No breaking changes.
+
+| Symbol | Kind | Change |
+|--------|------|--------|
+| `yuzuha.startup_database` | function | gained optional `special_spins` and `general_spins` parameters, defaulting to the previous sweep |
+
+The `coverage` package has been added to the `dev` optional-dependency group.
+
+---
+
 ## 0.2.0 — November 6, 2026
 
 ### What's New
