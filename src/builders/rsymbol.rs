@@ -250,6 +250,64 @@ mod tests {
     use approx::assert_relative_eq;
 
     #[test]
+    fn test_is_real_and_non_square_is_not_unitary() {
+        let _guard = TestCacheGuard::new();
+
+        let j_half = Spin::new(1).unwrap();
+        let spec = CGSpec::from_edges(vec![
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::outgoing(j_half),
+        ])
+        .unwrap();
+        let r = compute_rsymbol(&spec, &[0, 1, 2, 3]).unwrap();
+
+        // Every SU(2) R-symbol is real by construction.
+        assert!(r.is_real(1e-10));
+
+        // Unitarity requires a square matrix; a rectangular one is rejected
+        // before any numerical check.
+        let rectangular = RSymbol {
+            data: Array2::zeros((2, 3)),
+            spec_original: r.spec_original.clone(),
+            spec_permuted: r.spec_permuted.clone(),
+            permutation: r.permutation.clone(),
+        };
+        assert_eq!(rectangular.dimensions(), (2, 3));
+        assert!(!rectangular.is_unitary(1e-10));
+
+        // A square but non-orthogonal matrix is rejected on the numbers.
+        let scaled = RSymbol {
+            data: Array2::from_diag(&ndarray::arr1(&[2.0, 2.0])),
+            spec_original: r.spec_original.clone(),
+            spec_permuted: r.spec_permuted.clone(),
+            permutation: r.permutation.clone(),
+        };
+        assert!(!scaled.is_unitary(1e-10));
+    }
+
+    #[test]
+    fn test_rsymbol_get_out_of_range() {
+        let _guard = TestCacheGuard::new();
+
+        let j_half = Spin::new(1).unwrap();
+        let spec = CGSpec::from_edges(vec![
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::incoming(j_half),
+            Edge::outgoing(j_half),
+        ])
+        .unwrap();
+        let r = compute_rsymbol(&spec, &[0, 1, 2, 3]).unwrap();
+        let (m, n) = r.dimensions();
+
+        assert!(r.get(0, 0).is_some());
+        assert!(r.get(m, 0).is_none());
+        assert!(r.get(0, n).is_none());
+    }
+
+    #[test]
     fn test_rsymbol_identity_permutation() {
         let _guard = TestCacheGuard::new();
         

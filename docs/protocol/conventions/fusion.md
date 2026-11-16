@@ -1,5 +1,11 @@
 # Fusion Conventions
 
+This page fixes how the SU(2) reference implementation couples representations together
+and how it labels the resulting multiplicity space. The protocol requires some such
+choice to be made and applied consistently; it does not require this one. An
+implementation that couples in a different order, or labels OM indices differently, may
+still be conformant, but its symbols are not interchangeable with Yuzuha's.
+
 ## Left-Associative Fusion Trees
 
 For an \(n\)th-order tensor with external representations \((j_1, j_2, \ldots, j_n)\),
@@ -16,8 +22,9 @@ This uniquely determines the structure of the internal representation sequence
 - \(\alpha_{n-2}\) is an admissible representation in \(\alpha_{n-3} \otimes j_{n-1}\),
   and must equal \(j_n\) (fixed by the terminal edge)
 
-Any alternative fusion-tree ordering (e.g. right-associative, binary-tree) is **not**
-conformant with this convention and will produce incompatible symbols.
+Any alternative fusion-tree ordering (e.g. right-associative, or a balanced binary tree)
+is **not** conformant with this convention and will produce incompatible symbols, even
+though it describes the same tensor space.
 
 ## Canonical Ordering of Internal Representations
 
@@ -26,3 +33,9 @@ enumerated in **lexicographic order** of the sequence \((\alpha_1, \ldots, \alph
 where each \(\alpha_k\) is compared using the total order defined by the `RepLabel`
 type. The OM index \(\mu\) maps to this ordering: \(\mu = 0\) is the lexicographically
 smallest valid sequence.
+
+This is well defined precisely because the [Type System](../types.md#replabel) requires
+`RepLabel` to admit a total order consistent with equality. A total order on the labels
+lifts to a total order on fixed-length sequences of them, so the valid sequences for a
+given set of edges admit exactly one lexicographic enumeration, and the assignment of OM
+indices is reproducible across processes and across cache generations.

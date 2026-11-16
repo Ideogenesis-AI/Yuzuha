@@ -625,6 +625,23 @@ impl Contraction {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::builders::TestCacheGuard;
+
+    /// Build a spin from its doubled value.
+    fn j(doubled: i32) -> Spin {
+        Spin::new(doubled).unwrap()
+    }
+
+    /// A 4-edge j=1/2 spec with the canonical direction pattern; om_dim = 2.
+    fn four_half_spec() -> CGSpec {
+        CGSpec::from_edges(vec![
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::outgoing(j(1)),
+        ])
+        .unwrap()
+    }
 
     #[test]
     fn test_spin_basic() {
@@ -649,6 +666,14 @@ mod tests {
     }
 
     #[test]
+    fn test_spin_display() {
+        assert_eq!(j(0).to_string(), "0");
+        assert_eq!(j(1).to_string(), "1/2");
+        assert_eq!(j(2).to_string(), "1");
+        assert_eq!(j(3).to_string(), "3/2");
+    }
+
+    #[test]
     fn test_magnetic_number() {
         let j1 = Spin::new(2).unwrap();
 
@@ -669,6 +694,31 @@ mod tests {
     }
 
     #[test]
+    fn test_magnetic_number_unchecked_skips_validation() {
+        // new_unchecked accepts values new() would reject, for hot paths where
+        // the caller has already established the range.
+        let j1 = Spin::new(2).unwrap();
+        assert!(MagneticNumber::new(8, j1).is_err());
+        assert_eq!(MagneticNumber::new_unchecked(8).twice(), 8);
+    }
+
+    #[test]
+    fn test_magnetic_number_add() {
+        let m1 = MagneticNumber::new_unchecked(1);
+        let m2 = MagneticNumber::new_unchecked(3);
+        assert_eq!((m1 + m2).twice(), 4);
+        assert_eq!((m1 + m2.negate()).twice(), -2);
+    }
+
+    #[test]
+    fn test_magnetic_number_display() {
+        assert_eq!(MagneticNumber::new_unchecked(0).to_string(), "0");
+        assert_eq!(MagneticNumber::new_unchecked(2).to_string(), "1");
+        assert_eq!(MagneticNumber::new_unchecked(1).to_string(), "1/2");
+        assert_eq!(MagneticNumber::new_unchecked(-3).to_string(), "-3/2");
+    }
+
+    #[test]
     fn test_direction() {
         let dir_in = Direction::Incoming;
         let dir_out = Direction::Outgoing;
@@ -678,6 +728,22 @@ mod tests {
 
         assert_eq!(dir_in.flip(), dir_out);
         assert_eq!(dir_out.flip(), dir_in);
+    }
+
+    #[test]
+    fn test_direction_from_sign() {
+        assert_eq!(Direction::from_sign(1).unwrap(), Direction::Incoming);
+        assert_eq!(Direction::from_sign(-1).unwrap(), Direction::Outgoing);
+
+        let err = Direction::from_sign(0).unwrap_err();
+        assert!(matches!(err, YuzuhaError::InvalidCGTSpec(_)));
+        assert!(Direction::from_sign(2).is_err());
+    }
+
+    #[test]
+    fn test_direction_display() {
+        assert_eq!(Direction::Incoming.to_string(), "→");
+        assert_eq!(Direction::Outgoing.to_string(), "←");
     }
 
     #[test]
@@ -691,6 +757,46 @@ mod tests {
 
         let flipped = edge.with_flipped_direction();
         assert_eq!(flipped.dir, Direction::Outgoing);
+    }
+
+    #[test]
+    fn test_edge_display() {
+        assert_eq!(Edge::incoming(j(2)).to_string(), "[j=1, →]");
+        assert_eq!(Edge::outgoing(j(1)).to_string(), "[j=1/2, ←]");
+    }
+
+    #[test]
+    fn test_edge_directions_preserved_in_spec() {
+        let spec = CGSpec::from_edges(vec![
+            Edge::incoming(j(2)),
+            Edge::outgoing(j(2)),
+            Edge::incoming(j(2)),
+        ])
+        .unwrap();
+
+        assert_eq!(spec.edges.len(), 3);
+        assert_eq!(spec.edges[0].dir, Direction::Incoming);
+        assert_eq!(spec.edges[1].dir, Direction::Outgoing);
+        assert_eq!(spec.edges[2].dir, Direction::Incoming);
+    }
+
+    #[test]
+    fn test_edge_spin_at() {
+        let spec = CGSpec::from_edges(vec![
+            Edge::incoming(j(1)),
+            Edge::incoming(j(3)),
+            Edge::incoming(j(4)),
+            Edge::incoming(j(2)),
+        ])
+        .unwrap();
+
+        assert_eq!(spec.edge_spin_at(0).unwrap(), j(1));
+        assert_eq!(spec.edge_spin_at(1).unwrap(), j(3));
+        assert_eq!(spec.edge_spin_at(2).unwrap(), j(4));
+        assert_eq!(spec.edge_spin_at(3).unwrap(), j(2));
+
+        let err = spec.edge_spin_at(4).unwrap_err();
+        assert!(matches!(err, YuzuhaError::IndexOutOfBounds(4, 4)));
     }
 
     #[test]
@@ -721,6 +827,200 @@ mod tests {
     }
 
     #[test]
+    fn test_cg_spec_new_rejects_wrong_alpha_length() {
+        // Four edges need n-2 = 2 internal spins per alpha.
+        let edges = vec![
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::outgoing(j(1)),
+        ];
+        let err = CGSpec::new(edges, vec![vec![j(2)]]).unwrap_err();
+        assert!(matches!(err, YuzuhaError::InvalidCGTSpec(_)));
+    }
+
+    #[test]
+    fn test_cg_spec_from_edges_rejects_unconservable_spins() {
+        // An odd number of half-integer spins cannot couple to j=0.
+        let err = CGSpec::from_edges(vec![
+            Edge::incoming(j(1)),
+            Edge::incoming(j(2)),
+            Edge::outgoing(j(2)),
+        ])
+        .unwrap_err();
+        assert!(matches!(err, YuzuhaError::InvalidCGTSpec(_)));
+    }
+
+    #[test]
+    fn test_cg_spec_shape() {
+        let spec = CGSpec::from_edges(vec![
+            Edge::incoming(j(1)), // dim 2
+            Edge::incoming(j(2)), // dim 3
+            Edge::incoming(j(3)), // dim 4
+            Edge::incoming(j(2)), // dim 3
+        ])
+        .unwrap();
+
+        let shape = spec.shape();
+        assert_eq!(shape[..4], [2, 3, 4, 3]);
+        assert_eq!(shape[4], spec.om_dimension());
+    }
+
+    #[test]
+    fn test_with_inverted_axes_flips_only_listed_axes() {
+        let spec = four_half_spec();
+
+        let one = spec.with_inverted_axes(&[0]).unwrap();
+        assert_eq!(one.edges[0].dir, Direction::Outgoing);
+        assert_eq!(one.edges[1].dir, Direction::Incoming);
+        assert_eq!(one.edges[2].dir, Direction::Incoming);
+        assert_eq!(one.edges[3].dir, Direction::Outgoing);
+
+        let two = spec.with_inverted_axes(&[1, 3]).unwrap();
+        assert_eq!(two.edges[0].dir, Direction::Incoming);
+        assert_eq!(two.edges[1].dir, Direction::Outgoing);
+        assert_eq!(two.edges[2].dir, Direction::Incoming);
+        assert_eq!(two.edges[3].dir, Direction::Incoming);
+
+        let all = spec.with_inverted_axes(&[0, 1, 2, 3]).unwrap();
+        assert_eq!(all.edges[0].dir, Direction::Outgoing);
+        assert_eq!(all.edges[1].dir, Direction::Outgoing);
+        assert_eq!(all.edges[2].dir, Direction::Outgoing);
+        assert_eq!(all.edges[3].dir, Direction::Incoming);
+
+        // The original must not be mutated.
+        assert_eq!(spec.edges[0].dir, Direction::Incoming);
+        assert_eq!(spec.edges[3].dir, Direction::Outgoing);
+    }
+
+    #[test]
+    fn test_with_inverted_axes_preserves_spins_and_alphas() {
+        let spec = four_half_spec();
+
+        let empty = spec.with_inverted_axes(&[]).unwrap();
+        assert_eq!(empty.edges, spec.edges);
+
+        // Alphas depend only on spin values, so direction flips reuse them.
+        let flipped = spec.with_inverted_axes(&[0, 2]).unwrap();
+        assert_eq!(flipped.alphas, spec.alphas);
+        assert_eq!(flipped.om_dimension(), 2);
+        for (orig, new) in spec.edges.iter().zip(flipped.edges.iter()) {
+            assert_eq!(orig.j, new.j);
+        }
+
+        // Flipping the same axes twice is the identity.
+        let restored = flipped.with_inverted_axes(&[0, 2]).unwrap();
+        assert_eq!(restored.edges, spec.edges);
+    }
+
+    #[test]
+    fn test_with_inverted_axes_rejects_out_of_bounds() {
+        let spec = four_half_spec();
+        assert!(matches!(
+            spec.with_inverted_axes(&[4]).unwrap_err(),
+            YuzuhaError::IndexOutOfBounds(4, 4)
+        ));
+        assert!(spec.with_inverted_axes(&[0, 99]).is_err());
+    }
+
+    #[test]
+    fn test_cg_tensor_zeros_and_accessors() {
+        let spec = four_half_spec();
+        let expected_shape = spec.shape();
+        let om_dim = spec.om_dimension();
+
+        let tensor = CGTensor::zeros(spec);
+
+        assert_eq!(tensor.data.shape(), expected_shape.as_slice());
+        assert_eq!(tensor.num_external(), 4);
+        assert_eq!(tensor.om_dimension(), om_dim);
+        assert!(tensor.data.iter().all(|&x| x == 0.0));
+    }
+
+    #[test]
+    fn test_cg_tensor_new_checks_shape() {
+        let spec = four_half_spec();
+        let shape = spec.shape();
+
+        let data = ndarray::ArrayD::zeros(ndarray::IxDyn(&shape));
+        assert!(CGTensor::new(spec.clone(), data).is_ok());
+
+        let wrong = ndarray::ArrayD::zeros(ndarray::IxDyn(&[2, 2, 2, 2, 99]));
+        let err = CGTensor::new(spec, wrong).unwrap_err();
+        assert!(matches!(err, YuzuhaError::DimensionMismatch { .. }));
+    }
+
+    #[test]
+    fn test_cg_tensor_om_slice_roundtrip() {
+        let spec = four_half_spec();
+        let om_dim = spec.om_dimension();
+        let mut tensor = CGTensor::zeros(spec);
+
+        // Write a distinct constant into each OM slice, then read it back.
+        for om_idx in 0..om_dim {
+            let filled = ndarray::ArrayD::from_elem(ndarray::IxDyn(&[2, 2, 2, 2]), om_idx as f64 + 1.0);
+            tensor.set_om_slice(om_idx, filled.view()).unwrap();
+        }
+
+        for om_idx in 0..om_dim {
+            let slice = tensor.om_slice(om_idx).unwrap();
+            assert_eq!(slice.shape(), &[2, 2, 2, 2]);
+            assert!(slice.iter().all(|&x| x == om_idx as f64 + 1.0));
+        }
+    }
+
+    #[test]
+    fn test_cg_tensor_om_index_out_of_range() {
+        let spec = four_half_spec();
+        let om_dim = spec.om_dimension();
+        let mut tensor = CGTensor::zeros(spec);
+
+        assert!(matches!(
+            tensor.om_slice(om_dim).unwrap_err(),
+            YuzuhaError::InvalidCGTSpec(_)
+        ));
+
+        let data = ndarray::ArrayD::zeros(ndarray::IxDyn(&[2, 2, 2, 2]));
+        assert!(matches!(
+            tensor.set_om_slice(om_dim, data.view()).unwrap_err(),
+            YuzuhaError::InvalidCGTSpec(_)
+        ));
+    }
+
+    #[test]
+    fn test_cg_tensor_canonical_basis_constructors_agree() {
+        let _guard = TestCacheGuard::new();
+
+        let edges = vec![
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::outgoing(j(2)),
+        ];
+        let spec = CGSpec::from_edges(edges.clone()).unwrap();
+
+        let from_edges = CGTensor::canonical_basis_from_edges(edges).unwrap();
+        let from_spec = CGTensor::canonical_basis_from_spec(spec.clone()).unwrap();
+
+        assert_eq!(from_edges.data.shape(), spec.shape().as_slice());
+        assert_eq!(from_edges.data, from_spec.data);
+        assert_eq!(from_edges.spec, from_spec.spec);
+    }
+
+    #[test]
+    fn test_cg_tensor_canonical_basis_propagates_spec_error() {
+        let _guard = TestCacheGuard::new();
+
+        // An odd number of half-integer spins fails inside CGSpec::from_edges.
+        let err = CGTensor::canonical_basis_from_edges(vec![
+            Edge::incoming(j(1)),
+            Edge::incoming(j(2)),
+            Edge::outgoing(j(2)),
+        ])
+        .unwrap_err();
+        assert!(matches!(err, YuzuhaError::InvalidCGTSpec(_)));
+    }
+
+    #[test]
     fn test_contraction() {
         let contr = Contraction::empty();
         assert!(contr.is_empty());
@@ -736,5 +1036,39 @@ mod tests {
         assert_eq!(contr2.num_pairs(), 2);
         assert_eq!(contr2.axes_a, vec![0, 2]);
         assert_eq!(contr2.axes_b, vec![1, 3]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Contraction axes must have same length")]
+    fn test_contraction_new_requires_equal_lengths() {
+        Contraction::new(&[0, 1], &[0]);
+    }
+
+    #[test]
+    fn test_contraction_validate() {
+        let spec_a = CGSpec::from_edges(vec![
+            Edge::incoming(j(1)),
+            Edge::incoming(j(1)),
+            Edge::outgoing(j(2)),
+        ])
+        .unwrap();
+        let spec_b = CGSpec::from_edges(vec![
+            Edge::incoming(j(2)),
+            Edge::incoming(j(1)),
+            Edge::outgoing(j(1)),
+        ])
+        .unwrap();
+
+        // Edge 2 of A (j=1) matches edge 0 of B (j=1).
+        assert!(Contraction::new(&[2], &[0]).validate(&spec_a, &spec_b).is_ok());
+        assert!(Contraction::empty().validate(&spec_a, &spec_b).is_ok());
+
+        // Edge 0 of A is j=1/2 while edge 0 of B is j=1.
+        let err = Contraction::new(&[0], &[0]).validate(&spec_a, &spec_b).unwrap_err();
+        assert!(matches!(err, YuzuhaError::IncompatibleEdges(1, 2)));
+
+        // An out-of-range axis surfaces through edge_spin_at.
+        let err = Contraction::new(&[9], &[0]).validate(&spec_a, &spec_b).unwrap_err();
+        assert!(matches!(err, YuzuhaError::IndexOutOfBounds(9, 3)));
     }
 }

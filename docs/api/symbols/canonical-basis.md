@@ -1,6 +1,10 @@
 # Canonical Basis
 
-The canonical CG basis tensor for a given specification.
+The canonical basis is the explicit CG tensor a [CGSpec](../core/cgspec.md) stands for,
+written out in the magnetic-quantum-number basis. It is the object from which both
+symbols are derived — X-symbols by contracting and projecting a pair of bases, R-symbols
+by overlapping a basis with its permuted counterpart — so most users reach for it only
+when they need the raw coupling tensor itself.
 
 ::: yuzuha.canonical_basis
     options:
@@ -9,15 +13,18 @@ The canonical CG basis tensor for a given specification.
 
 ## Description
 
-`canonical_basis(spec)` computes the canonical basis tensor for a `CGSpec`. The result
-is a real-valued NumPy array of shape `(*external_dims, om_dim)`, where:
+`canonical_basis(spec)` returns a real-valued NumPy array of shape
+`(*external_dims, om_dim)`, where:
 
-- `external_dims` is the tuple `(2j_0+1, 2j_1+1, ..., 2j_{n-1}+1)` — one factor per
-  external edge, equal to its representation dimension
+- `external_dims` is the tuple \((2j_0+1, \ldots, 2j_{n-1}+1)\) — one factor per external
+  edge, equal to its representation dimension
 - `om_dim` is `spec.om_dimension()` — the number of valid internal spin paths
 
-Each slice `basis[..., mu]` is the CG tensor for OM index \(\mu\), constructed via
-the left-associative fusion tree (see [Core Concepts](../../getting-started/core-concepts.md)).
+Each slice `basis[..., mu]` is the CG tensor for OM index \(\mu\), built by contracting
+Clebsch-Gordan coefficients along the left-associative fusion tree described in
+[Core Concepts](../../getting-started/core-concepts.md). Edges whose direction deviates
+from the canonical pattern are corrected by contracting with the invariant metric, so the
+array returned is always the basis for the spec as given.
 
 ### Usage
 
@@ -38,33 +45,38 @@ basis = yuzuha.canonical_basis(spec)
 print(basis.shape)    # (2, 2, 3, 1) — (d_j1, d_j2, d_j3, om_dim)
 print(basis.dtype)    # float64
 
-# Normalization: each OM slice is normalized to 1 (in the CG sense)
-# The squared norm over magnetic indices equals 1/om_dim for each slice
+# Every OM slice is a unit vector over the magnetic indices
+print(np.linalg.norm(basis[..., 0]))   # 1.0
 ```
 
 ### Normalization Convention
 
-The canonical basis is normalized with respect to the OM space. For a 3rd-order CG
-tensor with a single OM configuration (\(\mathrm{om\_dim} = 1\)), each basis element
-acquires a scaling factor relative to the standard Clebsch-Gordan coefficient:
+The slices form an **orthonormal** set with respect to the inner product that sums over
+all magnetic quantum number indices:
 
-$$\langle B_\mu | B_\nu \rangle = \delta_{\mu\nu}$$
+$$\langle B_\mu | B_\nu \rangle = \sum_{m_0, \ldots, m_{n-1}}
+B_\mu(m_0, \ldots, m_{n-1})\, B_\nu(m_0, \ldots, m_{n-1}) = \delta_{\mu\nu}$$
 
-where the inner product sums over all magnetic quantum number indices weighted by the
-appropriate fusion metric.
+This is not the normalization of the bare Clebsch-Gordan coefficients. For a 3rd-order
+tensor, where the OM dimension is always 1, the single basis element carries a factor of
+\(1/\sqrt{2j_3 + 1}\) relative to the bare coefficient:
+
+$$B_0(m_1, m_2, m_3) = \frac{1}{\sqrt{2j_3 + 1}}\, C^{j_3 m_3}_{j_1 m_1,\, j_2 m_2}$$
 
 ### Caching
 
-Canonical bases are cached in a Rust-managed SQLite database inside the Yuzuha
-installation. The cache is populated on first use and persists across Python sessions.
-Use `startup_database()` to pre-populate the cache for common spin configurations.
+Canonical bases are cached by the Rust layer in `.yuzuha/cgbasis.db`, keyed on the
+external spins alone — arrow directions are stripped, since a deviating spec is derived
+from the stored tensor by applying the metric. The cache is populated on first use and
+persists across Python sessions; `startup_database()` pre-computes it for the spin
+configurations most commonly needed, trading startup time for predictable latency later.
 
 ### Auxiliary Functions
 
 | Function | Description |
 |----------|-------------|
 | `fs_phase_for_spin(spin)` | Frobenius-Schur indicator \((-1)^{2j}\) for a spin |
-| `compute_conjugate(spec)` | Canonical basis for the conjugated spec (arrow-reversed) |
+| `compute_conjugate(spec)` | Conjugate phase and arrow-reversed spec for a given spec |
 
 ## See Also
 
@@ -77,8 +89,8 @@ Use `startup_database()` to pre-populate the cache for common spin configuration
 
 ## Notes
 
-`canonical_basis` is thread-safe. Concurrent calls with different specs are safe; calls
-with identical specs share the same cached result.
+`canonical_basis` is thread-safe. Concurrent calls with different specs are safe, and
+calls with identical specs share the same cached result.
 
 The function raises `ValueError` if the spec has fewer than 2 edges or if no valid
 internal spin configuration exists.

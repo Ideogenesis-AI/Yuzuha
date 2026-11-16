@@ -18,6 +18,9 @@
 // Integration tests are organized in the rust/ subdirectory
 // This file ensures Cargo can discover them
 
+#[path = "rust/common.rs"]
+mod common;
+
 #[path = "rust/test_cgbasis.rs"]
 mod test_cgbasis;
 
@@ -26,6 +29,9 @@ mod test_cgspec;
 
 #[path = "rust/test_database.rs"]
 mod test_database;
+
+#[path = "rust/test_dualize.rs"]
+mod test_dualize;
 
 #[path = "rust/test_fsymbol.rs"]
 mod test_fsymbol;

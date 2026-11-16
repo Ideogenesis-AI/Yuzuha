@@ -33,41 +33,8 @@ use yuzuha::builders::rsymbol::compute_rsymbol;
 use yuzuha::builders::TestCacheGuard;
 use yuzuha::core::{CGSpec, Edge, Spin};
 
-/// Invert edge direction using metric tensor
-/// 
-/// Incoming → Outgoing: mirror and apply (-1)^{j+m}
-/// Outgoing → Incoming: mirror and apply (-1)^{2j} * (-1)^{j+m}
-fn invert_edge_direction_axis(
-    tensor: &ndarray::ArrayD<f64>,
-    axis_idx: usize,
-    j: Spin,
-    from_incoming: bool,
-) -> ndarray::ArrayD<f64> {
-    let mut result = tensor.clone();
-    
-    // Reverse the axis (mirror: m → -m)
-    result.invert_axis(Axis(axis_idx));
-    
-    // Apply phase factors based on direction conversion
-    let dim = j.dimension();
-    for m_idx in 0..dim {
-        let m = yuzuha::core::MagneticNumber::from_index(m_idx, j);
-        
-        let phase = if from_incoming {
-            // Incoming → Outgoing: (-1)^{j+m}
-            if (j.twice() + m.twice()) % 4 == 0 { 1.0 } else { -1.0 }
-        } else {
-            // Outgoing → Incoming: (-1)^{2j} * (-1)^{j+m}
-            let phase_2j = if j.twice() % 2 == 0 { 1.0 } else { -1.0 };
-            let phase_jm = if (j.twice() + m.twice()) % 4 == 0 { 1.0 } else { -1.0 };
-            phase_2j * phase_jm
-        };
-        
-        result.index_axis_mut(Axis(axis_idx), m_idx).mapv_inplace(|x| x * phase);
-    }
-    
-    result
-}
+use crate::common::invert_edge_direction_axis;
+
 
 #[test]
 fn test_xsymbol_fsymbol_consistency() {
@@ -219,6 +186,10 @@ fn test_rsymbol_fsymbol_consistency() {
     // The axis swap is equivalent to permutation [0, 2, 1, 3], so the
     // R-symbol for this permutation should match the F-symbol exactly.
     
+    // compute_rsymbol builds a canonical basis, so this test is a cache user
+    // and needs its own database like every other one.
+    let _guard = TestCacheGuard::new();
+
     let j_half = Spin::new(1).unwrap();
     
     // Create spec with 4 spin-1/2 edges (all incoming)

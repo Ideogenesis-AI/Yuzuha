@@ -147,6 +147,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_enumerate_alpha_is_lexicographically_sorted() {
+        // OM indices are positional, so the enumeration order is part of the
+        // on-disk cache format and must stay deterministic. Five edges give
+        // multi-element alphas that share prefixes, which exercises the
+        // tie-breaking in the comparator.
+        let j_half = Spin::new(1).unwrap();
+        let j1 = Spin::new(2).unwrap();
+        let alphas = enumerate_alpha(&[j_half, j_half, j_half, j_half, j1]);
+
+        assert!(alphas.len() > 1, "need several alphas to observe the ordering");
+
+        let doubled: Vec<Vec<i32>> =
+            alphas.iter().map(|a| a.iter().map(|s| s.twice()).collect()).collect();
+        let mut sorted = doubled.clone();
+        sorted.sort();
+        assert_eq!(doubled, sorted, "alphas must be sorted by doubled spin");
+
+        // Prefix ties must actually occur, otherwise the assertion above is vacuous.
+        assert!(
+            doubled.windows(2).any(|w| w[0][0] == w[1][0]),
+            "expected at least two alphas sharing a first internal spin"
+        );
+    }
+
+    #[test]
     fn test_enumerate_alpha_trivial() {
         // 0 edges
         let alphas = enumerate_alpha(&[]);

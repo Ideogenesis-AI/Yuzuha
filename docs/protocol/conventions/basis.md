@@ -1,5 +1,12 @@
 # Basis Conventions
 
+This page fixes the three choices that pin down the numerical values of the SU(2)
+reference canonical basis: the phase convention of the underlying
+Clebsch-Gordan coefficients, the normalization of the basis tensors, and the arrow
+pattern in which they are constructed. The protocol constrains these only up to
+self-consistency, so a conforming implementation may choose differently — but once chosen,
+all three must hold in all cases.
+
 ## Clebsch-Gordan Coefficients
 
 The SU(2) reference implementation uses the **Condon-Shortley convention** for

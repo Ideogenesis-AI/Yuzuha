@@ -1,5 +1,11 @@
 # Arrow Conventions
 
+This page fixes how the SU(2) reference implementation handles duality: the sign carried
+by each arrow direction, the invariant metric that mediates between a representation and
+its dual, and the phases that accumulate when arrows are reversed. These are the
+conventions behind every Frobenius-Schur factor the library returns, so they are the ones
+most likely to differ between implementations that are each internally consistent.
+
 ## Sign Convention for Incoming vs. Outgoing
 
 The `Direction` type assigns \(+1\) to `Incoming` and \(-1\) to `Outgoing` — a
@@ -39,7 +45,8 @@ $$\tilde{T}_{\ldots m'} = g^{(j)}_{m'm}\, T^{\ldots m}$$
 To convert an **outgoing** (lower) edge to an **incoming** (upper) edge, raise the
 corresponding index with \(g^{ab}\):
 
-$$\tilde{T}^{m'}_{\ldots} = g^{(j)m'm}\, T_{\ldots m} = T_{\ldots m} {[g^{(j)\top}]}^{mm;}$$
+$$\tilde{T}^{m'}_{\ldots} = g^{(j)\,m'm}\, T_{\ldots m}
+\qquad\text{with}\qquad g^{(j)\,m'm} = \bigl[(g^{(j)})^{-1}\bigr]_{m'm} = (-1)^{2j}\, g^{(j)}_{m'm}$$
 
 The two operations are exact inverses: \(g_{m'k}\, g^{km} = \delta_{m'}^{m}\).
 
@@ -51,7 +58,7 @@ the formula specialises to:
 
 $$\text{FS}(j) = (-1)^{2j}$$
 
-It equals \(+1\) for integer spin (bosonic) representations and \(-1\) for
+This equals \(+1\) for integer spin (bosonic) representations and \(-1\) for
 half-integer spin (fermionic) representations. The FS indicator governs the phase
 accumulated when a contracted edge pair has its arrows flipped (bond inversion).
 
