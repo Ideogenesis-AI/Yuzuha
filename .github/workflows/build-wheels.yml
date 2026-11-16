@@ -153,7 +153,16 @@ jobs:
         run: pip install --no-index --no-deps --find-links dist yuzuha
 
       - name: Run tests
+        if: runner.os != 'Windows'
         run: pytest tests/python -v --tb=short
+
+      # One cache-stats test deletes a SQLite file while its connection is
+      # still open, which POSIX permits and Windows refuses with WinError 32.
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
+        run: >-
+          pytest tests/python -v --tb=short
+          --deselect "tests/python/test_cache_paths.py::TestStatsReporting::test_db_size_is_zero_when_the_file_is_gone"
 
   test-sdist:
     name: Test sdist build
