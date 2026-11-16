@@ -628,6 +628,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#where-to-place-a-rust-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to Place a Rust Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1887,6 +1909,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#where-to-place-a-rust-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to Place a Rust Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1970,14 +2014,17 @@ improving algorithms, or enhancing documentation, your help is appreciated.</p>
 <h2 id="how-to-contribute">How to Contribute<a class="headerlink" href="#how-to-contribute" title="Permanent link">&para;</a></h2>
 <h3 id="reporting-issues">Reporting Issues<a class="headerlink" href="#reporting-issues" title="Permanent link">&para;</a></h3>
 <p>If you find a bug or have a feature request, please
-<a href="https://github.com/Ideogenesis-AI/Yuzuha/issues">open an issue</a> on GitHub. When reporting
-a bug, include:</p>
+<a href="https://github.com/Ideogenesis-AI/Yuzuha/issues">open an issue</a> on GitHub. Recoupling
+coefficients are easy to disagree about for convention reasons, so a report is far more
+useful with the following, which separates a convention mismatch from a genuine bug:</p>
 <ul>
 <li>Your Python and NumPy versions</li>
-<li>A minimal reproducible example</li>
-<li>The expected and actual output</li>
+<li>A minimal reproducible example, including how the <code>CGSpec</code> was constructed</li>
+<li>The expected and actual output, and where the expectation comes from if it is a
+  published table or another library</li>
 </ul>
 <h3 id="submitting-pull-requests">Submitting Pull Requests<a class="headerlink" href="#submitting-pull-requests" title="Permanent link">&para;</a></h3>
+<p>The usual GitHub flow applies:</p>
 <ol>
 <li>Fork the repository on GitHub</li>
 <li>Create a branch for your change</li>
@@ -1985,7 +2032,16 @@ a bug, include:</p>
 <li>Run the test suite and ensure it passes</li>
 <li>Open a pull request with a clear description of your changes</li>
 </ol>
+<p>Changes that alter computed values deserve particular care, because cached results from
+an earlier version remain on disk and will be returned in preference to the new
+computation. If a change is intended to alter outputs, say so in the pull request
+description so that the cache-invalidation question gets addressed.</p>
 <h3 id="development-setup">Development Setup<a class="headerlink" href="#development-setup" title="Permanent link">&para;</a></h3>
+<p>Building from source requires Rust 1.85 or higher; the
+<a href="../installation/">installation guide</a> covers the toolchain setup. Note that <code>maturin
+develop</code> compiles the extension into the active environment, so the build step has to
+be repeated after every change to the Rust sources — editable installs only cover
+the Python layer.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Ideogenesis-AI/Yuzuha.git
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>Yuzuha
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
@@ -2003,17 +2059,72 @@ a bug, include:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Python tests (pytest)</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pytest
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Rust tests (cargo)</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>cargo<span class="w"> </span><span class="nb">test</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Rust tests (cargo). The integration suite needs the test-utils feature,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># which exposes TestCacheGuard for cache isolation.</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>cargo<span class="w"> </span><span class="nb">test</span><span class="w"> </span>--features<span class="w"> </span>test-utils
 </code></pre></div>
 <p>The Python suite covers the full API including integration tests. The Rust suite covers
 internal algorithms like CG coefficient computation and CGSpec logic.</p>
+<h3 id="where-to-place-a-rust-test">Where to Place a Rust Test<a class="headerlink" href="#where-to-place-a-rust-test" title="Permanent link">&para;</a></h3>
+<p>Rust tests live in two places, and which one you pick is determined by what the test
+asserts, not by what it happens to call.</p>
+<p><strong>Inline <code>#[cfg(test)] mod tests</code>, at the bottom of the source file</strong>, holds unit tests of
+a single function: constructors, accessors, <code>Display</code> and operator impls, and error
+branches. Anything that touches a private item <em>must</em> go here, because <code>tests/rust/</code> can
+only reach the public API. <code>get_db_path</code>, <code>init_db</code>, <code>serialize_spins</code> and
+<code>reset_connection</code> in <code>src/builders/cache.rs</code>, and <code>build_permuted_spec</code> in
+<code>src/builders/rsymbol.rs</code>, are only testable from inline modules.</p>
+<p><strong><code>tests/rust/</code></strong> holds tests of mathematical properties that span several functions:
+orthonormality of the canonical basis, unitarity of R-symbols, F-symbol and X-symbol
+consistency between equivalent contraction paths, Clebsch-Gordan values checked against
+published tables, and concurrency behaviour. These tests exercise the crate the way a
+downstream user would, through <code>yuzuha::</code> imports only.</p>
+<p>Shared fixtures for the integration suite belong in <code>tests/rust/common.rs</code>. New
+integration files must be registered in <code>tests/rust.rs</code>, which is the single entry point
+Cargo compiles.</p>
+<h3 id="test-coverage">Test Coverage<a class="headerlink" href="#test-coverage" title="Permanent link">&para;</a></h3>
+<p>The project holds <em>production line coverage</em> above 95% for the Rust library, the Python
+bindings, and the Python package independently. Production coverage excludes lines inside
+inline <code>#[cfg(test)]</code> modules, so a file cannot raise its score by testing its own test
+code.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># One-off tooling setup; Coverage.py comes with the dev extras</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>cargo<span class="w"> </span>install<span class="w"> </span>cargo-llvm-cov
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>rustup<span class="w"> </span>component<span class="w"> </span>add<span class="w"> </span>llvm-tools-preview
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># Rust library</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>cargo<span class="w"> </span>llvm-cov<span class="w"> </span>--features<span class="w"> </span>test-utils<span class="w"> </span>--summary-only
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># Python package</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>coverage<span class="w"> </span>run<span class="w"> </span>--source<span class="w"> </span>yuzuha<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>coverage<span class="w"> </span>report<span class="w"> </span>-m
+</code></pre></div>
+<p>Install <code>llvm-tools-preview</code> without relying on a system LLVM: the coverage format is
+versioned with the compiler, and an <code>llvm-cov</code> from Xcode or Homebrew will refuse to read
+profiles produced by <code>rustc</code>.</p>
+<p>Two caveats when reading those numbers. <code>cargo llvm-cov</code> counts inline test modules, which
+are themselves almost fully covered, so its figure is optimistic relative to the metric
+above; use <code>--lcov</code> output and discard the lines at or after each file's first
+<code>#[cfg(test)]</code> to reproduce the production figure. And <code>src/bindings.rs</code> is absent from
+the report entirely, because it only compiles under the <code>python</code> feature — measuring it
+means building an extension with <code>RUSTFLAGS="-C instrument-coverage"</code>, running pytest
+against that build with <code>LLVM_PROFILE_FILE</code> set, and reporting the resulting profiles with
+<code>llvm-cov</code>. Remember to reinstall a clean release build afterwards, since an instrumented
+extension is slow and writes profile data on every run.</p>
+<p>When adding code, check the uncovered lines instead of the percentage. A few lines are
+genuinely unreachable and are expected to stay uncovered: the <code>?</code> arms on the infallible
+<code>build_cg3</code> in <code>src/builders/builders.rs</code>, and the <code>InvalidMagneticNumber</code>,
+<code>TriangleViolation</code> and <code>InvalidContraction</code> conversion arms in <code>src/bindings.rs</code>, which
+nothing in the crate ever constructs on a path reachable from Python.</p>
 <h2 id="code-style">Code Style<a class="headerlink" href="#code-style" title="Permanent link">&para;</a></h2>
+<p>Formatting is not checked automatically, so run the formatter yourself before opening a
+pull request without relying on review to catch it:</p>
 <ul>
-<li><strong>Rust</strong>: Follow <code>rustfmt</code> formatting (<code>cargo fmt</code>)</li>
-<li><strong>Python</strong>: Follow PEP 8</li>
+<li><strong>Rust</strong>: <code>rustfmt</code> defaults, applied with <code>cargo fmt</code></li>
+<li><strong>Python</strong>: PEP 8, with the surrounding file's existing conventions taking precedence
+  where they differ</li>
 </ul>
 <h2 id="areas-for-contribution">Areas for Contribution<a class="headerlink" href="#areas-for-contribution" title="Permanent link">&para;</a></h2>
+<p>Contributions are welcome anywhere, but these are the areas where help would make the
+most difference right now:</p>
 <ul>
 <li><strong>Performance</strong>: Algorithmic improvements to CG basis construction or OM enumeration</li>
 <li><strong>Testing</strong>: Additional edge cases or stress tests</li>

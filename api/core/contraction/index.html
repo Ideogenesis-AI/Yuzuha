@@ -2032,7 +2032,10 @@
 
 
 <h1 id="contraction">Contraction<a class="headerlink" href="#contraction" title="Permanent link">&para;</a></h1>
-<p>Specification of which edges to contract between two CG tensors.</p>
+<p>A <code>Contraction</code> names the pairs of external edges to be joined when two CG tensors are
+contracted. It is the third argument of <a href="../../symbols/xsymbol/">compute_xsymbol</a>, and it
+is validated against both input specs: the paired edges must carry the same spin and
+opposite arrow directions, which makes the contraction a legal SU(2) pairing.</p>
 
 
 <div class="doc doc-object doc-class">
@@ -2231,16 +2234,16 @@
     </div>
 
 </div><h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p><code>Contraction</code> records the pairs of edge indices to be contracted when calling
-<code>compute_xsymbol</code>. Each pair <span class="arithmatex">\((i, k)\)</span> indicates that edge <span class="arithmatex">\(i\)</span> of the first
-tensor (spec A) is contracted with edge <span class="arithmatex">\(k\)</span> of the second tensor (spec B).</p>
+<p>Each pair <span class="arithmatex">\((i, k)\)</span> indicates that edge <span class="arithmatex">\(i\)</span> of the first tensor (spec A) is contracted
+with edge <span class="arithmatex">\(k\)</span> of the second tensor (spec B). The two index lists are given separately
+and matched up position by position:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yuzuha</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Contract edge 2 of spec_a with edge 0 of spec_b</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">contraction</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Contraction</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Contract multiple pairs</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">contraction2</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Contraction</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">contractions</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Contraction</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 </code></pre></div>
 <h3 id="fields">Fields<a class="headerlink" href="#fields" title="Permanent link">&para;</a></h3>
 <table>
@@ -2275,7 +2278,9 @@ tensor (spec A) is contracted with edge <span class="arithmatex">\(k\)</span> of
 <li>For every pair <span class="arithmatex">\((i, k)\)</span>: the direction of edge <span class="arithmatex">\(i\)</span> in spec A is opposite to the
    direction of edge <span class="arithmatex">\(k\)</span> in spec B (one incoming, one outgoing)</li>
 </ol>
-<p>Violations raise <code>ValueError</code> from <code>compute_xsymbol</code>.</p>
+<p>Condition 1 is enforced by the constructor, since it needs nothing but the two lists.
+The remaining conditions depend on the specs being contracted and are therefore checked
+by <code>compute_xsymbol</code>, which raises <code>ValueError</code> on a violation.</p>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../symbols/xsymbol/">compute_xsymbol</a>: Uses <code>Contraction</code> to produce an X-symbol</li>
@@ -2284,11 +2289,10 @@ tensor (spec A) is contracted with edge <span class="arithmatex">\(k\)</span> of
   interface specification</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p><code>Contraction</code> objects are immutable, hashable, and can be reused across multiple
-<code>compute_xsymbol</code> calls with compatible specs. They support <code>==</code> comparison and can
-be used as dictionary keys or in sets.</p>
-<p>The order of pairs in <code>axes_a</code> and <code>axes_b</code> matters: pair <span class="arithmatex">\((i, k)\)</span> at position 0
-is treated as the first contraction, which affects the internal fusion tree ordering of
+<p><code>Contraction</code> objects are immutable and hashable, support <code>==</code> comparison, and can be
+reused across any number of <code>compute_xsymbol</code> calls with compatible specs.</p>
+<p>The order of the pairs matters. The pair at position 0 is treated as the first
+contraction, which feeds through to the edge order and hence the internal fusion tree of
 the output spec <span class="arithmatex">\(C\)</span>.</p>
 
 

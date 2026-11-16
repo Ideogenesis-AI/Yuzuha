@@ -1192,10 +1192,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#definition" class="md-nav__link">
+  <a href="#arrow-reversal" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Definition
+        Arrow Reversal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frobenius-schur-indicator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frobenius-Schur Indicator
       
     </span>
   </a>
@@ -1213,30 +1224,8 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#arrow-reversal" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Arrow Reversal
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#frobenius-schur-indicator" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Frobenius-Schur Indicator
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1845,10 +1834,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#definition" class="md-nav__link">
+  <a href="#arrow-reversal" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Definition
+        Arrow Reversal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frobenius-schur-indicator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frobenius-Schur Indicator
       
     </span>
   </a>
@@ -1866,30 +1866,8 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#arrow-reversal" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Arrow Reversal
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#frobenius-schur-indicator" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Frobenius-Schur Indicator
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1998,36 +1976,57 @@
 
 
 <h1 id="metric-tensor">Metric Tensor<a class="headerlink" href="#metric-tensor" title="Permanent link">&para;</a></h1>
-<p>Arrow-reversal transformation for SU(2) representation spaces.</p>
+<p>The invariant metric makes arrow directions tractable: it is the transformation
+that turns an index in a representation space into an index in its dual. Yuzuha applies it
+automatically wherever a spec's arrows deviate from the canonical pattern, and the sign it
+carries for half-integer spins is the Frobenius-Schur phase that surfaces in every
+arrow-reversal and bond-inversion rule in the library.</p>
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
 <p>The <strong>invariant metric</strong> <span class="arithmatex">\(g^{(j)}\)</span> implements the canonical isomorphism between a
-representation and its dual. It allows converting an incoming edge (primal space) to an
-outgoing edge (dual space) and vice versa, while correctly tracking the sign factor
-required by SU(2) representation theory.</p>
-<h3 id="definition">Definition<a class="headerlink" href="#definition" title="Permanent link">&para;</a></h3>
+representation and its dual:</p>
 <div class="arithmatex">\[g^{(j)}_{m,\,m'} = (-1)^{j - m}\,\delta_{m,\,-m'}\]</div>
-<p>This is a <span class="arithmatex">\((2j+1) \times (2j+1)\)</span> real orthogonal matrix. It satisfies:</p>
-<div class="arithmatex">\[g^{(j)} \cdot \left(g^{(j)}\right)^\top = I\]</div>
-<div class="arithmatex">\[\left(g^{(j)}\right)^2 = (-1)^{2j}\, I\]</div>
-<p>For integer spins (<span class="arithmatex">\(j \in \mathbb{Z}\)</span>) the metric is symmetric (<span class="arithmatex">\(g^\top = g\)</span>). For
-half-integer spins it is antisymmetric (<span class="arithmatex">\(g^\top = -g\)</span>), or equivalently <span class="arithmatex">\(g^\top = (-1)^{2j} g\)</span>.</p>
+<p>This is a <span class="arithmatex">\((2j+1) \times (2j+1)\)</span> real orthogonal matrix. Its defining properties are</p>
+<div class="arithmatex">\[g^{(j)} \cdot \left(g^{(j)}\right)^\top = I, \qquad
+\left(g^{(j)}\right)^2 = (-1)^{2j}\, I,\]</div>
+<p>so the metric is symmetric (<span class="arithmatex">\(g^\top = g\)</span>) for integer spins and antisymmetric
+(<span class="arithmatex">\(g^\top = -g\)</span>) for half-integer ones, which can be written uniformly as
+<span class="arithmatex">\(g^\top = (-1)^{2j} g\)</span>.</p>
+<h3 id="arrow-reversal">Arrow Reversal<a class="headerlink" href="#arrow-reversal" title="Permanent link">&para;</a></h3>
+<p>To convert an <strong>incoming</strong> edge to an <strong>outgoing</strong> one, contract with <span class="arithmatex">\(g\)</span>:</p>
+<div class="arithmatex">\[\tilde{T}^{m'}_{\ldots} = \sum_m g^{(j)}_{m, m'}\, T^{\ldots}_{m}\]</div>
+<p>To go the other way, contract with the inverse:</p>
+<div class="arithmatex">\[\tilde{T}_{\ldots m'} = \sum_m \left(g^{(j)}\right)^{-1}_{m', m}\, T^{\ldots m}\]</div>
+<p>The two directions are not interchangeable. Because <span class="arithmatex">\(g^{-1} = (-1)^{2j}\, g^\top\)</span>, they
+differ by a sign for half-integer spins, and this is exactly the asymmetry a tensor
+network algorithm has to account for when it reverses a bond.</p>
+<h3 id="frobenius-schur-indicator">Frobenius-Schur Indicator<a class="headerlink" href="#frobenius-schur-indicator" title="Permanent link">&para;</a></h3>
+<p>That recurring sign is the <strong>Frobenius-Schur indicator</strong>:</p>
+<div class="arithmatex">\[\text{FS}(j) = (-1)^{2j} = \begin{cases} +1 &amp; j \in \mathbb{Z} \\ -1 &amp; j \in \mathbb{Z} + \tfrac{1}{2} \end{cases}\]</div>
+<p>It is <span class="arithmatex">\(+1\)</span> for integer representations and <span class="arithmatex">\(-1\)</span> for half-integer ones. In the X-symbol
+bond inversion scheme, flipping a contracted pair of spin <span class="arithmatex">\(j\)</span> multiplies the X-symbol by
+<span class="arithmatex">\(\text{FS}(j)\)</span>; the same factor accumulates once per deviating edge in the conjugate phase.</p>
 <h3 id="python-api">Python API<a class="headerlink" href="#python-api" title="Permanent link">&para;</a></h3>
-<p>The following functions are available in the Yuzuha Python namespace:</p>
+<p>The metric itself is a Rust-level primitive (<code>use_as_incoming</code>, <code>use_as_outgoing</code> in
+<code>yuzuha::primitives</code>) and is applied for you inside <code>canonical_basis</code>. What the Python
+namespace exposes are the two derived quantities a caller actually needs:</p>
 <table>
 <thead>
 <tr>
 <th>Function</th>
+<th>Returns</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>fs_phase_for_spin(spin)</code></td>
+<td><code>float</code></td>
 <td>Frobenius-Schur indicator <span class="arithmatex">\((-1)^{2j}\)</span></td>
 </tr>
 <tr>
 <td><code>compute_conjugate(spec)</code></td>
-<td>Canonical basis tensor with all arrows reversed</td>
+<td><code>(float, CGSpec)</code></td>
+<td>Conjugate phase and the arrow-reversed spec</td>
 </tr>
 </tbody>
 </table>
@@ -2037,43 +2036,32 @@ half-integer spins it is antisymmetric (<span class="arithmatex">\(g^\top = -g\)
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">j1</span>    <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Spin</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>   <span class="c1"># j = 1</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># Frobenius-Schur phase</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">phase_half</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">fs_phase_for_spin</span><span class="p">(</span><span class="n">jhalf</span><span class="p">)</span>   <span class="c1"># -1  (half-integer)</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">phase_int</span>  <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">fs_phase_for_spin</span><span class="p">(</span><span class="n">j1</span><span class="p">)</span>      <span class="c1"># +1  (integer)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">phase_half</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">fs_phase_for_spin</span><span class="p">(</span><span class="n">jhalf</span><span class="p">)</span>   <span class="c1"># -1.0  (half-integer)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">phase_int</span>  <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">fs_phase_for_spin</span><span class="p">(</span><span class="n">j1</span><span class="p">)</span>      <span class="c1"># +1.0  (integer)</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Conjugated basis</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Conjugation returns the accumulated phase alongside the reversed spec</span>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">spec</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">CGSpec</span><span class="o">.</span><span class="n">from_edges</span><span class="p">([</span>
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">yuzuha</span><span class="o">.</span><span class="n">Edge</span><span class="o">.</span><span class="n">incoming</span><span class="p">(</span><span class="n">jhalf</span><span class="p">),</span>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">yuzuha</span><span class="o">.</span><span class="n">Edge</span><span class="o">.</span><span class="n">incoming</span><span class="p">(</span><span class="n">jhalf</span><span class="p">),</span>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">yuzuha</span><span class="o">.</span><span class="n">Edge</span><span class="o">.</span><span class="n">outgoing</span><span class="p">(</span><span class="n">j1</span><span class="p">),</span>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">])</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">basis_conj</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">compute_conjugate</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">conj_phase</span><span class="p">,</span> <span class="n">conj_spec</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">compute_conjugate</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
 </code></pre></div>
-<h3 id="arrow-reversal">Arrow Reversal<a class="headerlink" href="#arrow-reversal" title="Permanent link">&para;</a></h3>
-<p>To convert an <strong>incoming</strong> edge to an <strong>outgoing</strong> edge, contract with <span class="arithmatex">\(g\)</span>:</p>
-<div class="arithmatex">\[\tilde{T}^{m'}_{\ldots} = \sum_m g^{(j)}_{m, m'}\, T^{\ldots}_{m}\]</div>
-<p>To convert an <strong>outgoing</strong> edge to an <strong>incoming</strong> edge, contract with <span class="arithmatex">\(g^{-1}\)</span>:</p>
-<div class="arithmatex">\[\tilde{T}_{\ldots m'} = \sum_m \left(g^{(j)}\right)^{-1}_{m', m}\, T^{\ldots m}\]</div>
-<p>The two operations differ by the Frobenius-Schur phase <span class="arithmatex">\((-1)^{2j}\)</span> due to the
-identity <span class="arithmatex">\(g^{-1} = (-1)^{2j} g^\top\)</span>.</p>
-<h2 id="frobenius-schur-indicator">Frobenius-Schur Indicator<a class="headerlink" href="#frobenius-schur-indicator" title="Permanent link">&para;</a></h2>
-<p>The <strong>Frobenius-Schur indicator</strong> of SU(2) representations is:</p>
-<div class="arithmatex">\[\text{FS}(j) = (-1)^{2j} = \begin{cases} +1 &amp; j \in \mathbb{Z} \\ -1 &amp; j \in \mathbb{Z} + \tfrac{1}{2} \end{cases}\]</div>
-<p>This indicator appears as a phase factor whenever a contracted edge pair has its arrows
-flipped. In the X-symbol bond inversion scheme, flipping a contracted pair with spin
-<span class="arithmatex">\(j\)</span> multiplies the X-symbol by <span class="arithmatex">\((-1)^{2j}\)</span>.</p>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../cg/">Clebsch-Gordan Coefficients</a>: CG phases are the building blocks of the metric</li>
-<li><a href="../../symbols/canonical-basis/">Canonical Basis</a>: Conjugate basis computed via
-  <code>compute_conjugate</code></li>
 <li><a href="../../core/direction/">Direction</a>: The arrow direction that the metric transforms</li>
+<li><a href="../../symbols/canonical-basis/">Canonical Basis</a>: Applies the metric to deviating edges</li>
 <li><a href="../../../protocol/conventions/arrows/">Yuzuha Protocol — Arrow Conventions</a>: Full
   specification of the metric convention</li>
+<li><a href="../../../protocol/duality/">Yuzuha Protocol — Duality Interface</a>: Required properties of
+  <code>fs_phase</code> and <code>compute_conjugate</code></li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p>The metric <span class="arithmatex">\(g^{(j)}\)</span> is <strong>not</strong> the standard Euclidean metric. It is the unique
-(up to a global phase) SU(2)-invariant bilinear form on <span class="arithmatex">\(V_j\)</span>. Using the ordinary
-identity in place of <span class="arithmatex">\(g\)</span> gives incorrect arrow-reversal results.</p>
+<p>The metric <span class="arithmatex">\(g^{(j)}\)</span> is <strong>not</strong> the Euclidean metric. It is the unique
+SU(2)-invariant bilinear form on <span class="arithmatex">\(V_j\)</span> up to a global phase, and substituting the
+identity matrix for it produces arrow-reversal results that are silently incorrect,
+though the shapes still match.</p>
 
 
 

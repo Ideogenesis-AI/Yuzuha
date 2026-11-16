@@ -1987,6 +1987,11 @@
 
 
 <h1 id="arrow-conventions">Arrow Conventions<a class="headerlink" href="#arrow-conventions" title="Permanent link">&para;</a></h1>
+<p>This page fixes how the SU(2) reference implementation handles duality: the sign carried
+by each arrow direction, the invariant metric that mediates between a representation and
+its dual, and the phases that accumulate when arrows are reversed. These are the
+conventions behind every Frobenius-Schur factor the library returns, so they are the ones
+most likely to differ between implementations that are each internally consistent.</p>
 <h2 id="sign-convention-for-incoming-vs-outgoing">Sign Convention for Incoming vs. Outgoing<a class="headerlink" href="#sign-convention-for-incoming-vs-outgoing" title="Permanent link">&para;</a></h2>
 <p>The <code>Direction</code> type assigns <span class="arithmatex">\(+1\)</span> to <code>Incoming</code> and <span class="arithmatex">\(-1\)</span> to <code>Outgoing</code> — a
 protocol-level requirement defined in the <a href="../../types/#direction">Type System</a>.
@@ -2014,14 +2019,15 @@ corresponding index with <span class="arithmatex">\(g_{ab}\)</span>:</p>
 <div class="arithmatex">\[\tilde{T}_{\ldots m'} = g^{(j)}_{m'm}\, T^{\ldots m}\]</div>
 <p>To convert an <strong>outgoing</strong> (lower) edge to an <strong>incoming</strong> (upper) edge, raise the
 corresponding index with <span class="arithmatex">\(g^{ab}\)</span>:</p>
-<div class="arithmatex">\[\tilde{T}^{m'}_{\ldots} = g^{(j)m'm}\, T_{\ldots m} = T_{\ldots m} {[g^{(j)\top}]}^{mm;}\]</div>
+<div class="arithmatex">\[\tilde{T}^{m'}_{\ldots} = g^{(j)\,m'm}\, T_{\ldots m}
+\qquad\text{with}\qquad g^{(j)\,m'm} = \bigl[(g^{(j)})^{-1}\bigr]_{m'm} = (-1)^{2j}\, g^{(j)}_{m'm}\]</div>
 <p>The two operations are exact inverses: <span class="arithmatex">\(g_{m'k}\, g^{km} = \delta_{m'}^{m}\)</span>.</p>
 <h2 id="frobenius-schur-indicator">Frobenius-Schur Indicator<a class="headerlink" href="#frobenius-schur-indicator" title="Permanent link">&para;</a></h2>
 <p>The general definition of the Frobenius-Schur (FS) phase is given in
 <a href="../../duality/#fs_phase">Duality Interface — <code>fs_phase</code></a>. For SU(2) with spin <span class="arithmatex">\(j\)</span>
 the formula specialises to:</p>
 <div class="arithmatex">\[\text{FS}(j) = (-1)^{2j}\]</div>
-<p>It equals <span class="arithmatex">\(+1\)</span> for integer spin (bosonic) representations and <span class="arithmatex">\(-1\)</span> for
+<p>This equals <span class="arithmatex">\(+1\)</span> for integer spin (bosonic) representations and <span class="arithmatex">\(-1\)</span> for
 half-integer spin (fermionic) representations. The FS indicator governs the phase
 accumulated when a contracted edge pair has its arrows flipped (bond inversion).</p>
 <h2 id="bond-inversion">Bond Inversion<a class="headerlink" href="#bond-inversion" title="Permanent link">&para;</a></h2>

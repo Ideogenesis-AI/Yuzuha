@@ -899,17 +899,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#derived-quantities" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Derived Quantities
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -1911,17 +1900,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#derived-quantities" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Derived Quantities
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -2032,7 +2010,10 @@
 
 
 <h1 id="edge">Edge<a class="headerlink" href="#edge" title="Permanent link">&para;</a></h1>
-<p>A directed representation — one edge of a CG tensor.</p>
+<p>An <code>Edge</code> is a <a href="../spin/">Spin</a> paired with a <a href="../direction/">Direction</a>, describing one
+external edge of a CG tensor. Edges are the unit a <a href="../cgspec/">CGSpec</a> is assembled from:
+the ordered list of edges fixes both the external shape of every tensor built from the
+spec and the fusion order of its internal tree.</p>
 
 
 <div class="doc doc-object doc-class">
@@ -2246,15 +2227,17 @@ instantiating directly.</p>
     </div>
 
 </div><h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p><code>Edge</code> combines a <code>Spin</code> and a <code>Direction</code> to describe a single external edge of a
-CG tensor. All edges of a <code>CGSpec</code> are specified as a list of <code>Edge</code> values.</p>
-<p>The two class-method constructors are the primary way to create edges:</p>
+<p>The two class-method constructors are the primary way to create edges, and take a <code>Spin</code>
+object from a doubled integer:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yuzuha</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">j</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Spin</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>   <span class="c1"># j = 1/2</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">e_in</span>  <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Edge</span><span class="o">.</span><span class="n">incoming</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>   <span class="c1"># spin-1/2 incoming edge</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">e_out</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Edge</span><span class="o">.</span><span class="n">outgoing</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>   <span class="c1"># spin-1/2 outgoing edge</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">e_in</span><span class="o">.</span><span class="n">j</span><span class="p">)</span>              <span class="c1"># 1/2</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">e_in</span><span class="o">.</span><span class="n">is_incoming</span><span class="p">())</span>  <span class="c1"># True</span>
 </code></pre></div>
 <h3 id="fields">Fields<a class="headerlink" href="#fields" title="Permanent link">&para;</a></h3>
 <table>
@@ -2267,22 +2250,21 @@ CG tensor. All edges of a <code>CGSpec</code> are specified as a list of <code>E
 </thead>
 <tbody>
 <tr>
-<td><code>spin</code></td>
+<td><code>j</code></td>
 <td><code>Spin</code></td>
 <td>Representation label</td>
 </tr>
 <tr>
-<td><code>direction</code></td>
+<td><code>dir</code></td>
 <td><code>Direction</code></td>
 <td>Incoming or outgoing</td>
 </tr>
 </tbody>
 </table>
-<h3 id="derived-quantities">Derived Quantities<a class="headerlink" href="#derived-quantities" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Dimension</strong>: <code>spin.dimension()</code> — the number of magnetic quantum number states
-  (<span class="arithmatex">\(2j + 1\)</span>)</li>
-</ul>
+<p>The direction can also be tested with <code>is_incoming()</code> and <code>is_outgoing()</code>, which avoids
+having to compare against a <code>Direction</code> value. The edge's dimension is not stored
+separately: it is <code>j.dimension()</code>, the number <span class="arithmatex">\(2j + 1\)</span> of magnetic quantum number
+states, and it becomes one axis of the canonical basis array.</p>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../spin/">Spin</a>: Representation label</li>
@@ -2291,12 +2273,12 @@ CG tensor. All edges of a <code>CGSpec</code> are specified as a list of <code>E
 <li><a href="../../../protocol/types/">Yuzuha Protocol — Type System</a>: Abstract <code>Edge</code> specification</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p><code>Edge</code> objects are immutable and hashable. They can be created from <code>Direction</code> and
-<code>Spin</code> separately or via the convenience constructors shown above.</p>
-<p>Arrow flipping (converting an incoming edge to an outgoing edge of the same spin, or
-vice versa) requires applying the metric tensor — see
-<a href="../../primitives/metric/">use_as_incoming / use_as_outgoing</a> — rather than simply
-swapping the direction field.</p>
+<p><code>Edge</code> objects are immutable and hashable, so they can be used as dictionary keys and in
+sets. Two edges are equal only when both their spin and their direction agree.</p>
+<p>Flipping an arrow — turning an incoming edge into an outgoing edge of the same spin, or
+the reverse — is not just a matter of swapping the direction field. The tensor data must
+also be contracted with the invariant metric; see
+<a href="../../primitives/metric/">Metric Tensor</a>.</p>
 
 
 

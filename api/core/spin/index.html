@@ -862,23 +862,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Description">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Properties
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1952,23 +1935,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Description">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Properties
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -2076,7 +2042,11 @@
 
 
 <h1 id="spin">Spin<a class="headerlink" href="#spin" title="Permanent link">&para;</a></h1>
-<p>Irreducible representation label for SU(2).</p>
+<p><code>Spin</code> labels an SU(2) irreducible representation by its spin quantum number
+<span class="arithmatex">\(j \in \{0, \tfrac{1}{2}, 1, \tfrac{3}{2}, \ldots\}\)</span>. It is the atom the other core types
+are built from: an <a href="../edge/">Edge</a> pairs a <code>Spin</code> with a direction, a <a href="../cgspec/">CGSpec</a>
+is built from edges, and the dimension <span class="arithmatex">\(2j + 1\)</span> a <code>Spin</code> reports fixes the shape of
+every basis and symbol array derived from it.</p>
 
 
 <div class="doc doc-object doc-class">
@@ -2405,11 +2375,10 @@
     </div>
 
 </div><h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p><code>Spin</code> represents an SU(2) irreducible representation by its spin quantum number
-<span class="arithmatex">\(j \in \{0, \frac{1}{2}, 1, \frac{3}{2}, \ldots\}\)</span>. Internally, spins are stored
-as doubled integers <span class="arithmatex">\(2j\)</span> to avoid floating-point arithmetic throughout all
-computations.</p>
-<p>The constructor takes the <strong>doubled</strong> spin value as an integer argument:</p>
+<p>Spins are stored internally as the doubled integer <span class="arithmatex">\(2j\)</span>, so that no part of the library
+performs floating-point arithmetic on a representation label. Comparisons, triangle-rule
+checks, and cache keys are therefore all exact integer operations. The price is that the
+constructor takes the <strong>doubled</strong> value in place of <span class="arithmatex">\(j\)</span> itself:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yuzuha</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">j0</span>    <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Spin</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>   <span class="c1"># j = 0</span>
@@ -2417,14 +2386,10 @@ computations.</p>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">j1</span>    <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Spin</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>   <span class="c1"># j = 1</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">j32</span>   <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Spin</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>   <span class="c1"># j = 3/2</span>
 </code></pre></div>
-<h3 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h3>
-<ul>
-<li><code>value()</code> — spin as a Python float (<span class="arithmatex">\(j = n/2\)</span>)</li>
-<li><code>twice()</code> — internal doubled integer <span class="arithmatex">\(2j\)</span></li>
-<li><code>dimension()</code> — representation dimension <span class="arithmatex">\(2j + 1\)</span></li>
-<li><code>is_integer()</code> — True if <span class="arithmatex">\(j\)</span> is a non-negative integer</li>
-<li><code>is_half_integer()</code> — True if <span class="arithmatex">\(j\)</span> is a strict half-integer</li>
-</ul>
+<p><code>value()</code> converts back to a Python float where a human-readable <span class="arithmatex">\(j\)</span> is wanted, and
+<code>twice()</code> exposes the stored integer for code that needs to key on it. <code>is_integer()</code> and
+<code>is_half_integer()</code> partition the spins by Frobenius-Schur class, which decides
+the sign picked up on arrow reversal — see <a href="../../primitives/metric/">Metric Tensor</a>.</p>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../edge/">Edge</a>: Combines a <code>Spin</code> with a <code>Direction</code></li>
@@ -2435,9 +2400,11 @@ computations.</p>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
 <p><code>Spin</code> values are immutable. Equality, hashing, and <code>&lt;</code> ordering are all supported:
 <code>Spin</code> objects can be used as dictionary keys and in sets, and lists of spins can be
-passed to <code>sorted()</code> directly without a key function.</p>
+passed to <code>sorted()</code> directly without a key function. The ordering is on the doubled
+integer, which supplies the total order the protocol requires of a representation label.</p>
 <p>The identity representation is <code>Spin(0)</code> (<span class="arithmatex">\(j = 0\)</span>), which has dimension 1 and
-contributes a trivial factor in all coupling coefficients.</p>
+contributes a trivial factor in all coupling coefficients. A negative doubled value
+raises <code>ValueError</code>.</p>
 
 
 

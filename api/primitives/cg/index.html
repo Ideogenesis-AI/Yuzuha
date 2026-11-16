@@ -1164,10 +1164,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#condon-shortley-convention" class="md-nav__link">
+  <a href="#selection-rules" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Condon-Shortley Convention
+        Selection Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#orthonormality-relations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orthonormality Relations
       
     </span>
   </a>
@@ -1198,28 +1209,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#selection-rules" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Selection Rules
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#orthonormality-relations" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Orthonormality Relations
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1856,10 +1845,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#condon-shortley-convention" class="md-nav__link">
+  <a href="#selection-rules" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Condon-Shortley Convention
+        Selection Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#orthonormality-relations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orthonormality Relations
       
     </span>
   </a>
@@ -1890,28 +1890,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#selection-rules" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Selection Rules
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#orthonormality-relations" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Orthonormality Relations
-      
-    </span>
-  </a>
   
 </li>
       
@@ -2020,40 +1998,20 @@
 
 
 <h1 id="clebsch-gordan-coefficients">Clebsch-Gordan Coefficients<a class="headerlink" href="#clebsch-gordan-coefficients" title="Permanent link">&para;</a></h1>
-<p>Real-valued SU(2) Clebsch-Gordan coefficients in the Condon-Shortley convention.</p>
+<p>Clebsch-Gordan coefficients are the lowest layer Yuzuha builds on: every canonical basis
+is a contraction of them along a fusion tree, and every symbol is a projection onto such
+bases. They are computed in the Rust layer and are not exposed as a Python function, so
+this page documents the convention and properties.</p>
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p>Clebsch-Gordan (CG) coefficients describe the decomposition of the tensor product of
-two SU(2) representations into irreducible components:</p>
+<p>A CG coefficient gives the decomposition of the tensor product of two SU(2)
+representations into irreducible components:</p>
 <div class="arithmatex">\[C^{j_3 m_3}_{j_1 m_1,\, j_2 m_2} \equiv \langle j_1 m_1,\, j_2 m_2 \mid j_3 m_3 \rangle\]</div>
-<p>Yuzuha computes CG coefficients using the <strong>Condon-Shortley convention</strong>, in which all
-coefficients are real-valued. They are accessed internally by <code>canonical_basis</code> and
-are cached in-memory for repeated evaluations.</p>
-<h3 id="condon-shortley-convention">Condon-Shortley Convention<a class="headerlink" href="#condon-shortley-convention" title="Permanent link">&para;</a></h3>
-<p>The Condon-Shortley convention fixes the relative phases of CG coefficients so that:</p>
-<ol>
-<li>All coefficients are <strong>real numbers</strong></li>
-<li>The coefficients form an <strong>orthonormal</strong> basis:</li>
-</ol>
-<div class="arithmatex">\[\sum_{m_1, m_2} \langle j_1 m_1, j_2 m_2 \mid j_3 m_3 \rangle^2 = 1\]</div>
-<ol>
-<li><strong>Selection rules</strong> are enforced automatically:</li>
-<li>Magnetic number conservation: <span class="arithmatex">\(m_1 + m_2 = m_3\)</span></li>
-<li>Triangle inequality: <span class="arithmatex">\(|j_1 - j_2| \leq j_3 \leq j_1 + j_2\)</span></li>
-<li>Integer total spin: <span class="arithmatex">\(j_1 + j_2 + j_3 \in \mathbb{Z}\)</span></li>
-</ol>
-<h3 id="internal-access">Internal Access<a class="headerlink" href="#internal-access" title="Permanent link">&para;</a></h3>
-<p>CG coefficients are not directly exposed as a Python function but are used internally
-by <code>canonical_basis</code>. The Rust layer provides <code>clebsch_gordan(j1, m1, j2, m2, j3, m3)</code>
-and caches results in a thread-local in-memory store.</p>
-<h3 id="caching">Caching<a class="headerlink" href="#caching" title="Permanent link">&para;</a></h3>
-<p>CG coefficients are cached at two levels:</p>
-<ol>
-<li><strong>In-memory</strong> (Rust, <code>once_cell</code>): Per-process cache keyed by
-   <span class="arithmatex">\((j_1, m_1, j_2, m_2, j_3, m_3)\)</span></li>
-<li><strong>SQLite</strong> (Rust): Canonical basis tensors built from CG coefficients are persisted
-   to disk; individual CG values are not stored separately</li>
-</ol>
-<h2 id="selection-rules">Selection Rules<a class="headerlink" href="#selection-rules" title="Permanent link">&para;</a></h2>
+<p>Yuzuha uses the <strong>Condon-Shortley convention</strong>, which fixes the relative phases so that
+every coefficient is real-valued. That choice allows all of Yuzuha's outputs to be
+<code>float64</code> arrays without complex involvement.</p>
+<h3 id="selection-rules">Selection Rules<a class="headerlink" href="#selection-rules" title="Permanent link">&para;</a></h3>
+<p>A coefficient whose indices violate any of the following is identically zero, so these
+rules also determine which internal spin paths a <code>CGSpec</code> admits at all:</p>
 <table>
 <thead>
 <tr>
@@ -2080,14 +2038,27 @@ and caches results in a thread-local in-memory store.</p>
 </tr>
 </tbody>
 </table>
-<p>Any coefficient with indices violating these rules is identically zero.</p>
-<h2 id="orthonormality-relations">Orthonormality Relations<a class="headerlink" href="#orthonormality-relations" title="Permanent link">&para;</a></h2>
-<p><strong>Column orthonormality</strong> (sum over coupled states):</p>
+<h3 id="orthonormality-relations">Orthonormality Relations<a class="headerlink" href="#orthonormality-relations" title="Permanent link">&para;</a></h3>
+<p>The coefficients form an orthonormal basis in both directions. Summing over the
+uncoupled magnetic numbers gives <strong>column</strong> orthonormality:</p>
 <div class="arithmatex">\[\sum_{m_1, m_2} C^{j_3 m_3}_{j_1 m_1, j_2 m_2}\, C^{j_3' m_3'}_{j_1 m_1, j_2 m_2}
 = \delta_{j_3 j_3'}\, \delta_{m_3 m_3'}\]</div>
-<p><strong>Row orthonormality</strong> (sum over output states):</p>
+<p>Summing over the coupled ones gives <strong>row</strong> orthonormality:</p>
 <div class="arithmatex">\[\sum_{j_3, m_3} C^{j_3 m_3}_{j_1 m_1, j_2 m_2}\, C^{j_3 m_3}_{j_1 m_1', j_2 m_2'}
 = \delta_{m_1 m_1'}\, \delta_{m_2 m_2'}\]</div>
+<p>The first relation is what propagates to the orthonormality of the
+<a href="../../symbols/canonical-basis/">canonical basis</a> once the coefficients are contracted
+along a fusion tree.</p>
+<h3 id="internal-access">Internal Access<a class="headerlink" href="#internal-access" title="Permanent link">&para;</a></h3>
+<p>The Rust layer provides <code>clebsch_gordan(j1, m1, j2, m2, j3, m3)</code>, called by
+<code>canonical_basis</code> as it walks the fusion tree. There is no Python binding: individual
+coefficients are an implementation detail, and exposing them would invite callers to
+rebuild bases by hand under a different normalization.</p>
+<h3 id="caching">Caching<a class="headerlink" href="#caching" title="Permanent link">&para;</a></h3>
+<p>Coefficients are cached in-process by the Rust layer (<code>once_cell</code>), keyed on the full
+index tuple <span class="arithmatex">\((j_1, m_1, j_2, m_2, j_3, m_3)\)</span>. Individual values are never written to
+disk; what persists on disk is the assembled canonical basis tensor, which is the unit of
+reuse that matters in practice.</p>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../symbols/canonical-basis/">Canonical Basis</a>: Uses CG coefficients to build the
@@ -2098,9 +2069,10 @@ and caches results in a thread-local in-memory store.</p>
   convention requirements</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p>The Rust implementation uses the standard Racah formula to compute CG coefficients
-from scratch, then caches the results. For large spins (e.g. <span class="arithmatex">\(j &gt; 10\)</span>), the
-computation is still fast because the cache is populated once and reused.</p>
+<p>The implementation evaluates the standard Racah formula, an explicit algebraic sum over
+factorials of the angular momentum quantum numbers, and caches the result. Large spins
+are not a performance concern in practice: the cost is paid once per index tuple and the
+cached canonical bases absorb the rest.</p>
 
 
 

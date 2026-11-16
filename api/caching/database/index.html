@@ -1352,10 +1352,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#when-to-call" class="md-nav__link">
+  <a href="#database-location" class="md-nav__link">
     <span class="md-ellipsis">
       
-        When to Call
+        Database Location
       
     </span>
   </a>
@@ -1364,17 +1364,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#database-location" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Database Location
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1889,10 +1878,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#when-to-call" class="md-nav__link">
+  <a href="#database-location" class="md-nav__link">
     <span class="md-ellipsis">
       
-        When to Call
+        Database Location
       
     </span>
   </a>
@@ -1901,17 +1890,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#database-location" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Database Location
-      
-    </span>
-  </a>
   
 </li>
       
@@ -2020,7 +1998,10 @@
 
 
 <h1 id="database">Database<a class="headerlink" href="#database" title="Permanent link">&para;</a></h1>
-<p>Pre-population of the canonical basis cache for common spin configurations.</p>
+<p><code>startup_database()</code> pre-computes the canonical CG bases for the spin configurations a
+tensor network calculation is most likely to need, so that the cost is paid once at
+startup instead of as a cache miss in the middle of a run. It is purely an optimization:
+the cache fills itself on first use either way, and the results are identical.</p>
 
 
 <div class="doc doc-object doc-function">
@@ -2031,7 +2012,7 @@
 
 
 <a href="#yuzuha.startup_database" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">startup_database</span><span class="p">(</span><span class="n">logger</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Logger</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">log_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">startup_database</span><span class="p">(</span><span class="n">logger</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Logger</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">log_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="n">special_spins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">general_spins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents first">
@@ -2087,6 +2068,40 @@ first time. Subsequent calls will use the cached values.</p>
                   <code><span title="logging.INFO">INFO</span></code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>special_spins</code>
+            </td>
+            <td>
+                  <code>sequence of int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Doubled spin values for the distinguished edge of the 3rd order
+configurations. Defaults to <code>(1, 2)</code>, i.e. j=1/2 and j=1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>general_spins</code>
+            </td>
+            <td>
+                  <code>sequence of int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Doubled spin values for the remaining edges. Defaults to
+<code>(1, 2, 3, 4, 5, 6)</code>, i.e. j=1/2 through j=3.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -2100,22 +2115,25 @@ first time. Subsequent calls will use the cached values.</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">'my_app'</span><span class="p">)</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">yuzuha</span><span class="o">.</span><span class="n">startup_database</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
 </code></pre></div>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Narrow the sweep to j=1/2 and j=1 only</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">yuzuha</span><span class="o">.</span><span class="n">startup_database</span><span class="p">(</span><span class="n">special_spins</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">general_spins</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+</code></pre></div>
 
 
     </div>
 
 </div><h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p><code>startup_database()</code> pre-computes and caches the canonical CG bases for a standard set
-of spin configurations that are commonly encountered in tensor network applications:</p>
+<p>The default sweep covers the configurations that dominate practical SU(2) tensor network
+work:</p>
 <ul>
-<li><strong>3rd-order bases</strong>: One spin in <span class="arithmatex">\(\{1/2, 1\}\)</span>, two spins in
+<li><strong>3rd-order bases</strong>: one spin in <span class="arithmatex">\(\{1/2, 1\}\)</span>, the other two in
   <span class="arithmatex">\(\{1/2, 1, 3/2, 2, 5/2, 3\}\)</span> — all 3! orderings of each triplet</li>
-<li><strong>4th-order bases</strong>: Two spins fixed at <span class="arithmatex">\(1/2\)</span>, two spins in
+<li><strong>4th-order bases</strong>: two spins fixed at <span class="arithmatex">\(1/2\)</span>, two in
   <span class="arithmatex">\(\{1/2, 1, 3/2, 2, 5/2, 3\}\)</span> — all <span class="arithmatex">\(\binom{4}{2} = 6\)</span> positions for the
   two fixed spins</li>
 </ul>
-<p>Calling this function at application startup avoids cache-miss latency during
-the first computation of each configuration.</p>
+<p>Configurations already present in the database are not recomputed, so calling the
+function repeatedly is cheap and idempotent.</p>
 <h3 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yuzuha</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
@@ -2129,28 +2147,29 @@ the first computation of each configuration.</p>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1"># Suppress output</span>
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">yuzuha</span><span class="o">.</span><span class="n">startup_database</span><span class="p">(</span><span class="n">log_level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1"># Narrow the sweep — doubled spin values, so 1 is j=1/2 and 2 is j=1</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">yuzuha</span><span class="o">.</span><span class="n">startup_database</span><span class="p">(</span><span class="n">special_spins</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">general_spins</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
 </code></pre></div>
+<p><code>special_spins</code> is the grid for the distinguished edge of the 3rd-order configurations and
+<code>general_spins</code> the grid for the remaining edges, both as doubled values. Omitting them
+uses the default ranges above. Narrowing them is worthwhile when an application only ever
+sees a few spin values, or in tests where the full sweep would dominate the runtime.</p>
 <h3 id="progress-logging">Progress Logging<a class="headerlink" href="#progress-logging" title="Permanent link">&para;</a></h3>
-<p>By default, <code>startup_database</code> logs progress at <code>INFO</code> level through the
-<code>yuzuha.database</code> logger. Log messages include:</p>
+<p>Progress is logged at <code>INFO</code> level through the <code>yuzuha.database</code> logger, which reports:</p>
 <ul>
-<li>Number of configurations to process</li>
-<li>Current progress (every 10 configs)</li>
-<li>Configurations skipped due to triangle inequality violations</li>
-<li>Final count of successes and failures</li>
+<li>the number of configurations to process</li>
+<li>a running count, every 10 configurations</li>
+<li>any configuration skipped for a triangle inequality violation</li>
+<li>a final tally of successes and failures</li>
 </ul>
-<h3 id="when-to-call">When to Call<a class="headerlink" href="#when-to-call" title="Permanent link">&para;</a></h3>
-<p><code>startup_database()</code> is <strong>optional</strong> — the cache is populated automatically on first
-use. Call it explicitly if you want:</p>
-<ul>
-<li>Predictable latency from the start of a computation</li>
-<li>Logged progress for long-running pre-computation</li>
-</ul>
-<h2 id="database-location">Database Location<a class="headerlink" href="#database-location" title="Permanent link">&para;</a></h2>
-<p>The canonical basis cache is managed by the Rust layer and stored in a SQLite database
-alongside the other Yuzuha caches. The location is controlled by:</p>
+<p>Pass <code>log_level=logging.WARNING</code> to silence all of it, or <code>logger=</code> to route it into an
+application's own logging setup.</p>
+<h3 id="database-location">Database Location<a class="headerlink" href="#database-location" title="Permanent link">&para;</a></h3>
+<p>The canonical basis cache is written to <code>cgbasis.db</code> in the Yuzuha cache directory,
+resolved in the same priority order as the symbol caches:</p>
 <ol>
-<li>Thread-local test override (for test isolation)</li>
+<li>Thread-local test override, for test isolation</li>
 <li><code>YUZUHA_CACHE_PATH</code> environment variable</li>
 <li>Default: <code>.yuzuha/</code> in the current working directory</li>
 </ol>
@@ -2162,11 +2181,9 @@ alongside the other Yuzuha caches. The location is controlled by:</p>
   specification</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p>Triangle inequality violations are silently skipped — configurations where no valid
-internal spin coupling exists (e.g. three spins where no triplet satisfies the triangle
-inequality) are logged at <code>DEBUG</code> level and omitted from the count.</p>
-<p>Configurations already in the database are not recomputed; subsequent calls to
-<code>startup_database</code> are idempotent.</p>
+<p>Triangle inequality violations are not errors. A swept configuration for which no valid
+internal coupling exists is logged at <code>DEBUG</code> level, omitted from the success count, and
+skipped — so the number of entries created is smaller than the size of the grid swept.</p>
 
 
 

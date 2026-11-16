@@ -878,6 +878,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#yuzuha.CGSpec.edges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;edges
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#yuzuha.CGSpec.from_edges" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1895,6 +1906,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#yuzuha.CGSpec.edges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;edges
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#yuzuha.CGSpec.from_edges" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2098,7 +2120,10 @@
 
 
 <h1 id="cgspec">CGSpec<a class="headerlink" href="#cgspec" title="Permanent link">&para;</a></h1>
-<p>Full specification of a CG tensor: its external edges and internal fusion tree.</p>
+<p><code>CGSpec</code> is the central data structure in Yuzuha: it identifies a CG tensor uniquely by
+recording its external edges together with the internal spins of its fusion tree. Every
+symbol function takes or returns one, and a spec doubles as the cache key under which the
+corresponding basis and symbol arrays are stored.</p>
 
 
 <div class="doc doc-object doc-class">
@@ -2152,6 +2177,53 @@ left-associative fusion tree.</p>
 
 
 
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="yuzuha.CGSpec.edges" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <span class="doc doc-object-name doc-attribute-name">edges</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#yuzuha.CGSpec.edges" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">edges</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Edge</span><span class="p">]</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>The external edges of this CGSpec.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="            Edge (yuzuha.yuzuha.Edge)" href="../edge/#yuzuha.Edge">Edge</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>One <code>Edge</code> per external edge, in order.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
 
 
 
@@ -2469,16 +2541,17 @@ they depend only on spin values, not directions.</p>
     </div>
 
 </div><h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p><code>CGSpec</code> (Clebsch-Gordan specification) is the central data structure in Yuzuha. It
-records everything needed to identify a CG tensor uniquely:</p>
+<p>A spec has two parts:</p>
 <ul>
-<li>The <strong>external edges</strong> — a list of <code>Edge</code> values, one per external edge</li>
-<li>The <strong>internal spins</strong> (<span class="arithmatex">\(\alpha\)</span> values) — one per intermediate fusion step in
-  the left-associative fusion tree</li>
+<li>The <strong>external edges</strong> — a list of <a href="../edge/">Edge</a> values, one per external edge</li>
+<li>The <strong>internal spins</strong> (<span class="arithmatex">\(\alpha\)</span> values) — one per intermediate fusion step in the
+  left-associative fusion tree</li>
 </ul>
-<p>For an <span class="arithmatex">\(n\)</span>th-order tensor there are <span class="arithmatex">\(n - 2\)</span> internal spins. <code>from_edges</code> automatically
-enumerates all valid internal spin configurations using the triangle inequality and
-stores them in the <code>alphas</code> field.</p>
+<p>For an <span class="arithmatex">\(n\)</span>th-order tensor there are <span class="arithmatex">\(n - 2\)</span> internal spins. You never supply them by
+hand, and they are not exposed as a Python attribute: <code>from_edges</code> enumerates every
+internal spin configuration admitted by the triangle inequality and retains them
+internally, which makes the spec's outer multiplicity well defined. What you see
+of them is their count, through <code>om_dimension()</code>.</p>
 <h3 id="constructor">Constructor<a class="headerlink" href="#constructor" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yuzuha</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
@@ -2493,7 +2566,9 @@ stores them in the <code>alphas</code> field.</p>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">])</span>
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">num_external</span><span class="p">())</span>   <span class="c1"># 3</span>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">om_dimension</span><span class="p">())</span>   <span class="c1"># 1</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>            <span class="c1"># (2, 2, 3)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="c1"># The external shape is derived from the edges</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="nb">print</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">j</span><span class="o">.</span><span class="n">dimension</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">edges</span><span class="p">))</span>   <span class="c1"># (2, 2, 3)</span>
 </code></pre></div>
 <h3 id="key-properties">Key Properties<a class="headerlink" href="#key-properties" title="Permanent link">&para;</a></h3>
 <table>
@@ -2505,6 +2580,10 @@ stores them in the <code>alphas</code> field.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>edges</code></td>
+<td>List of the external <code>Edge</code> values, in order</td>
+</tr>
+<tr>
 <td><code>num_external()</code></td>
 <td>Number of external edges</td>
 </tr>
@@ -2513,28 +2592,25 @@ stores them in the <code>alphas</code> field.</p>
 <td>Outer-multiplicity (OM) dimension — number of valid internal spin paths</td>
 </tr>
 <tr>
-<td><code>shape</code></td>
-<td>Tuple of <code>(2j+1)</code> for each external edge</td>
-</tr>
-<tr>
 <td><code>with_inverted_axes(axes)</code></td>
 <td>Returns a copy with selected edge directions flipped</td>
 </tr>
 </tbody>
 </table>
 <h3 id="axis-inversion">Axis Inversion<a class="headerlink" href="#axis-inversion" title="Permanent link">&para;</a></h3>
-<p><code>with_inverted_axes(axes)</code> creates a new <code>CGSpec</code> with the edge directions at the
-specified axis indices flipped (<code>Incoming ↔ Outgoing</code>). The internal spin configurations
-(<code>alphas</code>) are preserved because they depend only on spin values:</p>
+<p><code>with_inverted_axes(axes)</code> creates a new <code>CGSpec</code> with the edge directions at the given
+axis indices flipped (<code>Incoming ↔ Outgoing</code>). The internal spin configurations are
+preserved, because they depend only on the spin values and not on the arrows:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Flip the direction of edge 0</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">spec_inv</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">with_inverted_axes</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Flip multiple edges</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">spec_inv2</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">with_inverted_axes</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
 </code></pre></div>
-<p>This is used in tensor network algorithms to account for Frobenius-Schur phases when
-reversing contracted pairs; see the <a href="../../../getting-started/changelog/">0.1.3 changelog</a>
-for background.</p>
+<p>Tensor network algorithms use this when a contracted pair has to be re-expressed with its
+arrows reversed. The method supplies the flipped spec; the caller is responsible for the
+accompanying Frobenius-Schur phase <span class="arithmatex">\((-1)^{2j}\)</span> per inverted bond, described under
+<a href="../../primitives/metric/">Metric Tensor</a>.</p>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../edge/">Edge</a>: Building block for <code>CGSpec</code></li>
@@ -2545,12 +2621,11 @@ for background.</p>
 <li><a href="../../../protocol/types/">Yuzuha Protocol — Type System</a>: Abstract <code>Spec</code> specification</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p><code>CGSpec</code> objects are immutable and hashable. They can be used as dictionary keys
-and in sets. The <code>with_inverted_axes</code> method always returns a <strong>new</strong> object; the
-original is unchanged.</p>
-<p>The <code>from_edges</code> constructor raises <code>ValueError</code> if the provided edges are inconsistent
-(e.g. fewer than 2 edges) or if no valid internal spin configuration exists (triangle
-inequality violated for all candidates).</p>
+<p><code>CGSpec</code> objects are immutable and hashable, so they can be used as dictionary keys and
+in sets. <code>with_inverted_axes</code> always returns a <strong>new</strong> object; the original is unchanged.</p>
+<p><code>from_edges</code> raises <code>ValueError</code> if the edge list is too short (fewer than 2 edges) or if
+no valid internal spin configuration exists, which happens when the triangle inequality
+fails for every candidate path.</p>
 
 
 

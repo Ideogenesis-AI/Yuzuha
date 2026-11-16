@@ -1496,6 +1496,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#required-properties" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1557,7 +1568,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#semantics" class="md-nav__link">
+  <a href="#semantics_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Semantics
@@ -1640,7 +1651,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#semantics_1" class="md-nav__link">
+  <a href="#semantics_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Semantics
@@ -2002,6 +2013,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#required-properties" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2063,7 +2085,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#semantics" class="md-nav__link">
+  <a href="#semantics_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Semantics
@@ -2146,7 +2168,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#semantics_1" class="md-nav__link">
+  <a href="#semantics_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Semantics
@@ -2257,7 +2279,10 @@
 
 <h1 id="symbol-interface">Symbol Interface<a class="headerlink" href="#symbol-interface" title="Permanent link">&para;</a></h1>
 <p>This page specifies the required function signatures, mathematical properties, and
-error conditions for the three core symbol functions of the Yuzuha Protocol.</p>
+error conditions for the three core symbol functions of the Yuzuha Protocol. The three
+are not independent: <code>canonical_basis</code> fixes a basis for each multiplicity space, and
+both <code>compute_x_symbol</code> and <code>compute_r_symbol</code> are defined as overlaps against it, so an
+implementation that gets the basis right has largely determined the other two.</p>
 <hr />
 <h2 id="canonical_basis"><code>canonical_basis</code><a class="headerlink" href="#canonical_basis" title="Permanent link">&para;</a></h2>
 <h3 id="signature">Signature<a class="headerlink" href="#signature" title="Permanent link">&para;</a></h3>
@@ -2269,6 +2294,12 @@ error conditions for the three core symbol functions of the Yuzuha Protocol.</p>
 <li><code>spec.om_dimension()</code> = <code>om_dim</code> — the OM dimension</li>
 <li>The return type is a real-valued <span class="arithmatex">\(n+1\)</span>-dimensional array of <code>float64</code></li>
 </ul></p>
+<h3 id="semantics">Semantics<a class="headerlink" href="#semantics" title="Permanent link">&para;</a></h3>
+<p><code>canonical_basis</code> writes out the CG tensor that a spec denotes, in the magnetic-number
+basis of its external representations. The slice <code>basis[..., mu]</code> is the tensor for OM
+index <span class="arithmatex">\(\mu\)</span>, obtained by coupling the external representations along the implementation's
+fusion tree through the internal representations recorded in the spec. It is the primitive
+the other two symbol functions are defined in terms of, so fixing it fixes them.</p>
 <h3 id="required-properties">Required Properties<a class="headerlink" href="#required-properties" title="Permanent link">&para;</a></h3>
 <ol>
 <li>
@@ -2333,7 +2364,7 @@ error conditions for the three core symbol functions of the Yuzuha Protocol.</p>
 <li><code>om_b = spec_b.om_dimension()</code></li>
 <li><code>om_c = spec_c.om_dimension()</code> where <code>spec_c</code> is the returned output spec</li>
 </ul></p>
-<h3 id="semantics">Semantics<a class="headerlink" href="#semantics" title="Permanent link">&para;</a></h3>
+<h3 id="semantics_1">Semantics<a class="headerlink" href="#semantics_1" title="Permanent link">&para;</a></h3>
 <p>The X-symbol <span class="arithmatex">\(X^{\gamma}_{\alpha\beta}\)</span> is defined by:</p>
 <div class="arithmatex">\[X^{\gamma}_{\alpha\beta} = \sum_{\text{contracted indices}} \langle C_\gamma \mid A_\alpha \otimes B_\beta \rangle\]</div>
 <p>where:
@@ -2422,7 +2453,7 @@ is a rectangular tensor; no general unitarity or orthonormality is guaranteed.</
 <li><code>om_original = spec.om_dimension()</code></li>
 <li><code>om_permuted = spec_permuted.om_dimension()</code> where <code>spec_permuted</code> is the returned spec</li>
 </ul></p>
-<h3 id="semantics_1">Semantics<a class="headerlink" href="#semantics_1" title="Permanent link">&para;</a></h3>
+<h3 id="semantics_2">Semantics<a class="headerlink" href="#semantics_2" title="Permanent link">&para;</a></h3>
 <p>The R-symbol <span class="arithmatex">\(R^{\mu'}_\mu\)</span> is defined by:</p>
 <div class="arithmatex">\[R^{\mu'}_\mu = \langle B'_{\mu'} \mid B_\mu \rangle
 = \sum_{m_0,\ldots,m_{n-1}} B'_{\mu'}(m_{\pi(0)},\ldots,m_{\pi(n-1)})\, B_\mu(m_0,\ldots,m_{n-1})\]</div>

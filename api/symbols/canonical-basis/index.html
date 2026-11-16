@@ -2020,7 +2020,11 @@
 
 
 <h1 id="canonical-basis">Canonical Basis<a class="headerlink" href="#canonical-basis" title="Permanent link">&para;</a></h1>
-<p>The canonical CG basis tensor for a given specification.</p>
+<p>The canonical basis is the explicit CG tensor a <a href="../../core/cgspec/">CGSpec</a> stands for,
+written out in the magnetic-quantum-number basis. It is the object from which both
+symbols are derived — X-symbols by contracting and projecting a pair of bases, R-symbols
+by overlapping a basis with its permuted counterpart — so most users reach for it only
+when they need the raw coupling tensor itself.</p>
 
 
 <div class="doc doc-object doc-function">
@@ -2154,15 +2158,18 @@ efficiency using an SQLite database.</p>
     </div>
 
 </div><h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p><code>canonical_basis(spec)</code> computes the canonical basis tensor for a <code>CGSpec</code>. The result
-is a real-valued NumPy array of shape <code>(*external_dims, om_dim)</code>, where:</p>
+<p><code>canonical_basis(spec)</code> returns a real-valued NumPy array of shape
+<code>(*external_dims, om_dim)</code>, where:</p>
 <ul>
-<li><code>external_dims</code> is the tuple <code>(2j_0+1, 2j_1+1, ..., 2j_{n-1}+1)</code> — one factor per
-  external edge, equal to its representation dimension</li>
+<li><code>external_dims</code> is the tuple <span class="arithmatex">\((2j_0+1, \ldots, 2j_{n-1}+1)\)</span> — one factor per external
+  edge, equal to its representation dimension</li>
 <li><code>om_dim</code> is <code>spec.om_dimension()</code> — the number of valid internal spin paths</li>
 </ul>
-<p>Each slice <code>basis[..., mu]</code> is the CG tensor for OM index <span class="arithmatex">\(\mu\)</span>, constructed via
-the left-associative fusion tree (see <a href="../../../getting-started/core-concepts/">Core Concepts</a>).</p>
+<p>Each slice <code>basis[..., mu]</code> is the CG tensor for OM index <span class="arithmatex">\(\mu\)</span>, built by contracting
+Clebsch-Gordan coefficients along the left-associative fusion tree described in
+<a href="../../../getting-started/core-concepts/">Core Concepts</a>. Edges whose direction deviates
+from the canonical pattern are corrected by contracting with the invariant metric, so the
+array returned is always the basis for the spec as given.</p>
 <h3 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yuzuha</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -2180,20 +2187,24 @@ the left-associative fusion tree (see <a href="../../../getting-started/core-con
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">basis</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>    <span class="c1"># (2, 2, 3, 1) — (d_j1, d_j2, d_j3, om_dim)</span>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">basis</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>    <span class="c1"># float64</span>
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1"># Normalization: each OM slice is normalized to 1 (in the CG sense)</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="c1"># The squared norm over magnetic indices equals 1/om_dim for each slice</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1"># Every OM slice is a unit vector over the magnetic indices</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">basis</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>   <span class="c1"># 1.0</span>
 </code></pre></div>
 <h3 id="normalization-convention">Normalization Convention<a class="headerlink" href="#normalization-convention" title="Permanent link">&para;</a></h3>
-<p>The canonical basis is normalized with respect to the OM space. For a 3rd-order CG
-tensor with a single OM configuration (<span class="arithmatex">\(\mathrm{om\_dim} = 1\)</span>), each basis element
-acquires a scaling factor relative to the standard Clebsch-Gordan coefficient:</p>
-<div class="arithmatex">\[\langle B_\mu | B_\nu \rangle = \delta_{\mu\nu}\]</div>
-<p>where the inner product sums over all magnetic quantum number indices weighted by the
-appropriate fusion metric.</p>
+<p>The slices form an <strong>orthonormal</strong> set with respect to the inner product that sums over
+all magnetic quantum number indices:</p>
+<div class="arithmatex">\[\langle B_\mu | B_\nu \rangle = \sum_{m_0, \ldots, m_{n-1}}
+B_\mu(m_0, \ldots, m_{n-1})\, B_\nu(m_0, \ldots, m_{n-1}) = \delta_{\mu\nu}\]</div>
+<p>This is not the normalization of the bare Clebsch-Gordan coefficients. For a 3rd-order
+tensor, where the OM dimension is always 1, the single basis element carries a factor of
+<span class="arithmatex">\(1/\sqrt{2j_3 + 1}\)</span> relative to the bare coefficient:</p>
+<div class="arithmatex">\[B_0(m_1, m_2, m_3) = \frac{1}{\sqrt{2j_3 + 1}}\, C^{j_3 m_3}_{j_1 m_1,\, j_2 m_2}\]</div>
 <h3 id="caching">Caching<a class="headerlink" href="#caching" title="Permanent link">&para;</a></h3>
-<p>Canonical bases are cached in a Rust-managed SQLite database inside the Yuzuha
-installation. The cache is populated on first use and persists across Python sessions.
-Use <code>startup_database()</code> to pre-populate the cache for common spin configurations.</p>
+<p>Canonical bases are cached by the Rust layer in <code>.yuzuha/cgbasis.db</code>, keyed on the
+external spins alone — arrow directions are stripped, since a deviating spec is derived
+from the stored tensor by applying the metric. The cache is populated on first use and
+persists across Python sessions; <code>startup_database()</code> pre-computes it for the spin
+configurations most commonly needed, trading startup time for predictable latency later.</p>
 <h3 id="auxiliary-functions">Auxiliary Functions<a class="headerlink" href="#auxiliary-functions" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2209,7 +2220,7 @@ Use <code>startup_database()</code> to pre-populate the cache for common spin co
 </tr>
 <tr>
 <td><code>compute_conjugate(spec)</code></td>
-<td>Canonical basis for the conjugated spec (arrow-reversed)</td>
+<td>Conjugate phase and arrow-reversed spec for a given spec</td>
 </tr>
 </tbody>
 </table>
@@ -2223,8 +2234,8 @@ Use <code>startup_database()</code> to pre-populate the cache for common spin co
   requirement</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p><code>canonical_basis</code> is thread-safe. Concurrent calls with different specs are safe; calls
-with identical specs share the same cached result.</p>
+<p><code>canonical_basis</code> is thread-safe. Concurrent calls with different specs are safe, and
+calls with identical specs share the same cached result.</p>
 <p>The function raises <code>ValueError</code> if the spec has fewer than 2 edges or if no valid
 internal spin configuration exists.</p>
 

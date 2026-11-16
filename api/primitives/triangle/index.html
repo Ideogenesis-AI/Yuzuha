@@ -1220,6 +1220,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#enumeration-in-cgspec-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enumeration in CGSpec Construction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#internal-rust-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1230,30 +1241,8 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#admissible-spin-range" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Admissible Spin Range
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#triangle-inequality-in-cgspec-construction" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Triangle Inequality in CGSpec Construction
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1834,6 +1823,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#enumeration-in-cgspec-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enumeration in CGSpec Construction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#internal-rust-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1844,30 +1844,8 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#admissible-spin-range" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Admissible Spin Range
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#triangle-inequality-in-cgspec-construction" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Triangle Inequality in CGSpec Construction
-      
-    </span>
-  </a>
   
 </li>
       
@@ -1976,17 +1954,36 @@
 
 
 <h1 id="triangle-rules">Triangle Rules<a class="headerlink" href="#triangle-rules" title="Permanent link">&para;</a></h1>
-<p>Triangle inequality and admissible spin range utilities.</p>
+<p>The triangle rules decide which spin triplets can couple at all, and so they decide the
+shape of everything downstream: they allow <code>CGSpec.from_edges</code> to enumerate internal
+spin paths, they fix a spec's outer-multiplicity dimension, and they are what a
+<code>Contraction</code> is validated against. Like the CG coefficients, they live in the Rust layer
+and have no Python binding.</p>
 <h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p>The <strong>triangle inequality</strong> constrains which triplets <span class="arithmatex">\((j_1, j_2, j_3)\)</span> can appear
-as valid CG coupling arguments. Three spins satisfy the triangle inequality if and only
-if they can be the sides of a triangle (in the usual sense), with the additional
-requirement that their sum is an integer:</p>
+<p>Three spins satisfy the <strong>triangle inequality</strong> if and only if they can be the sides of a
+triangle in the usual sense, with the extra requirement that their sum be an integer:</p>
 <div class="arithmatex">\[|j_1 - j_2| \leq j_3 \leq j_1 + j_2 \quad \text{and} \quad j_1 + j_2 + j_3 \in \mathbb{Z}\]</div>
-<p>Yuzuha uses these rules internally to enumerate valid internal spin configurations when
-constructing a <code>CGSpec</code> from a list of edges, and to validate <code>Contraction</code> inputs.</p>
+<p>For a fixed pair <span class="arithmatex">\(j_1, j_2\)</span>, the admissible coupled spins therefore form a contiguous
+ladder in unit steps,</p>
+<div class="arithmatex">\[j_3 \in \{|j_1 - j_2|,\; |j_1 - j_2| + 1,\; \ldots,\; j_1 + j_2\},\]</div>
+<p>whose length is <span class="arithmatex">\(N = j_1 + j_2 - |j_1 - j_2| + 1 = 2\min(j_1, j_2) + 1\)</span>. That count is
+the branching factor at one node of a fusion tree, and the product of such factors over
+the tree bounds the outer multiplicity of a spec.</p>
+<h3 id="enumeration-in-cgspec-construction">Enumeration in CGSpec Construction<a class="headerlink" href="#enumeration-in-cgspec-construction" title="Permanent link">&para;</a></h3>
+<p><code>CGSpec.from_edges</code> walks the left-associative fusion tree, applying the ladder above at
+each step and discarding paths that dead-end:</p>
+<ol>
+<li>The first internal spin <span class="arithmatex">\(\alpha_1\)</span> ranges over the admissible spins of
+   <span class="arithmatex">\((j_1, j_2)\)</span></li>
+<li>Each subsequent <span class="arithmatex">\(\alpha_k\)</span> ranges over the admissible spins of
+   <span class="arithmatex">\((\alpha_{k-1}, j_{k+1})\)</span></li>
+<li>The last coupling must land exactly on the terminal edge's spin <span class="arithmatex">\(j_n\)</span></li>
+</ol>
+<p>Step 3 is why a spec can have an OM dimension smaller than the naive product of branching
+factors, and why an edge list can be rejected outright: if no path survives, <code>from_edges</code>
+raises <code>ValueError</code>.</p>
 <h3 id="internal-rust-functions">Internal Rust Functions<a class="headerlink" href="#internal-rust-functions" title="Permanent link">&para;</a></h3>
-<p>The following functions are available in the Rust crate (<code>yuzuha::primitives</code>):</p>
+<p>The crate exposes these in <code>yuzuha::primitives</code>:</p>
 <table>
 <thead>
 <tr>
@@ -2017,33 +2014,19 @@ constructing a <code>CGSpec</code> from a list of edges, and to validate <code>C
 </tr>
 </tbody>
 </table>
-<p>These are not directly exposed to Python but govern all coupling operations.</p>
-<h3 id="admissible-spin-range">Admissible Spin Range<a class="headerlink" href="#admissible-spin-range" title="Permanent link">&para;</a></h3>
-<p>For two spins <span class="arithmatex">\(j_1\)</span> and <span class="arithmatex">\(j_2\)</span>, the range of valid coupled spins <span class="arithmatex">\(j_3\)</span> is:</p>
-<div class="arithmatex">\[j_3 \in \{|j_1 - j_2|,\; |j_1 - j_2| + 1,\; \ldots,\; j_1 + j_2\}\]</div>
-<p>The number of valid values is:</p>
-<div class="arithmatex">\[N = j_1 + j_2 - |j_1 - j_2| + 1 = 2\min(j_1, j_2) + 1\]</div>
-<h2 id="triangle-inequality-in-cgspec-construction">Triangle Inequality in CGSpec Construction<a class="headerlink" href="#triangle-inequality-in-cgspec-construction" title="Permanent link">&para;</a></h2>
-<p>When <code>CGSpec.from_edges</code> enumerates internal spin configurations:</p>
-<ol>
-<li>The first internal spin <span class="arithmatex">\(\alpha_1\)</span> must satisfy the triangle inequality for
-   <span class="arithmatex">\((j_1, j_2)\)</span>: <span class="arithmatex">\(\alpha_1 \in [\,|j_1-j_2|,\; j_1+j_2\,]\)</span></li>
-<li>Each subsequent <span class="arithmatex">\(\alpha_k\)</span> must satisfy <span class="arithmatex">\(\alpha_k \in [\,|\alpha_{k-1}-j_{k+1}|,\;
-   \alpha_{k-1}+j_{k+1}\,]\)</span></li>
-<li>The final internal spin must equal the output spin <span class="arithmatex">\(j_n\)</span> (fixed by the last edge)</li>
-</ol>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../cg/">Clebsch-Gordan Coefficients</a>: CG coefficients are zero for triplets violating
   the triangle inequality</li>
-<li><a href="../../core/cgspec/">CGSpec</a>: Uses the triangle inequality to enumerate <code>alphas</code></li>
+<li><a href="../../core/cgspec/">CGSpec</a>: Uses the triangle inequality to enumerate internal spins</li>
 <li><a href="../../../protocol/conventions/fusion/">Yuzuha Protocol — Fusion Conventions</a>: Triangle
   inequality as a conformance requirement</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p>The integer-sum condition <span class="arithmatex">\(j_1 + j_2 + j_3 \in \mathbb{Z}\)</span> is automatically
-satisfied when all spins are either all integers or contain an even number of
-half-integers, which is always the case for valid SU(2) fusion trees.</p>
+<p>The integer-sum condition <span class="arithmatex">\(j_1 + j_2 + j_3 \in \mathbb{Z}\)</span> rarely has to be checked
+separately in practice. It holds automatically whenever the three spins are all integers
+or contain exactly two half-integers, which is the case for every triplet a valid SU(2)
+fusion tree produces.</p>
 
 
 

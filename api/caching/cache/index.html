@@ -1335,33 +1335,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#description" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Overview
+        Description
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="Description">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#cache-path" class="md-nav__link">
     <span class="md-ellipsis">
       
         Cache Path
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Cache Path">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#setting-the-cache-path" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Setting the Cache Path
       
     </span>
   </a>
@@ -2046,33 +2035,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#overview" class="md-nav__link">
+  <a href="#description" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Overview
+        Description
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="Description">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#cache-path" class="md-nav__link">
     <span class="md-ellipsis">
       
         Cache Path
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Cache Path">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#setting-the-cache-path" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Setting the Cache Path
       
     </span>
   </a>
@@ -2424,10 +2402,13 @@
 
 
 <h1 id="cache-management">Cache Management<a class="headerlink" href="#cache-management" title="Permanent link">&para;</a></h1>
-<p>Utilities for controlling the symbol cache path, inspecting statistics, and
-managing cache state.</p>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>Yuzuha maintains three persistent SQLite databases:</p>
+<p>Caching in Yuzuha is transparent — nothing on this page is needed to get correct results.
+These utilities exist for the cases where the cache's location or contents matter to you:
+pointing it at a writable directory in a deployment, inspecting how much has accumulated,
+and isolating it so that a test run neither reads nor pollutes real data.</p>
+<h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
+<p>Yuzuha maintains three persistent SQLite databases, each keyed on the inputs of the
+function whose results it holds:</p>
 <table>
 <thead>
 <tr>
@@ -2440,7 +2421,7 @@ managing cache state.</p>
 <tr>
 <td>CG basis cache</td>
 <td><code>.yuzuha/cgbasis.db</code></td>
-<td><code>(edges, alphas) → canonical basis array</code></td>
+<td><code>external spins → canonical basis array</code></td>
 </tr>
 <tr>
 <td>X-symbol cache</td>
@@ -2454,15 +2435,18 @@ managing cache state.</p>
 </tr>
 </tbody>
 </table>
-<p>All three databases are created automatically on first use and are thread-safe.</p>
-<h2 id="cache-path">Cache Path<a class="headerlink" href="#cache-path" title="Permanent link">&para;</a></h2>
-<p>The cache directory is resolved in the following priority order:</p>
+<p>All three are created on first use and are thread-safe. The CG basis cache is managed by
+the Rust layer; the two symbol caches are managed by the Python layer, so the
+cache-clearing utilities below reach the latter two only.</p>
+<h3 id="cache-path">Cache Path<a class="headerlink" href="#cache-path" title="Permanent link">&para;</a></h3>
+<p>All three databases live in one directory, resolved in this priority order:</p>
 <ol>
-<li><strong>Thread-local override</strong> (set by <code>TestCacheContext</code>) — highest priority</li>
-<li><strong>Environment variable</strong>: <code>YUZUHA_CACHE_PATH</code></li>
+<li><strong>Thread-local override</strong>, set by <code>TestCacheContext</code> — highest priority</li>
+<li><strong>Environment variable</strong> <code>YUZUHA_CACHE_PATH</code></li>
 <li><strong>Default</strong>: <code>.yuzuha/</code> in the current working directory</li>
 </ol>
-<h3 id="setting-the-cache-path">Setting the Cache Path<a class="headerlink" href="#setting-the-cache-path" title="Permanent link">&para;</a></h3>
+<p><code>set_cache_path</code> works by setting the environment variable, so it takes effect for the
+whole process but is still overridden inside a <code>TestCacheContext</code> block:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yuzuha</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Set via Python</span>
@@ -2732,6 +2716,9 @@ cache statistics (size, db_path, db_size_bytes).</p>
 
 </div><h2 id="usage-examples">Usage Examples<a class="headerlink" href="#usage-examples" title="Permanent link">&para;</a></h2>
 <h3 id="inspecting-cache-state">Inspecting Cache State<a class="headerlink" href="#inspecting-cache-state" title="Permanent link">&para;</a></h3>
+<p><code>print_cache_stats</code> is the quick human-readable view; <code>get_cache_stats</code> returns the same
+information as a dict of <code>size</code>, <code>db_path</code>, and <code>db_size_bytes</code> per cache, for logging or
+assertions:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yuzuha</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># Print a human-readable summary</span>
@@ -2751,7 +2738,7 @@ cache statistics (size, db_path, db_size_bytes).</p>
 <a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="s1">'rsymbol'</span><span class="p">][</span><span class="s1">'db_path'</span><span class="p">])</span>     <span class="c1"># path to R-symbol database</span>
 </code></pre></div>
 <h3 id="clearing-caches">Clearing Caches<a class="headerlink" href="#clearing-caches" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Clear all symbol caches (keeps database files, removes entries)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Clear the symbol caches (keeps database files, removes entries)</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">yuzuha</span><span class="o">.</span><span class="n">clear_all_caches</span><span class="p">()</span>
 </code></pre></div>
 <h3 id="isolated-cache-for-testing">Isolated Cache for Testing<a class="headerlink" href="#isolated-cache-for-testing" title="Permanent link">&para;</a></h3>
@@ -2772,10 +2759,11 @@ cache statistics (size, db_path, db_size_bytes).</p>
   specification of the caching interface</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p><code>reset_caches()</code> closes and destroys the in-memory cache objects so that the next
-call to <code>compute_xsymbol</code> or <code>compute_rsymbol</code> opens a fresh connection. It does
-<strong>not</strong> delete the database files. Use <code>clear_all_caches()</code> to remove cached entries
-while preserving the file and schema.</p>
+<p><code>reset_caches()</code> and <code>clear_all_caches()</code> do different things. The first closes and
+discards the in-memory cache objects so that the next symbol computation opens a fresh
+connection, leaving the stored data untouched. The second deletes the entries from the
+X- and R-symbol databases while preserving the files and their schema. Neither clears
+<code>cgbasis.db</code>; to discard cached canonical bases, delete that file.</p>
 
 
 

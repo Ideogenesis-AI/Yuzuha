@@ -2024,21 +2024,25 @@ crucial for computing the correct coupling coefficients and for arrow-reversal
 transformations via the invariant metric.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">yuzuha</span><span class="w"> </span><span class="kn">import</span> <span class="n">Direction</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">d_in</span>  <span class="o">=</span> <span class="n">Direction</span><span class="o">.</span><span class="n">Incoming</span>   <span class="c1"># primal representation</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">d_out</span> <span class="o">=</span> <span class="n">Direction</span><span class="o">.</span><span class="n">Outgoing</span>   <span class="c1"># dual representation</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">d_in</span>  <span class="o">=</span> <span class="n">Direction</span><span class="o">.</span><span class="n">incoming</span><span class="p">()</span>   <span class="c1"># primal representation</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">d_out</span> <span class="o">=</span> <span class="n">Direction</span><span class="o">.</span><span class="n">outgoing</span><span class="p">()</span>   <span class="c1"># dual representation</span>
 </code></pre></div>
 <p>Arrow directions can be flipped using the invariant metric <span class="arithmatex">\(g\)</span>:</p>
 <div class="arithmatex">\[g^{(j)}_{m,m'} = (-1)^{j-m}\,\delta_{m,-m'}\]</div>
 <p>See <a href="../../api/primitives/metric/">Metric Tensor</a> for the functions that implement
 this transformation.</p>
 <h2 id="edges">Edges<a class="headerlink" href="#edges" title="Permanent link">&para;</a></h2>
-<p>An <strong>Edge</strong> pairs a spin with a direction, representing one external edge of a tensor:</p>
+<p>An <strong>Edge</strong> pairs a spin with a direction, representing one external edge of a tensor.
+The two constructors below are the usual way to build one, and the pair is readable
+afterwards through the <code>j</code> and <code>dir</code> fields:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yuzuha</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">j</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Spin</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># j = 1/2</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">e_in</span>  <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Edge</span><span class="o">.</span><span class="n">incoming</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>   <span class="c1"># spin-1/2 incoming edge</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">e_out</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">Edge</span><span class="o">.</span><span class="n">outgoing</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>   <span class="c1"># spin-1/2 outgoing edge</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">e_in</span><span class="o">.</span><span class="n">j</span><span class="p">,</span> <span class="n">e_in</span><span class="o">.</span><span class="n">is_incoming</span><span class="p">())</span>   <span class="c1"># 1/2 True</span>
 </code></pre></div>
 <h2 id="cg-specifications">CG Specifications<a class="headerlink" href="#cg-specifications" title="Permanent link">&para;</a></h2>
 <p>A <strong>CGSpec</strong> (Clebsch-Gordan specification) fully describes a CG tensor — the canonical
@@ -2063,10 +2067,13 @@ left-associative fusion tree structure (see below).</p>
 <a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
 <a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">num_external</span><span class="p">())</span>  <span class="c1"># 3</span>
 <a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">om_dimension</span><span class="p">())</span>  <span class="c1"># 1  (only one valid internal coupling)</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>           <span class="c1"># (2, 2, 3)  — product of (2j+1) per edge</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># The external shape is read off the edges</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="nb">print</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">j</span><span class="o">.</span><span class="n">dimension</span><span class="p">()</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">edges</span><span class="p">))</span>   <span class="c1"># (2, 2, 3)</span>
 </code></pre></div>
 <p>The <code>from_edges</code> constructor automatically enumerates all valid internal spin
-configurations and stores them as the <code>alphas</code> field.</p>
+configurations. They are kept internally rather than exposed as an attribute; what you
+observe of them is their count, through <code>om_dimension()</code>.</p>
 <h2 id="left-associative-fusion-trees">Left-Associative Fusion Trees<a class="headerlink" href="#left-associative-fusion-trees" title="Permanent link">&para;</a></h2>
 <p>Yuzuha represents multi-spin couplings using <strong>left-associative fusion trees</strong>. For
 <span class="arithmatex">\(n\)</span> external spins <span class="arithmatex">\((j_1, j_2, \ldots, j_n)\)</span>, the coupling proceeds from left to
@@ -2094,13 +2101,18 @@ X-symbol and R-symbol matrices.</p>
 <a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">yuzuha</span><span class="o">.</span><span class="n">Edge</span><span class="o">.</span><span class="n">incoming</span><span class="p">(</span><span class="n">j1</span><span class="p">),</span>
 <a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">yuzuha</span><span class="o">.</span><span class="n">Edge</span><span class="o">.</span><span class="n">outgoing</span><span class="p">(</span><span class="n">j1</span><span class="p">),</span>
 <a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">])</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">om_dimension</span><span class="p">())</span>  <span class="c1"># &gt; 1 for certain spin combinations</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">om_dimension</span><span class="p">())</span>  <span class="c1"># 3 — three internal spins couple j=1 x j=1 down to j=1</span>
 </code></pre></div>
+<p>Four edges is the smallest order at which this can happen, and even then only if the
+spins permit more than one path. A 3rd-order spec always has OM dimension 1, because its
+single coupling is already fixed by the outgoing edge.</p>
 <h2 id="canonical-cg-bases">Canonical CG Bases<a class="headerlink" href="#canonical-cg-bases" title="Permanent link">&para;</a></h2>
 <p>The <strong>canonical basis</strong> for a CGSpec is a real-valued tensor of shape
 <span class="arithmatex">\((2j_1+1, \ldots, 2j_n+1, \mathrm{om\_dim})\)</span> that expresses the CG tensor in the
-magnetic-quantum-number basis. It is computed from the CG coefficients using the
-left-associative fusion tree and normalized with respect to the OM space.</p>
+magnetic-quantum-number basis. It is computed from the CG coefficients along the
+left-associative fusion tree, then normalized so that the OM slices are orthonormal —
+each slice is a unit vector over the magnetic indices, which is not the normalization of
+the bare CG coefficients themselves.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">basis</span> <span class="o">=</span> <span class="n">yuzuha</span><span class="o">.</span><span class="n">canonical_basis</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">basis</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (*external_dims, om_dim)</span>
 </code></pre></div>

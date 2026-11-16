@@ -2112,11 +2112,13 @@ dependency is NumPy 2.0 or higher.</p>
 <li><strong>Python</strong>: 3.11 or higher</li>
 <li><strong>NumPy</strong>: 2.0 or higher</li>
 </ul>
+<p>The NumPy floor is not arbitrary: the extension is built against the NumPy 2.x
+ABI-stable interface, so a 1.x installation will fail at import.</p>
 <h2 id="installing-from-source">Installing from Source<a class="headerlink" href="#installing-from-source" title="Permanent link">&para;</a></h2>
 <p>If you need the latest development version or want to contribute to Yuzuha, build from
 source using <a href="https://www.maturin.rs/">Maturin</a>.</p>
 <h3 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h3>
-<p>Install Rust (1.70 or higher) and Maturin:</p>
+<p>The crate uses the 2024 edition, so the compiler must be Rust 1.85 or higher. Install Rust and Maturin:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Install Rust via rustup</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>curl<span class="w"> </span>--proto<span class="w"> </span><span class="s1">'=https'</span><span class="w"> </span>--tlsv1.2<span class="w"> </span>-sSf<span class="w"> </span>https://sh.rustup.rs<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
@@ -2138,8 +2140,12 @@ source using <a href="https://www.maturin.rs/">Maturin</a>.</p>
 <p>The <code>--release</code> flag enables Rust optimizations; omit it for faster compile times during
 development (at the cost of runtime performance).</p>
 <h3 id="running-tests">Running Tests<a class="headerlink" href="#running-tests" title="Permanent link">&para;</a></h3>
+<p>The Python suite runs against whatever build is currently installed in the environment,
+so run <code>maturin develop</code> first if you have touched the Rust sources:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pytest
 </code></pre></div>
+<p>The crate also has a Rust-side suite, which needs a feature flag to build; see
+<a href="../contributing/">Contributing</a> for that and for the coverage tooling.</p>
 <h2 id="verifying-installation">Verifying Installation<a class="headerlink" href="#verifying-installation" title="Permanent link">&para;</a></h2>
 <p>Verify that Yuzuha is installed and functioning correctly:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yuzuha</span>
@@ -2184,9 +2190,10 @@ override this location:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>numpy
 </code></pre></div>
 <h3 id="rust-build-errors">Rust Build Errors<a class="headerlink" href="#rust-build-errors" title="Permanent link">&para;</a></h3>
-<p>If you see linker or compilation errors when building from source, ensure your Rust
-toolchain is up to date:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>rustup<span class="w"> </span>update<span class="w"> </span>stable
+<p>Source builds need Rust 1.85 or higher, the first release that supports edition 2024.
+Check the compiler, and install a current stable release if it is behind:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>rustc<span class="w"> </span>--version
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>rustup<span class="w"> </span>update<span class="w"> </span>stable
 </code></pre></div>
 <h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <p>Once installed, continue with:</p>

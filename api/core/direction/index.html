@@ -912,6 +912,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Description">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sign-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sign Convention
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#arrow-reversal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arrow Reversal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1979,6 +2007,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Description">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sign-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sign Convention
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#arrow-reversal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arrow Reversal
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2086,7 +2142,10 @@
 
 
 <h1 id="direction">Direction<a class="headerlink" href="#direction" title="Permanent link">&para;</a></h1>
-<p>Arrow direction for tensor network edges.</p>
+<p><code>Direction</code> is the two-valued enum recording whether an external edge is <strong>incoming</strong>
+(primal representation) or <strong>outgoing</strong> (dual representation). Arrow directions are not
+decoration: they decide how charges fuse, which magnetic-number sum has to vanish, and
+where the invariant metric must be inserted when an arrow is reversed.</p>
 
 
 <div class="doc doc-object doc-class">
@@ -2513,40 +2572,46 @@ instantiating directly.</p>
     </div>
 
 </div><h2 id="description">Description<a class="headerlink" href="#description" title="Permanent link">&para;</a></h2>
-<p><code>Direction</code> is a two-valued enum that specifies whether an external edge is <strong>incoming</strong>
-(primal representation) or <strong>outgoing</strong> (dual representation). Arrow directions govern
-how charges fuse and how the invariant metric is applied when reversing an arrow.</p>
+<p>Every external edge of a CG tensor carries one of the two directions, built with the static
+constructors or recovered from the <code>dir</code> field of an existing edge:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">yuzuha</span><span class="w"> </span><span class="kn">import</span> <span class="n">Direction</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">d_in</span>  <span class="o">=</span> <span class="n">Direction</span><span class="o">.</span><span class="n">Incoming</span>   <span class="c1"># primal / ket-type index</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">d_out</span> <span class="o">=</span> <span class="n">Direction</span><span class="o">.</span><span class="n">Outgoing</span>   <span class="c1"># dual / bra-type index</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">d_in</span>  <span class="o">=</span> <span class="n">Direction</span><span class="o">.</span><span class="n">incoming</span><span class="p">()</span>   <span class="c1"># primal / ket-type index</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">d_out</span> <span class="o">=</span> <span class="n">Direction</span><span class="o">.</span><span class="n">outgoing</span><span class="p">()</span>   <span class="c1"># dual / bra-type index</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">d_in</span><span class="o">.</span><span class="n">sign</span><span class="p">())</span>             <span class="c1"># 1</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">d_out</span><span class="o">.</span><span class="n">sign</span><span class="p">())</span>            <span class="c1"># -1</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">d_in</span><span class="o">.</span><span class="n">flip</span><span class="p">()</span> <span class="o">==</span> <span class="n">d_out</span><span class="p">)</span>    <span class="c1"># True</span>
 </code></pre></div>
-<p>In the sign convention used throughout Yuzuha:</p>
-<ul>
-<li>An <strong>incoming</strong> edge with spin <span class="arithmatex">\(j\)</span> contributes a factor of <span class="arithmatex">\(+1\)</span> to the total
-  magnetic quantum number sum.</li>
-<li>An <strong>outgoing</strong> edge with spin <span class="arithmatex">\(j\)</span> contributes a factor of <span class="arithmatex">\(-1\)</span>.</li>
-</ul>
-<p>Charge conservation then requires that the total signed magnetic quantum number of all
-edges is zero:</p>
+<h3 id="sign-convention">Sign Convention<a class="headerlink" href="#sign-convention" title="Permanent link">&para;</a></h3>
+<p>An incoming edge contributes <span class="arithmatex">\(+m\)</span> to the total magnetic quantum number and an outgoing
+edge contributes <span class="arithmatex">\(-m\)</span>. Charge conservation then requires the signed sum over all edges
+to vanish, and any basis entry whose indices violate this is identically zero:</p>
 <div class="arithmatex">\[\sum_{\text{incoming}} m_i - \sum_{\text{outgoing}} m_j = 0\]</div>
-<p>Arrow reversal from incoming to outgoing is implemented via the metric tensor <span class="arithmatex">\(g\)</span>.
-Arrow reversal from outgoing to incoming uses <span class="arithmatex">\(g^{-1} = (-1)^{2j}\, g\)</span>, which is
-<span class="arithmatex">\(+g\)</span> for integer spins and <span class="arithmatex">\(-g\)</span> for half-integer spins.</p>
+<p>The rule survives arrow reversal because its two moving parts cancel. Reversing an edge
+contracts it with the metric, which sends <span class="arithmatex">\(m \to -m\)</span> on that edge, and at the same time
+flips the sign that edge carries in the sum. The law therefore holds in the same form for
+every arrow pattern, not merely the canonical one.</p>
+<h3 id="arrow-reversal">Arrow Reversal<a class="headerlink" href="#arrow-reversal" title="Permanent link">&para;</a></h3>
+<p>Flipping a direction is not a relabeling — the tensor data has to be transformed with the
+invariant metric <span class="arithmatex">\(g\)</span>. Reversal from incoming to outgoing contracts with <span class="arithmatex">\(g\)</span>; reversal
+from outgoing to incoming contracts with <span class="arithmatex">\(g^{-1} = (-1)^{2j}\, g\)</span>, which is <span class="arithmatex">\(+g\)</span> for
+integer spins and <span class="arithmatex">\(-g\)</span> for half-integer spins. That sign is the Frobenius-Schur phase,
+which justifies <code>Direction</code> as part of the cache key of every symbol.</p>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../edge/">Edge</a>: Pairs <code>Direction</code> with a <code>Spin</code></li>
-<li><a href="../../primitives/metric/">Metric Tensor</a>: <code>use_as_incoming</code>, <code>use_as_outgoing</code></li>
+<li><a href="../../primitives/metric/">Metric Tensor</a>: The transformation that reverses an arrow</li>
 <li><a href="../../../protocol/types/">Yuzuha Protocol — Type System</a>: Abstract <code>Direction</code> enum
   specification</li>
 <li><a href="../../../protocol/conventions/arrows/">Yuzuha Protocol — Arrow Conventions</a>: Arrow
   reversal conventions</li>
 </ul>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<p><code>Direction</code> values are immutable — attribute assignment raises <code>AttributeError</code>.
-Two <code>Direction</code> values compare equal when they represent the same orientation
-(<code>Incoming == Incoming</code>, <code>Outgoing == Outgoing</code>). They can be passed directly to the
-<code>Edge.incoming</code> / <code>Edge.outgoing</code> constructors.</p>
+<p><code>Direction</code> values are immutable — attribute assignment raises <code>AttributeError</code>. Two
+values compare equal when they represent the same orientation (<code>Incoming == Incoming</code>,
+<code>Outgoing == Outgoing</code>), so they can be used as dictionary keys and compared directly
+against the <code>dir</code> field of an <code>Edge</code>.</p>
 
 
 

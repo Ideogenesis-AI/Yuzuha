@@ -1722,23 +1722,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Symbols">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#auxiliary-symbol-functions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Auxiliary Symbol Functions
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -1870,8 +1853,10 @@
 
 
 <h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
-<p>Welcome to the Yuzuha API Reference. This section documents all types, functions, and
-modules available in the <code>yuzuha</code> Python package, organized by functionality.</p>
+<p>Welcome to the Yuzuha API Reference. This section documents the types, functions, and
+modules of the <code>yuzuha</code> Python package, organized by role. The dependency runs in one
+direction — spins build edges, edges build specs, specs produce bases, and bases
+produce symbols.</p>
 <h2 id="core-types">Core Types<a class="headerlink" href="#core-types" title="Permanent link">&para;</a></h2>
 <p>The fundamental building blocks for specifying CG tensors:</p>
 <table>
@@ -1888,7 +1873,7 @@ modules available in the <code>yuzuha</code> Python package, organized by functi
 </tr>
 <tr>
 <td><a href="core/direction/">Direction</a></td>
-<td>Arrow direction: <code>Incoming</code> or <code>Outgoing</code></td>
+<td>Arrow direction: incoming or outgoing</td>
 </tr>
 <tr>
 <td><a href="core/edge/">Edge</a></td>
@@ -1932,27 +1917,32 @@ modules available in the <code>yuzuha</code> Python package, organized by functi
 </tr>
 </tbody>
 </table>
-<h3 id="auxiliary-symbol-functions">Auxiliary Symbol Functions<a class="headerlink" href="#auxiliary-symbol-functions" title="Permanent link">&para;</a></h3>
+<p>Two further functions handle duality, and are documented alongside the
+<a href="primitives/metric/">Metric Tensor</a>:</p>
 <table>
 <thead>
 <tr>
 <th>Function</th>
+<th>Returns</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>fs_phase_for_spin(spin)</code></td>
+<td><code>float</code></td>
 <td>Frobenius-Schur indicator <span class="arithmatex">\((-1)^{2j}\)</span></td>
 </tr>
 <tr>
 <td><code>compute_conjugate(spec)</code></td>
-<td>Canonical basis with all arrows reversed</td>
+<td><code>(float, CGSpec)</code></td>
+<td>Conjugate phase and arrow-reversed spec</td>
 </tr>
 </tbody>
 </table>
 <h2 id="primitives">Primitives<a class="headerlink" href="#primitives" title="Permanent link">&para;</a></h2>
-<p>Internal mathematical utilities (Rust layer, not directly Python-callable):</p>
+<p>The mathematical layer the symbols are built on. These live in Rust and are not callable
+from Python, but their conventions determine every value the library returns:</p>
 <table>
 <thead>
 <tr>
@@ -1976,7 +1966,8 @@ modules available in the <code>yuzuha</code> Python package, organized by functi
 </tbody>
 </table>
 <h2 id="caching">Caching<a class="headerlink" href="#caching" title="Permanent link">&para;</a></h2>
-<p>Utilities for managing persistent symbol caches:</p>
+<p>Caching is transparent, so these utilities are only needed when the cache's location or
+contents matter — in deployments, tests, or when inspecting what has accumulated:</p>
 <table>
 <thead>
 <tr>
@@ -1987,7 +1978,7 @@ modules available in the <code>yuzuha</code> Python package, organized by functi
 <tbody>
 <tr>
 <td><a href="caching/database/">Database</a></td>
-<td><code>startup_database()</code> — pre-populate canonical basis cache</td>
+<td><code>startup_database()</code> — pre-populate the canonical basis cache</td>
 </tr>
 <tr>
 <td><a href="caching/cache/">Cache Management</a></td>
@@ -2018,7 +2009,7 @@ modules available in the <code>yuzuha</code> Python package, organized by functi
 </tr>
 <tr>
 <td><code>clear_all_caches()</code></td>
-<td>Delete all entries from X- and R-symbol databases</td>
+<td>Delete all entries from the X- and R-symbol databases</td>
 </tr>
 <tr>
 <td><code>get_cache_stats()</code></td>
@@ -2051,7 +2042,7 @@ modules available in the <code>yuzuha</code> Python package, organized by functi
 <p><strong>Understand the formal interface contract</strong>
 → <a href="../protocol/">Yuzuha Protocol</a></p>
 <h2 id="api-design-principles">API Design Principles<a class="headerlink" href="#api-design-principles" title="Permanent link">&para;</a></h2>
-<p>Yuzuha follows these design principles:</p>
+<p>Five commitments hold across the whole surface:</p>
 <ul>
 <li><strong>All outputs are NumPy arrays</strong>: Symbols are returned as <code>float64</code> <code>ndarray</code> objects,
   compatible with standard scientific Python tools</li>
@@ -2060,7 +2051,7 @@ modules available in the <code>yuzuha</code> Python package, organized by functi
 <li><strong>Transparent caching</strong>: Cache lookups and stores are invisible to the caller; the
   same result is returned regardless of whether the cache was hit</li>
 <li><strong>Fail loudly</strong>: Invalid inputs (bad permutations, incompatible contractions, triangle
-  violations) raise <code>ValueError</code> rather than silently returning wrong results</li>
+  violations) raise <code>ValueError</code> to avoid silently returning wrong results</li>
 <li><strong>Thread-safe caching</strong>: All database operations are protected by mutexes</li>
 </ul>
 <h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
